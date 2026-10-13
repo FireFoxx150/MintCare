@@ -6,16 +6,7 @@ VER=$(python3 -c "import mintcare; print(mintcare.__version__)")
 PKG=build/mintcare_${VER}_all
 rm -rf build && mkdir -p "$PKG/DEBIAN" dist && chmod 755 "$PKG"
 
-install -Dm755 mintcare.py                 "$PKG/usr/lib/mintcare/mintcare.py"
-for f in mintcare/*.py; do install -Dm644 "$f" "$PKG/usr/lib/mintcare/$f"; done
-install -Dm755 packaging/mintcare-root     "$PKG/usr/lib/mintcare/mintcare-root"
-install -Dm755 packaging/mintcare          "$PKG/usr/bin/mintcare"
-install -Dm644 packaging/org.mintcare.policy "$PKG/usr/share/polkit-1/actions/org.mintcare.policy"
-install -Dm644 packaging/mintcare.svg      "$PKG/usr/share/icons/hicolor/scalable/apps/mintcare.svg"
-sed -e 's|@EXEC@|mintcare|' -e 's|^Icon=.*|Icon=mintcare|' mintcare.desktop.in \
-  | install -Dm644 /dev/stdin "$PKG/usr/share/applications/mintcare.desktop"
-install -Dm644 README.md                   "$PKG/usr/share/doc/mintcare/README.md"
-po/compile.sh "$PKG/usr/share/locale" >/dev/null
+packaging/install-tree.sh "$PKG"
 
 SIZE=$(du -sk "$PKG/usr" | cut -f1)
 cat > "$PKG/DEBIAN/control" <<CTRL
@@ -25,7 +16,8 @@ Section: admin
 Priority: optional
 Architecture: all
 Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, pkexec | policykit-1
-Recommends: timeshift, ufw
+Recommends: timeshift, ufw, udisks2, gir1.2-xapp-1.0, gir1.2-webkit2-4.1, libnotify-bin
+Suggests: smartmontools, flatpak
 Installed-Size: $SIZE
 Maintainer: Matthew <firefoxx.ms@gmail.com>
 Description: Clean, optimise and repair Linux Mint

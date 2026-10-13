@@ -7,7 +7,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.5.0_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.6.0_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -20,6 +20,14 @@ helper (`/usr/lib/mintcare/mintcare-root`), so the password prompt names
 MintCare. Run from source, it falls back to `pkexec /bin/bash`.
 
 Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
+
+## Interface
+* **Themes:** Dark (default), Light, High contrast, or follow the system — header menu (☰).
+* **Experience level:** Beginner (essentials and recommended tweaks only), Intermediate, Advanced.
+* **Search (Ctrl+F):** pages, checks, tweaks, profiles, cleaners and settings; jumps to the row.
+* **Responsive:** the layout reflows down to ~760 px wide; the sidebar collapses to icons.
+* **Tray icon:** optional XApp status icon with check-up / quick clean; can start in the tray at login.
+* **Health report:** export as PDF or HTML, with personal details removed by default.
 
 ## Pages
 
@@ -93,7 +101,16 @@ mintcare clean [--run [ID...]]
 mintcare hardware          # drives, temperatures, boot time
 mintcare space [PATH]      # biggest folders/files and snapshot count
 mintcare maintain [--no-notify]  # what the scheduled check-up runs
+mintcare report [-o FILE] [--personal]  # HTML health report
+mintcare --tray            # start the GUI hidden in the tray
 ```
+
+## Development
+```
+./run-tests.sh                 # 46 stdlib unittest tests; never needs root or changes the system
+po/update-pot.sh               # refresh the translation template (see po/README.md)
+```
+See `RELEASING.md` for GitHub releases and a Launchpad PPA.
 
 ## Adding checks or tweaks
 Add a `Check` to `mintcare/checks.py`, a `Tweak` (or `sysctl_tweak`) to

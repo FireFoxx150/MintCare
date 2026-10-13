@@ -1,4 +1,5 @@
 """Read-only smoke tests against the real machine: every probe returns something sane."""
+import os
 import subprocess
 import sys
 import unittest
@@ -7,6 +8,7 @@ from mintcare import checks, cleaner, hardware, tweaks
 from tests.helpers import ROOT
 
 
+@unittest.skipIf(os.environ.get("MINTCARE_SKIP_SYSTEM_TESTS"), "needs a real Mint desktop (CI/package build)")
 class Probes(unittest.TestCase):
     def test_every_check_returns_a_result(self):
         for c in checks.CHECKS:

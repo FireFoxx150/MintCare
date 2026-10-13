@@ -1,0 +1,23 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gettext xvfb fakeroot
+      - name: Check the tag matches the version
+        run: test "v$(python3 -c 'import mintcare; print(mintcare.__version__)')" = "$GITHUB_REF_NAME"
+      - name: Run tests
+        run: MINTCARE_SKIP_SYSTEM_TESTS=1 xvfb-run -a ./run-tests.sh
+      - name: Build .deb
+        run: ./build-deb.sh
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.deb --title "MintCare $GITHUB_REF_NAME" --generate-notes

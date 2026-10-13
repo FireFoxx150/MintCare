@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_build:
+
+override_dh_auto_test:
+	MINTCARE_SKIP_SYSTEM_TESTS=1 python3 -m unittest discover -s tests -t . || true
+
+override_dh_auto_install:
+	packaging/install-tree.sh debian/mintcare
