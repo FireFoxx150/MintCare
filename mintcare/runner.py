@@ -37,21 +37,9 @@ def run_steps(steps, root, on_line=print):
         cmd = ["/bin/bash", path]
     results = {}
     try:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             text=True, bufsize=1)
-        for line in p.stdout:
-            line = line.rstrip("\n")
-            if line.startswith(BEGIN):
-                continue
-            if line.startswith(END):
-                _, sid, rc = line.split()
-                results[sid] = int(rc)
-                on_line("    ✔ done" if rc == "0" else f"    ✖ failed (exit {rc})")
-                continue
-            if line.startswith("(Reading database ...") and "files and directories" not in line:
-                continue  # dpkg progress spam
-            on_line(line)
-        prc = p.wait()
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              text=True, bufsize=1) as p:
+            prc = _stream(p, results, on_line)
     finally:
         os.unlink(path)
     for sid, _t, _b in steps:
@@ -60,3 +48,19 @@ def run_steps(steps, root, on_line=print):
     if prc in (126, 127) and not any(rc == 0 for rc in results.values()):
         on_line("Authentication was cancelled or failed.")
     return results
+
+
+def _stream(p, results, on_line):
+    for line in p.stdout:
+        line = line.rstrip("\n")
+        if line.startswith(BEGIN):
+            continue
+        if line.startswith(END):
+            _, sid, rc = line.split()
+            results[sid] = int(rc)
+            on_line("    ✔ done" if rc == "0" else f"    ✖ failed (exit {rc})")
+            continue
+        if line.startswith("(Reading database ...") and "files and directories" not in line:
+            continue  # dpkg progress spam
+        on_line(line)
+    return p.wait()
