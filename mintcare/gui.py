@@ -197,6 +197,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         self.show_all()
         self.connect("size-allocate", self._on_size)
+        accel = Gtk.AccelGroup()
+        accel.connect(Gdk.keyval_from_name("f"), Gdk.ModifierType.CONTROL_MASK, 0,
+                      lambda *_: self.search.grab_focus() or True)
+        self.add_accel_group(accel)
         self._apply_layout("wide")
         self.apply_level(self.prefs.get("level", "intermediate"))
         self.goto(os.environ.get("MINTCARE_PAGE", "dashboard"))
@@ -222,6 +226,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
         titles.pack_start(label("LINUX MINT CLEAN · OPTIMISE · REPAIR", ("app-sub",)), False, False, 0)
         brand.pack_start(titles, False, False, 0)
         hb.pack_start(brand)
+        self.search = Gtk.SearchEntry(placeholder_text="Search  (Ctrl+F)", width_chars=24, valign=Gtk.Align.CENTER)
+        self.search.set_margin_start(18)
+        self.search.connect("search-changed", self._on_search)
+        self.search.connect("activate", self._search_activate_first)
+        self.search.connect("key-press-event", self._search_key)
+        hb.pack_start(self.search)
+        self.search_pop = Gtk.Popover(relative_to=self.search, position=Gtk.PositionType.BOTTOM)
+        self.search_pop.set_modal(False)
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, max_content_height=440,
+                                propagate_natural_height=True)
+        sw.set_size_request(460, -1)
+        self.search_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.BROWSE)
+        self.search_list.connect("row-activated", lambda _l, r: self._search_go(r.target))
+        sw.add(self.search_list)
+        self.search_pop.add(sw)
+        sw.show_all()
 
         chips = hbox(16)
         self.chip_boxes = {}
@@ -332,9 +352,136 @@ class MintCareWindow(Gtk.ApplicationWindow):
         elif key == "tray_autostart":
             self.set_tray_autostart(value)
 
+    # ------------------------------------------------------------ search
+
+    def _search_index(self):
+        lvl = getattr(self, "level", "advanced")
+        items = []
+        for key, title, ico in NAV:
+            if self.nav_rows[key].get_visible():
+                items.append(("page", title, "Go to page", ico, (key, None), title))
+        for c in checks.CHECKS:
+            r = self.check_results.get(c.id)
+            items.append(("check", c.title, r.summary if r else c.category, "system-search-symbolic",
+                          ("diagnose", ("check", c.id)), f"{c.category} {c.id}"))
+        for t in tweaks.TWEAKS:
+            if self.tweak_rows[t.id].get_visible():
+                items.append(("tweak", t.title, t.description, "power-profile-performance-symbolic",
+                              ("optimise", ("tweak", t.id)), f"{t.category} {t.id}"))
+        for p in tweaks.PROFILES:
+            items.append(("profile", f"{p.title} profile", p.description, p.icon,
+                          ("optimise", ("profile", p.id)), "profile preset"))
+        for i in cleaner.ITEMS:
+            if i.id in getattr(self, "clean_rows", {}):
+                items.append(("clean", i.title, i.description, "user-trash-symbolic",
+                              ("clean", ("clean", i.id)), "clean junk cache"))
+        for key, title in theme.NAMES:
+            items.append(("setting", f"{title} theme", "Change the appearance", "weather-clear-symbolic",
+                          (None, ("theme", key)), "theme appearance colour color dark light contrast"))
+        for key, title, desc in LEVELS:
+            items.append(("setting", f"{title} mode", desc, "preferences-system-symbolic",
+                          (None, ("level", key)), "level experience mode"))
+        return items
+
+    def _on_search(self, entry):
+        q_ = entry.get_text().strip().lower()
+        for ch in self.search_list.get_children():
+            ch.destroy()
+        if len(q_) < 2:
+            self.search_pop.popdown()
+            return
+        words = q_.split()
+        scored = []
+        for kind, title, sub, ico, target, kw in self._search_index():
+            hay = f"{title} {sub} {kw}".lower()
+            if not all(w in hay for w in words):
+                continue
+            tl = title.lower()
+            score = (0 if tl.startswith(q_) else 1 if q_ in tl else 2 if all(w in tl for w in words) else 3)
+            scored.append((score, kind, title, sub, ico, target))
+        scored.sort(key=lambda x: (x[0], x[2].lower()))
+        if not scored:
+            row = Gtk.ListBoxRow(activatable=False, selectable=False)
+            row.add(label(f"Nothing matches “{entry.get_text().strip()}”.", ("muted",)))
+            row.target = None
+            self.search_list.add(row)
+        for _sc, kind, title, sub, ico, target in scored[:14]:
+            row = Gtk.ListBoxRow()
+            row.target = target
+            b = hbox(10)
+            b.set_border_width(6)
+            b.pack_start(icon(ico, Gtk.IconSize.BUTTON, "ok"), False, False, 0)
+            t = vbox(1)
+            t.pack_start(label(title, ("h3",), ellipsize=True), False, False, 0)
+            t.pack_start(label(sub, ("faint",), ellipsize=True), False, False, 0)
+            b.pack_start(t, True, True, 0)
+            b.pack_end(pill(kind, "dim"), False, False, 0)
+            row.add(b)
+            self.search_list.add(row)
+        self.search_list.show_all()
+        self.search_pop.popup()
+
+    def _search_key(self, entry, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            entry.set_text("")
+            self.search_pop.popdown()
+            return True
+        if ev.keyval == Gdk.KEY_Down and self.search_pop.get_visible():
+            first = self.search_list.get_row_at_index(0)
+            if first:
+                self.search_list.select_row(first)
+                first.grab_focus()
+            return True
+        return False
+
+    def _search_activate_first(self, _entry):
+        row = self.search_list.get_row_at_index(0)
+        if row is not None and getattr(row, "target", None):
+            self._search_go(row.target)
+
+    def _search_go(self, target):
+        if not target:
+            return
+        self.search_pop.popdown()
+        page, what = target
+        self.search.set_text("")
+        if what and what[0] == "theme":
+            self.theme_radios[what[1]].set_active(True)
+            return
+        if what and what[0] == "level":
+            self.level_radios[what[1]].set_active(True)
+            return
+        if page:
+            self.goto(page)
+        if not what:
+            return
+        kind, key = what
+        row = {"check": getattr(self, "check_rows", {}), "tweak": self.tweak_rows,
+               "clean": getattr(self, "clean_rows", {})}.get(kind, {}).get(key)
+        if kind == "profile":
+            row = self.profile_tiles.get(key) if hasattr(self, "profile_tiles") else None
+        if row is not None:
+            GLib.timeout_add(220, self._scroll_to, row)
+
+    def _scroll_to(self, widget):
+        sw = widget.get_ancestor(Gtk.ScrolledWindow)
+        if sw is not None and sw.get_child() is not None:
+            content = sw.get_child().get_child() if isinstance(sw.get_child(), Gtk.Viewport) else sw.get_child()
+            coords = widget.translate_coordinates(content, 0, 0)
+            if coords:
+                adj = sw.get_vadjustment()
+                adj.set_value(max(0, min(coords[1] - 90, adj.get_upper() - adj.get_page_size())))
+        css(widget, "flash")
+        GLib.timeout_add(1600, lambda: widget.get_style_context().remove_class("flash") or False)
+        return False
+
     # ------------------------------------------------------------ responsive layout
 
     def _on_size(self, _w, alloc):
+        full_chips = alloc.width >= 1350
+        if full_chips != getattr(self, "_full_chips", None):
+            self._full_chips = full_chips
+            GLib.idle_add(self._apply_chips)
         mode = "wide" if alloc.width >= 1180 else "medium" if alloc.width >= 900 else "narrow"
         if mode != self._layout_mode:
             self._layout_mode = mode
@@ -356,10 +503,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.nav_kicker.set_visible(not compact)
         self.side_foot.set_visible(not compact)
         self.sidebar.set_size_request(64 if compact else 220, -1)
+        self._apply_chips()
+        self.header_chips.set_visible(mode != "narrow")
+        self.search.set_width_chars(14 if compact else 24)
+        return False
+
+    def _apply_chips(self):
+        full = getattr(self, "_full_chips", True)
         for key in ("SYSTEM", "SYSTEM-sep", "KERNEL", "KERNEL-sep"):     # separators sit before their chip
             if key in self.chip_boxes:
-                self.chip_boxes[key].set_visible(mode == "wide")
-        self.header_chips.set_visible(mode != "narrow")
+                self.chip_boxes[key].set_visible(full)
         return False
 
     # ------------------------------------------------------------ theme & level
@@ -967,6 +1120,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def _check_row(self, check, res):
         row = Gtk.ListBoxRow(activatable=False)
+        self.check_rows = getattr(self, "check_rows", {})
+        self.check_rows[check.id] = row
         box = hbox(12)
         icon_name, cls = STATUS_ICON[res.status]
         box.pack_start(icon(icon_name, Gtk.IconSize.LARGE_TOOLBAR, cls), False, False, 0)
@@ -1072,6 +1227,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             foot.pack_end(self.action_button("Select", lambda pid=pr.id: self.select_profile(pid)), False, False, 0)
             tile.pack_start(foot, False, False, 0)
             self.profile_meters[pr.id] = (meter, cnt)
+            self.profile_tiles = getattr(self, "profile_tiles", {})
+            self.profile_tiles[pr.id] = tile
             tile.set_size_request(230, -1)
             prow.add(tile)
         page.pack_start(prow, False, False, 0)
@@ -1297,6 +1454,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             box.pack_end(size, False, False, 0)
             row.add(box)
             lb.add(row)
+            self.clean_rows = getattr(self, "clean_rows", {})
+            self.clean_rows[item.id] = row
         page.pack_start(c, False, False, 0)
         return scrolled(page)
 
