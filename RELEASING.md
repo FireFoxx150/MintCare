@@ -24,7 +24,7 @@ Nothing here has been published yet. Each step below needs your accounts and you
 1. Create a Launchpad account, upload your GPG key, sign the Code of Conduct and create a PPA.
 2. `sudo apt install devscripts debhelper dput`
 3. For each Ubuntu base Mint uses (22.x = noble): set the changelog version to e.g.
-   `1.7.0~ppa1~noble` and the series to `noble`, then
+   `1.7.1~ppa1~noble` and the series to `noble`, then
    `debuild -S -sa` (signs with your key) and `dput ppa:USER/mintcare ../mintcare_*_source.changes`.
 4. Users then run `sudo add-apt-repository ppa:USER/mintcare && sudo apt install mintcare`
    and get updates through Mint's Update Manager.

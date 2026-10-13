@@ -7,7 +7,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.7.0_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.7.1_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -34,7 +34,7 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 | Page | What it does |
 |---|---|
 | **Dashboard** | Update banner, health-score trend, live CPU / RAM / disk ring gauges, live performance and network charts, health score, system details, one-click *Fix all / Recommended tweaks / Quick clean* |
-| **Diagnose & Fix** | 38 checks with a Fix button where a safe fix exists |
+| **Diagnose & Fix** | 38 checks with a Fix button where a safe fix exists; click any check to see the command behind it and its live output (copy it or open it in a terminal) |
 | **Optimise** | 4 one-click profiles (Everyday desktop, Gaming, Laptop battery, Developer) and 29 toggleable tweaks; switching one off reverts it |
 | **Disk space** | Clickable treemap of any folder (or the whole system) with the largest files, a content-based duplicate finder (BLAKE2, oldest copy kept) and Timeshift snapshot clean-up. Files go to the Trash |
 | **Software & updates** | MintCare self-update from GitHub (SHA-256 verified); APT source health — never downloaded, wrong Ubuntu series, duplicates, missing keys, apt test run — with disable/enable for third-party sources |
@@ -109,7 +109,7 @@ mintcare --tray            # start the GUI hidden in the tray
 
 ## Development
 ```
-./run-tests.sh                 # 58 stdlib unittest tests; never needs root or changes the system
+./run-tests.sh                 # 64 stdlib unittest tests; never needs root or changes the system
 po/update-pot.sh               # refresh the translation template (see po/README.md)
 ```
 See `RELEASING.md` for GitHub releases and a Launchpad PPA.

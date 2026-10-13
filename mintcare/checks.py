@@ -328,20 +328,25 @@ def c_user_failed_units():
 
 
 def c_boot_errors():
-    # Ignore failed sudo password attempts (user activity, not a fault) and
-    # collapse messages that differ only in PIDs, paths or numbers.
-    rc, o = run("journalctl -b -p 3 -q --no-pager -o cat 2>/dev/null")
-    if rc != 0:
-        return Result(INFO, _("Could not read the system log"))
-    msgs = {re.sub(r"\d+", "#", re.sub(r"PWD=[^;]*;", "", l)).strip()
-            for l in o.splitlines()
-            if l.strip() and "a password is required" not in l and "incorrect password" not in l}
-    n = len(msgs)
-    if n == 0:
+    from . import journal
+    groups = journal.grouped()
+    if not groups:
         return Result(OK, _("No errors logged since boot"))
-    return Result(INFO if n < 25 else WARN,
-                  f"{n} distinct error message{'s' if n != 1 else ''} logged since boot "
-                  "(run 'journalctl -b -p 3' to review)")
+    by = {lvl: [g for g in groups if g["level"] == lvl] for lvl in (FAIL, WARN, INFO, OK)}
+    crashes = sum(g["count"] for g in groups if g["who"].startswith("crash:"))
+    parts = []
+    if crashes:
+        parts.append(f"{crashes} program crash{'es' if crashes != 1 else ''}")
+    if by[FAIL]:
+        parts.append(f"{len(by[FAIL])} serious")
+    look = [g for g in by[INFO] + by[WARN] if not g["who"].startswith("crash:")]
+    if look:
+        parts.append(f"{len(look)} to look at")
+    if by[OK]:
+        parts.append(f"{len(by[OK])} harmless")
+    level = FAIL if by[FAIL] else WARN if by[WARN] else INFO if by[INFO] else OK
+    return Result(level, f"{len(groups)} kind(s) of error since boot: " + ", ".join(parts) +
+                  " — click for details and explanations")
 
 
 SAP_DROPIN = "/etc/systemd/system/bluetooth.service.d/99-mintcare-nosap.conf"
@@ -578,3 +583,60 @@ CHECKS = [
     Check("ecryptfs", _("Unused ecryptfs login module"), _("System"), c_ecryptfs),
     Check("inotify", _("File watcher limit"), _("System"), c_inotify),
 ]
+
+
+# ------------------------------------------------------------ details shown when a check is clicked
+
+# check id -> shell command (read-only, runs as you). Shown in the panel and runnable in a terminal.
+DETAIL_COMMANDS = {
+    "internet": "ip -brief address; echo; ip route | head -5; echo; ping -c 3 -W 2 1.1.1.1",
+    "dns": "resolvectl status | head -30; echo; getent ahosts linuxmint.com | head -3",
+    "bbr": "sysctl net.ipv4.tcp_congestion_control net.core.default_qdisc net.ipv4.tcp_available_congestion_control",
+    "hostname": "hostname; echo; cat /etc/hosts",
+    "dpkg": "dpkg --audit || true",
+    "aptbroken": "apt-get -s -o Debug::NoLocking=1 check",
+    "updates": "apt list --upgradable 2>/dev/null",
+    "reboot": "uname -r; echo; ls -1 /boot/vmlinuz-*; echo; cat /run/reboot-required.pkgs 2>/dev/null || true",
+    "kernels": "dpkg -l 'linux-image-[0-9]*' | awk '/^ii/{print $2, $3}'; echo; echo \"Running: $(uname -r)\"",
+    "residual": "dpkg -l | awk '/^rc/{print $2, $3}'",
+    "sources": "grep -rhv '^\\s*#' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null | grep -v '^\\s*$'",
+    "selfupdate": "dpkg-query -W -f='${Version}\\n' mintcare 2>/dev/null || echo 'not installed as a package'",
+    "rootdisk": "df -h -x tmpfs -x devtmpfs -x squashfs -x efivarfs",
+    "bootdisk": "df -h /boot /boot/efi 2>/dev/null; echo; ls -lh /boot",
+    "trim": "systemctl status fstrim.timer --no-pager | head -6; echo; lsblk -d -o NAME,ROTA,DISC-GRAN,MODEL",
+    "journal": "journalctl --disk-usage; echo; cat /etc/systemd/journald.conf.d/*.conf 2>/dev/null",
+    "timeshift": "cat /etc/timeshift/timeshift.json 2>/dev/null; echo; ls /timeshift/snapshots 2>/dev/null",
+    "swap": "swapon --show; echo; free -h; echo; sysctl vm.swappiness",
+    "memory": "free -h; echo; ps -eo pid,comm,%mem,rss --sort=-%mem | head -12",
+    "microcode": "grep -m1 microcode /proc/cpuinfo; dpkg -l '*microcode*' | awk '/^ii/{print $2, $3}'",
+    "gpu": "lspci -k | grep -A3 -E 'VGA|3D'; echo; nvidia-smi 2>/dev/null | head -15",
+    "power": "powerprofilesctl 2>/dev/null; dpkg -l tlp power-profiles-daemon 2>/dev/null | awk '/^ii/{print $2, $3}'",
+    "smart": "udisksctl status",
+    "temps": "sensors 2>/dev/null || cat /sys/class/hwmon/hwmon*/temp*_input",
+    "firmware": "fwupdmgr get-devices 2>/dev/null | head -60",
+    "firewall": "cat /etc/ufw/ufw.conf; echo; systemctl status ufw --no-pager | head -5",
+    "homeperms": "ls -ld ~",
+    "ports": "ss -tulnp",
+    "time": "timedatectl",
+    "failed": "systemctl --failed --no-pager",
+    "userfailed": "systemctl --user --failed --no-pager",
+    "boottime": "systemd-analyze; echo; systemd-analyze blame --no-pager | head -15; echo; systemd-analyze critical-chain --no-pager",
+    "booterrors": "journalctl -b -p 3 --no-pager",
+    "grub": "grep -h -E '^GRUB_(TIMEOUT|RECORDFAIL|TIMEOUT_STYLE)' /etc/default/grub /etc/default/grub.d/*.cfg 2>/dev/null",
+    "gamemode": "getent group gamemode; id -nG",
+    "btsap": "systemctl cat bluetooth --no-pager | grep -E 'ExecStart|^#'",
+    "ecryptfs": "dpkg -l ecryptfs-utils 2>/dev/null | awk '/^ii/{print $2, $3}'; grep -l ecryptfs /etc/pam.d/* 2>/dev/null",
+    "inotify": "sysctl fs.inotify.max_user_watches fs.inotify.max_user_instances",
+}
+
+
+def details(check_id):
+    """(command shown to the user, output text) for the details panel, or None."""
+    cmd = DETAIL_COMMANDS.get(check_id)
+    if not cmd:
+        return None
+    if check_id == "booterrors":
+        from . import journal
+        return cmd, journal.report()
+    rc, o = run(["bash", "-c", cmd], timeout=30)
+    return cmd, o or _("(no output)")

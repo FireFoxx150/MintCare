@@ -48,6 +48,10 @@ RULES = """
 .mintcare radio { background-image: none; background-color: @checkbg; border: 1px solid @checkborder; }
 .level-pill { margin-top: 2px; }
 flowboxchild { padding: 0; }
+.detail-panel { background-color: @panel; border: 1px solid @line; border-radius: 8px; padding: 8px 10px;
+  margin: 8px 0 2px 40px; }
+image.faint { color: @slate5; }
+.card list row:hover image.faint { color: @emerald4; }
 .flash, .card list row.flash { background-color: alpha(@emerald, 0.22); }
 .mintcare entry { background-color: @checkbg; color: @slate2; border: 1px solid @line; border-radius: 8px;
   background-image: none; box-shadow: none; }

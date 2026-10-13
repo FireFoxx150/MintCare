@@ -1736,15 +1736,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
             head.pack_start(label(f"{ok}/{len(items)} passing", ("faint", "mono")), False, False, 0)
             self.diag_box.pack_start(head, False, False, 2)
             c, lb = list_card()
+            lb.connect("row-activated", lambda _lb, row: getattr(row, "toggle_details", lambda: None)())
             for chk in items:
                 lb.add(self._check_row(chk, self.check_results[chk.id]))
             self.diag_box.pack_start(c, False, False, 0)
         self.diag_box.show_all()
+        for cid in list(getattr(self, "_open_details", set())):
+            row = self.check_rows.get(cid)
+            if row is not None and hasattr(row, "toggle_details"):
+                row.toggle_details(force=True)
 
     def _check_row(self, check, res):
-        row = Gtk.ListBoxRow(activatable=False)
+        has_details = check.id in checks.DETAIL_COMMANDS
+        row = Gtk.ListBoxRow(activatable=has_details)
         self.check_rows = getattr(self, "check_rows", {})
         self.check_rows[check.id] = row
+        outer = vbox(0)
         box = hbox(12)
         icon_name, cls = STATUS_ICON[res.status]
         box.pack_start(icon(icon_name, Gtk.IconSize.LARGE_TOOLBAR, cls), False, False, 0)
@@ -1758,8 +1765,102 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._diag_buttons.append(b)
             box.pack_end(b, False, False, 0)
         box.pack_end(pill(STATUS_WORD[res.status], cls), False, False, 0)
-        row.add(box)
+        outer.pack_start(box, False, False, 0)
+        if has_details:
+            chev = icon("pan-end-symbolic", Gtk.IconSize.MENU, "faint")
+            box.pack_end(chev, False, False, 0)
+            row.set_tooltip_text(_("Click to see what MintCare checked, and the command behind it"))
+            # A plain show/hide holder: a Gtk.Revealer mis-sizes when the output arrives after it opens
+            holder = vbox(0)
+            holder.set_no_show_all(True)
+            outer.pack_start(holder, False, False, 0)
+            state = {"panel": None}
+
+            def toggle(force=False):
+                self._open_details = getattr(self, "_open_details", set())
+                show = force or not holder.get_visible()
+                if show and state["panel"] is None:
+                    state["panel"] = self._detail_panel(check)
+                    holder.pack_start(state["panel"], False, False, 0)
+                    state["panel"].show_all()
+                elif show and not force:
+                    state["panel"].refresh()
+                holder.set_visible(show)
+                chev.set_from_icon_name("pan-down-symbolic" if show else "pan-end-symbolic", Gtk.IconSize.MENU)
+                (self._open_details.add if show else self._open_details.discard)(check.id)
+            row.toggle_details = toggle
+        row.add(outer)
         return row
+
+    def _detail_panel(self, check):
+        """Expandable panel: the command behind a check, its live output, and copy / terminal / refresh."""
+        panel = vbox(6, "detail-panel")
+        top = hbox(6)
+        cmd_lbl = label("$ " + checks.DETAIL_COMMANDS[check.id], ("faint", "mono"), ellipsize=True, selectable=True)
+        cmd_lbl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+        top.pack_start(cmd_lbl, True, True, 0)
+        spin = Gtk.Spinner()
+        top.pack_start(spin, False, False, 0)
+        out = Gtk.TextView(editable=False, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR, cursor_visible=False,
+                           left_margin=8, right_margin=8, top_margin=6, bottom_margin=6)
+        css(out, "log")
+        sw = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        sw.add(out)
+
+        def fit(text):
+            # size to the output (wrapped lines estimated from width), scrolling beyond ~20 lines
+            width_chars = max(40, (panel.get_allocated_width() or 900) // 8)
+            rows = sum(1 + len(line) // width_chars for line in text.split("\n"))
+            sw.set_min_content_height(min(rows, 20) * 17 + 14)
+
+        def refresh():
+            spin.start()
+            out.get_buffer().set_text(_("Running…"))
+            fit(_("Running…"))
+
+            def done(res):
+                spin.stop()
+                text = (res or ("", _("(could not run the command)")))[1]
+                out.get_buffer().set_text(text)
+                fit(text)
+            self.bg(lambda: checks.details(check.id), done)
+
+        def small(text, cb, icon_name):
+            b = Gtk.Button()
+            inner = hbox(4)
+            inner.pack_start(icon(icon_name), False, False, 0)
+            inner.pack_start(Gtk.Label(label=text), False, False, 0)
+            b.add(inner)
+            css(b, "ghost")
+            b.set_valign(Gtk.Align.CENTER)
+            b.connect("clicked", lambda *_x: cb())
+            return b
+        cmd = checks.DETAIL_COMMANDS[check.id]
+        top.pack_end(small(_("Refresh"), refresh, "view-refresh-symbolic"), False, False, 0)
+        top.pack_end(small(_("Open in terminal"), lambda: self.run_in_terminal(cmd), "utilities-terminal-symbolic"),
+                     False, False, 0)
+        top.pack_end(small(_("Copy"), lambda: self._copy(cmd), "edit-copy-symbolic"), False, False, 0)
+        panel.pack_start(top, False, False, 0)
+        panel.pack_start(sw, False, False, 0)
+        panel.refresh = refresh
+        refresh()
+        return panel
+
+    def _copy(self, text):
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
+        self.set_status(_("Command copied to the clipboard"))
+
+    def run_in_terminal(self, cmd):
+        script = f"{cmd}; echo; read -rp 'Press Enter to close… '"
+        for argv in (["gnome-terminal", "--", "bash", "-c", script],
+                     ["x-terminal-emulator", "-e", "bash", "-c", script]):
+            if shutil.which(argv[0]):
+                try:
+                    subprocess.Popen(argv, start_new_session=True)
+                    return
+                except OSError:
+                    continue
+        self.set_status(_("No terminal app found"), bad=True)
 
     def _fix_steps(self, items):
         root, user = [], []
