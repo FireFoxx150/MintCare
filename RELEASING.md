@@ -5,7 +5,7 @@ Nothing here has been published yet. Each step below needs your accounts and you
 ## Before the first public release
 - Licence: GPL-3.0-or-later (`LICENSE`, `debian/copyright`).
 - Maintainer: the name/e-mail in `debian/control`, `debian/changelog` and `build-deb.sh` is public.
-- Replace `OWNER` in `debian/copyright` with the GitHub account once the repository exists.
+- Repository: https://github.com/FireFoxx150/MintCare
 
 ## Every release
 1. Bump `__version__` in `mintcare/__init__.py` and add a `debian/changelog` entry
@@ -14,7 +14,7 @@ Nothing here has been published yet. Each step below needs your accounts and you
 3. `git commit -am "Release X.Y.Z" && git tag vX.Y.Z`.
 
 ## GitHub release (automated)
-1. Create an empty repository on GitHub and push: `git remote add origin git@github.com:USER/mintcare.git`
+1. Create an empty repository on GitHub and push: `git remote add origin https://github.com/FireFoxx150/MintCare.git`
    then `git push -u origin main --tags`.
 2. `.github/workflows/ci.yml` runs the tests and builds a `.deb` on every push.
 3. Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`, which checks the tag matches the
