@@ -1,4 +1,4 @@
-.TH MINTCARE 1 "2026-10-13" "MintCare 1.7.1" "User Commands"
+.TH MINTCARE 1 "2026-10-14" "MintCare 1.8.0" "User Commands"
 .SH NAME
 mintcare \- clean, optimise and repair Linux Mint
 .SH SYNOPSIS
@@ -11,7 +11,8 @@ mintcare \- clean, optimise and repair Linux Mint
 .SH DESCRIPTION
 Without a command, MintCare opens its graphical window: diagnostics with one-click fixes,
 reversible optimisations and profiles, a junk cleaner, disk-space and duplicate analysis,
-Flatpak permissions, hardware health, boot analysis and scheduled check-ups.
+Flatpak permissions, packages, processes, hardware health, security, troubleshooting, boot analysis,
+home-folder backups and scheduled check-ups.
 Changes that need administrator rights ask for a password through polkit.
 .SH COMMANDS
 .TP
@@ -35,6 +36,9 @@ Write an HTML health report. Personal details are removed unless \-\-personal is
 .TP
 .BR maintain " [" \-\-no\-notify ]
 The scheduled check-up: scan, safe user-level cleaning, desktop notification.
+.TP
+.B backup
+Back up the folders chosen on the Backup page now (what the backup timer runs).
 .SH OPTIONS
 .TP
 .B \-\-tray
@@ -42,6 +46,22 @@ Start the window hidden in the system tray.
 .TP
 .B \-\-version
 Print the version.
+.SH KEYBOARD
+.TP
+.B Ctrl+F
+Search pages, checks, tweaks and settings.
+.TP
+.B Ctrl+1 to Ctrl+9, Ctrl+Page Up/Down
+Go to a sidebar page, or the previous/next one.
+.TP
+.B F5
+Refresh the current page.
+.TP
+.B Ctrl+E
+Export a health report.
+.TP
+.B Ctrl+?
+List the keyboard shortcuts.
 .SH FILES
 .TP
 .I ~/.config/mintcare/settings.json

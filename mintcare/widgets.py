@@ -7,7 +7,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("PangoCairo", "1.0")
-from gi.repository import Gtk, Pango, PangoCairo  # noqa: E402
+from gi.repository import Gdk, Gtk, Pango, PangoCairo  # noqa: E402
 
 EMERALD = "#10b981"
 BLUE = "#3b82f6"
@@ -32,6 +32,18 @@ def rgb(hexstr, a=1.0):
     return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)) + (a,)
 
 
+def describe(widget, name=None, description=None):
+    """Set what screen readers announce for a widget (Cairo-drawn widgets have no text of their own)."""
+    acc = widget.get_accessible()
+    if acc is None:
+        return widget
+    if name is not None:
+        acc.set_name(name)
+    if description is not None:
+        acc.set_description(description)
+    return widget
+
+
 def _text(cr, widget, text, font, color, cx, cy):
     layout = PangoCairo.create_layout(cr)
     layout.set_font_description(Pango.FontDescription.from_string(font))
@@ -53,10 +65,12 @@ class RingGauge(Gtk.DrawingArea):
         self.text = "–"
         self.set_size_request(size, size)
         self.connect("draw", self._draw)
+        describe(self, caption)
 
     def set_value(self, pct, text=None):
         self.value = max(0.0, min(100.0, pct))
         self.text = text if text is not None else f"{pct:.0f}%"
+        describe(self, f"{self.caption}: {self.text}" if self.caption else self.text)
         self._animate()
 
     def _animate(self):
@@ -115,6 +129,7 @@ class LineChart(Gtk.DrawingArea):
         self._started = False
         self.set_size_request(-1, height)
         self.connect("draw", self._draw)
+        describe(self, ", ".join(name for name, _c, _b in self.series))
 
     def push(self, *values):
         for (_x, _x, buf), v in zip(self.series, values):
@@ -122,7 +137,11 @@ class LineChart(Gtk.DrawingArea):
                 buf.extend([float(v)] * buf.maxlen)
             buf.append(float(v))
         self._started = True
+        self._describe_latest()
         self.queue_draw()
+
+    def _describe_latest(self):
+        describe(self, description=", ".join(f"{name} {self.fmt(buf[-1])}" for name, _c, buf in self.series if buf))
 
     def _y(self, v, top):
         """Fraction 0..1 of the plot height for value v (log scale keeps small values visible)."""
@@ -197,6 +216,7 @@ class Bar(Gtk.DrawingArea):
 
     def set_value(self, pct):
         self.value = max(0.0, min(100.0, pct))
+        describe(self, description=f"{self.value:.0f}%")
         self.queue_draw()
 
     def _draw(self, w, cr):
@@ -305,7 +325,6 @@ class Treemap(Gtk.DrawingArea):
         self.on_activate = on_activate
         self.set_size_request(-1, height)
         self.set_has_tooltip(True)
-        from gi.repository import Gdk
         self.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.BUTTON_PRESS_MASK |
                         Gdk.EventMask.LEAVE_NOTIFY_MASK)
         self.connect("draw", self._draw)
@@ -313,11 +332,32 @@ class Treemap(Gtk.DrawingArea):
         self.connect("leave-notify-event", lambda *_x: self._set_hover(None))
         self.connect("button-press-event", self._click)
         self.connect("query-tooltip", self._tooltip)
+        # Keyboard: Tab in, arrow keys move between tiles, Enter opens the highlighted folder
+        self.set_can_focus(True)
+        self.add_events(Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.FOCUS_CHANGE_MASK)
+        self.connect("key-press-event", self._key)
+        self.connect("focus-in-event", lambda *_x: self.hover is None and self.rects and self._set_hover(0))
 
     def set_items(self, items):
         self.items = list(items)
         self.hover = None
+        describe(self, description="; ".join(f"{it[1]} {it[2]}" for it in self.items[:8]))
         self.queue_draw()
+
+    def _key(self, _w, ev):
+        if not self.rects:
+            return False
+        i = self.hover if self.hover is not None else -1
+        if ev.keyval in (Gdk.KEY_Right, Gdk.KEY_Down):
+            self._set_hover((i + 1) % len(self.rects))
+        elif ev.keyval in (Gdk.KEY_Left, Gdk.KEY_Up):
+            self._set_hover((i - 1) % len(self.rects))
+        elif ev.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_space) and i >= 0:
+            if self.on_activate:
+                self.on_activate(self.rects[i][4][3])
+        else:
+            return False
+        return True
 
     def _hit(self, x, y):
         for i, (rx, ry, rw, rh, _p) in enumerate(self.rects):
@@ -328,6 +368,9 @@ class Treemap(Gtk.DrawingArea):
     def _set_hover(self, i):
         if i != self.hover:
             self.hover = i
+            if i is not None and i < len(self.rects):
+                _s, lbl, sub, _p = self.rects[i][4]
+                describe(self, description=f"{lbl}, {sub}")
             self.queue_draw()
         return False
 
@@ -365,7 +408,7 @@ class Treemap(Gtk.DrawingArea):
             cr.set_source_rgba(*rgb(color, 0.42 if idx == self.hover else 0.22))
             cr.fill_preserve()
             cr.set_source_rgba(*rgb(color, 0.9 if idx == self.hover else 0.55))
-            cr.set_line_width(1)
+            cr.set_line_width(2 if idx == self.hover and self.has_focus() else 1)
             cr.stroke()
             if x1 - x0 > 64 and y1 - y0 > 30:
                 cr.save()
@@ -395,6 +438,7 @@ def _set_values(self, *value_lists):
         if vals:
             buf.extend([vals[0]] * (buf.maxlen - len(vals)) + vals)
     self._started = True
+    self._describe_latest()
     self.queue_draw()
 
 

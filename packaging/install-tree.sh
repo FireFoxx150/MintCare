@@ -17,3 +17,7 @@ install -d "$DEST/usr/share/man/man1"
 gzip -9n < packaging/mintcare.1 > "$DEST/usr/share/man/man1/mintcare.1.gz"
 chmod 644 "$DEST/usr/share/man/man1/mintcare.1.gz"
 po/compile.sh "$DEST/usr/share/locale" >/dev/null
+if [ -d "$DEST/usr/share/locale" ]; then          # independent of the builder's umask
+  find "$DEST/usr/share/locale" -type d -exec chmod 755 {} +
+  find "$DEST/usr/share/locale" -type f -exec chmod 644 {} +
+fi

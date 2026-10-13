@@ -7,5 +7,12 @@
    the source tree picks it up. `./build-deb.sh` installs compiled translations into
    `/usr/share/locale`.
 
-Messages built with f-strings (counts, sizes, file names) are still English-only; they need
-converting to `_("… {n} …").format(n=…)` before they can be translated.
+To update an existing translation after the code changes, run `po/update-pot.sh`, then
+`msgmerge --update po/es.po po/mintcare.pot` and translate the new or fuzzy entries.
+
+Messages with values use numbered fields, e.g. `"{0} of {1} items selected"`: keep every `{0}`,
+`{1:.1f}`… in your translation (you may reorder them). `run-tests.sh` checks this for every
+`.po` file. Markup such as `<b>`, `<tt>` and `&amp;` must stay intact too.
+
+Available: Spanish (`es`). Command output, check details and some technical messages from the
+helper modules stay in English.

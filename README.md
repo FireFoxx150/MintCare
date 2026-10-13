@@ -7,7 +7,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.7.1_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.8.0_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -28,22 +28,31 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 * **Responsive:** the layout reflows down to ~760 px wide; the sidebar collapses to icons.
 * **Tray icon:** optional XApp status icon with check-up / quick clean; can start in the tray at login.
 * **Health report:** export as PDF or HTML, with personal details removed by default.
+* **Languages:** English and Spanish (follows your system language); see `po/README.md` to add one.
+* **Keyboard:** Ctrl+1…9 jump to sidebar pages, Ctrl+Page Up/Down step through them, F5 refreshes the
+  page, Ctrl+E exports a report, Ctrl+? lists every shortcut. Switches, gauges and charts have names
+  and live values for screen readers, and the disk-space map works with the arrow keys.
 
 ## Pages
 
 | Page | What it does |
 |---|---|
 | **Dashboard** | Update banner, health-score trend, live CPU / RAM / disk ring gauges, live performance and network charts, health score, system details, one-click *Fix all / Recommended tweaks / Quick clean* |
-| **Diagnose & Fix** | 38 checks with a Fix button where a safe fix exists; click any check to see the command behind it and its live output (copy it or open it in a terminal) |
+| **Diagnose & Fix** | 40 checks with a Fix button where a safe fix exists; click any check to see the command behind it and its live output (copy it or open it in a terminal) |
 | **Optimise** | 4 one-click profiles (Everyday desktop, Gaming, Laptop battery, Developer) and 29 toggleable tweaks; switching one off reverts it |
 | **Disk space** | Clickable treemap of any folder (or the whole system) with the largest files, a content-based duplicate finder (BLAKE2, oldest copy kept) and Timeshift snapshot clean-up. Files go to the Trash |
 | **Software & updates** | MintCare self-update from GitHub (SHA-256 verified); APT source health — never downloaded, wrong Ubuntu series, duplicates, missing keys, apt test run — with disable/enable for third-party sources |
+| **Packages** | Largest packages, what you installed, held packages; apt history with *Undo*; kernel manager; mirror speed test and switch (backed up); Mint upgrade check with a readiness list |
 | **Flatpak apps** | Every Flatpak with size, origin and a sandbox rating; Flatseal-style switches (network, home, whole filesystem, Downloads, devices, sound, X11) via per-user overrides; update, repair, uninstall |
 | **Clean** | Measures and removes junk |
+| **Processes** | Live CPU/RAM list, *What is this?* (with the owning package), end or force-end |
 | **Hardware** | Firmware updates via fwupd/LVFS; SMART health per drive (NVMe wear/spare/errors, HDD reallocated/pending/CRC), live temperature tiles, CPU/GPU throttling, full `smartctl -x` report |
-| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…) |
-| **Boot & Startup** | Boot timeline (firmware/loader/kernel/services), slowest units with *blocks boot* markers and Disable/Enable for known-safe services, startup-app switches |
+| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…); login audit (failed logins, SSH settings, AppArmor, auto-login, screen lock); ClamAV and rkhunter scans with quarantine |
+| **Troubleshoot** | Sound, network and Wi-Fi, printers, Bluetooth and crash reports, each with one-click fixes |
+| **Boot & Startup** | Boot timeline (firmware/loader/kernel/services), boot-time history, slowest units with *blocks boot* markers and Disable/Enable for known-safe services, startup-app switches |
+| **Backup** | rsync snapshots of chosen folders to another drive (unchanged files hard-linked), schedule, keep N; export/import MintCare settings to move to another PC |
 | **Maintenance** | Scheduled check-up (systemd user timer, daily/weekly/monthly) with optional safe cleaning and a desktop notification when something needs attention; safety-snapshot preference (ask / always / never); *Undo all* for every MintCare change; a persistent history timeline |
+| **Assistant** | Optional: ask Claude (Anthropic) about your PC, using your own API key. Off until set up; the system summary is opt-in and has names and serial numbers removed |
 | **Activity log** | Full output of every command that ran |
 
 ### Diagnostics
@@ -103,13 +112,14 @@ mintcare clean [--run [ID...]]
 mintcare hardware          # drives, temperatures, boot time
 mintcare space [PATH]      # biggest folders/files and snapshot count
 mintcare maintain [--no-notify]  # what the scheduled check-up runs
+mintcare backup            # back up your folders now (what the backup timer runs)
 mintcare report [-o FILE] [--personal]  # HTML health report
 mintcare --tray            # start the GUI hidden in the tray
 ```
 
 ## Development
 ```
-./run-tests.sh                 # 63 stdlib unittest tests; never needs root or changes the system
+./run-tests.sh                 # 67 stdlib unittest tests; never needs root or changes the system
 po/update-pot.sh               # refresh the translation template (see po/README.md)
 ```
 See `RELEASING.md` for GitHub releases and a Launchpad PPA.

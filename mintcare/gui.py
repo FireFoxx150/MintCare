@@ -23,7 +23,7 @@ from . import (__version__, assistant, autostart, backup, bench, boot, checks, c
 from .runner import run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
 from .util import human, q, read, sysctl  # noqa: E402
-from .widgets import BLUE, EMERALD, ORANGE, VIOLET, Bar, LineChart, RingGauge, StackedBar, Treemap  # noqa: E402
+from .widgets import BLUE, EMERALD, ORANGE, VIOLET, Bar, LineChart, RingGauge, StackedBar, Treemap, describe  # noqa: E402
 
 STATUS_ICON = {
     checks.OK: ("emblem-ok-symbolic", "ok"),
@@ -227,10 +227,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.connect("delete-event", self._on_delete)
         if self.prefs.get("tray") or getattr(app, "start_in_tray", False):
             self.set_tray(True)
-        accel = Gtk.AccelGroup()
-        accel.connect(Gdk.keyval_from_name("f"), Gdk.ModifierType.CONTROL_MASK, 0,
-                      lambda *_x: self.search.grab_focus() or True)
-        self.add_accel_group(accel)
+        self._install_shortcuts()
         self._apply_layout("wide")
         self.apply_level(self.prefs.get("level", "intermediate"))
         self.goto(os.environ.get("MINTCARE_PAGE", "dashboard"))
@@ -307,6 +304,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         menu_btn = Gtk.MenuButton(valign=Gtk.Align.CENTER)
         menu_btn.add(icon("open-menu-symbolic"))
         menu_btn.set_tooltip_text(_("Appearance, experience level, tray and report"))
+        describe(menu_btn, _("Main menu"))
         css(menu_btn, "ghost")
         menu_btn.set_popover(self._build_app_menu(menu_btn))
         hb.pack_end(menu_btn)
@@ -357,6 +355,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         exp = Gtk.ModelButton(text=_("Export health report…"))
         exp.connect("clicked", lambda *_x: self.export_report())
         box.pack_start(exp, False, False, 0)
+        keys = Gtk.ModelButton(text=_("Keyboard shortcuts"))
+        keys.connect("clicked", lambda *_x: self.show_shortcuts())
+        box.pack_start(keys, False, False, 0)
         about = Gtk.ModelButton(text=_("About MintCare"))
         about.connect("clicked", lambda *_x: self.show_about())
         box.pack_start(about, False, False, 0)
@@ -611,6 +612,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.nav_labels = getattr(self, "nav_labels", [])
             self.nav_labels.append(nl)
             row.set_tooltip_text(title)
+            describe(row, title)                      # the label is hidden in the narrow layout
             b.pack_start(nl, True, True, 0)
             badge = label("", ("nav-badge",))
             badge.set_no_show_all(True)
@@ -660,6 +662,82 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if row:
             self.nav.select_row(row)
 
+    # ------------------------------------------------------------ keyboard
+
+    SHORTCUTS = [("<Primary>f", N_("Search")), ("<Primary>1", N_("Go to the 1st … 9th page in the sidebar")),
+                 ("<Primary>Page_Down", N_("Next page")), ("<Primary>Page_Up", N_("Previous page")),
+                 ("F5", N_("Refresh this page")), ("<Primary>e", N_("Export health report")),
+                 ("<Primary>question", N_("Keyboard shortcuts"))]
+
+    def _install_shortcuts(self):
+        accel = Gtk.AccelGroup()
+
+        def add(accelerator, fn):
+            key, mods = Gtk.accelerator_parse(accelerator)
+            accel.connect(key, mods, 0, lambda *_x: fn() or True)
+        add("<Primary>f", self.search.grab_focus)
+        for n in range(1, 10):
+            add(f"<Primary>{n}", lambda n=n: self._goto_nth(n - 1))
+        add("<Primary>Page_Down", lambda: self._goto_step(1))
+        add("<Primary>Page_Up", lambda: self._goto_step(-1))
+        add("F5", self.refresh_page)
+        add("<Primary>r", self.refresh_page)
+        add("<Primary>e", self.export_report)
+        add("<Primary>question", self.show_shortcuts)
+        add("<Primary><Shift>question", self.show_shortcuts)
+        add("F1", self.show_shortcuts)
+        self.add_accel_group(accel)
+
+    def _visible_pages(self):
+        return [key for key, _t, _i in NAV if self.nav_rows[key].get_visible()]
+
+    def _goto_nth(self, n):
+        pages = self._visible_pages()
+        if n < len(pages):
+            self.goto(pages[n])
+            self.nav_rows[pages[n]].grab_focus()
+
+    def _goto_step(self, d):
+        pages = self._visible_pages()
+        cur = self.stack.get_visible_child_name()
+        i = pages.index(cur) if cur in pages else 0
+        self._goto_nth((i + d) % len(pages))
+
+    def refresh_page(self):
+        if self.busy:
+            return
+        loaders = {
+            "dashboard": self.run_diagnose, "diagnose": self.run_diagnose, "optimise": self._refresh_tweaks,
+            "clean": self.run_clean_scan, "software": self.load_software, "packages": self.load_packages,
+            "flatpak": lambda: self.load_flatpaks(check_updates=True), "processes": lambda: self._poll_procs(True),
+            "hardware": self.load_drives, "security": self.load_security, "troubleshoot": self.load_troubleshoot,
+            "startup": self.load_boot, "backup": self.load_backup, "maintenance": self.refresh_maintenance,
+            "space": lambda: (self.scan_folders(getattr(self, "_space_root", space.HOME)), self.load_snapshots()),
+        }
+        fn = loaders.get(self.stack.get_visible_child_name())
+        if fn:
+            fn()
+
+    def show_shortcuts(self):
+        d = Gtk.Dialog(title=_("Keyboard shortcuts"), transient_for=self, modal=True)
+        d.add_button(_("Close"), Gtk.ResponseType.CLOSE)
+        g = Gtk.Grid(column_spacing=24, row_spacing=10, margin=18)
+        for i, (accelerator, text) in enumerate(self.SHORTCUTS):
+            key, mods = Gtk.accelerator_parse(accelerator)
+            keys = Gtk.accelerator_get_label(key, mods)
+            if accelerator == "<Primary>1":
+                keys += " … " + Gtk.accelerator_get_label(*Gtk.accelerator_parse("<Primary>9"))
+            g.attach(label(keys, ("mono",)), 0, i, 1, 1)
+            g.attach(label(_(text)), 1, i, 1, 1)
+        extra = [_("Tab / Shift+Tab — move between controls; Space or Enter — press a button or switch"),
+                 _("Disk space map — arrow keys move between folders, Enter opens one")]
+        for j, text in enumerate(extra, len(self.SHORTCUTS)):
+            g.attach(label(text, ("muted",), wrap=True), 0, j, 2, 1)
+        d.get_content_area().add(g)
+        d.show_all()
+        d.run()
+        d.destroy()
+
     # ------------------------------------------------------------ plumbing
 
     def action_button(self, text, cb, primary=False, icon_name=None):
@@ -669,6 +747,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             inner.pack_start(icon(icon_name), False, False, 0)
         inner.pack_start(Gtk.Label(label=text), False, False, 0)
         b.add(inner)
+        describe(b, text)
         css(b, "primary" if primary else "ghost")
         b.set_valign(Gtk.Align.CENTER)
         b.connect("clicked", lambda *_x: cb())
@@ -1317,6 +1396,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                              ("#f59e0b", "warn", _("needs care")) if score >= 60 else ("#ef4444", "fail", _("at risk")))
         self.g_health.color = color
         self.g_health.set_value(score, str(score))
+        describe(self.g_health, _('Health score: {0} of 100, {1}').format(score, word))
         set_pill(self.health_pill, word, kind)
         set_pill(self.side_pill, word, kind)
         self.side_score.set_text(str(score))
@@ -1959,6 +2039,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             inner.pack_start(icon(icon_name), False, False, 0)
             inner.pack_start(Gtk.Label(label=text), False, False, 0)
             b.add(inner)
+            describe(b, text)
             css(b, "ghost")
             b.set_valign(Gtk.Align.CENTER)
             b.connect("clicked", lambda *_x: cb())
@@ -2121,7 +2202,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         text.pack_start(title, False, False, 0)
         text.pack_start(label(t.description, ("muted",), wrap=True), False, False, 0)
         box.pack_start(text, True, True, 0)
-        sw = Gtk.Switch(valign=Gtk.Align.CENTER)
+        sw = describe(Gtk.Switch(valign=Gtk.Align.CENTER), t.title, t.description)
         sw.connect("notify::active", self._on_switch, t)
         self.switches[t.id] = sw
         box.pack_end(sw, False, False, 0)
@@ -2433,6 +2514,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.scan_folders(path)
 
     def scan_folders(self, root):
+        self._space_root = root
         self.space_spinner.start()
         self.space_status.set_text(_('Scanning {0} …').format(root))
         self.treemap.set_items([])
@@ -2591,6 +2673,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         inner.pack_start(icon("system-search-symbolic"), False, False, 0)
         inner.pack_start(Gtk.Label(label=_("Find duplicates")), False, False, 0)
         self.dup_scan_btn.add(inner)
+        describe(self.dup_scan_btn, _("Find duplicates"))
         css(self.dup_scan_btn, "primary")
         self.dup_scan_btn.connect("clicked", lambda *_x: self.scan_dups())
         self.dup_running = False
@@ -3638,7 +3721,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         dc.pack_start(Gtk.Separator(), False, False, 6)
         sh = hbox(10)
         sh.pack_start(label(_("Automatic backup"), ("h2",)), False, False, 0)
-        self.bk_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.bk_switch = describe(Gtk.Switch(valign=Gtk.Align.CENTER), _("Automatic backup"))
         self.bk_switch.connect("notify::active", self._bk_toggle)
         sh.pack_start(self.bk_switch, False, False, 0)
         self.bk_freq = Gtk.ComboBoxText()
@@ -3668,6 +3751,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         inner.pack_start(icon("document-save-symbolic"), False, False, 0)
         inner.pack_start(Gtk.Label(label=_("Back up now")), False, False, 0)
         self.bk_run.add(inner)
+        describe(self.bk_run, _("Back up now"))
         css(self.bk_run, "primary")
         self.bk_run.connect("clicked", lambda *_x: self.run_backup())
         rh.pack_end(self.bk_run, False, False, 0)
@@ -4132,7 +4216,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             t.pack_start(tt, False, False, 0)
             t.pack_start(label(desc, ("faint",)), False, False, 0)
             pr.pack_start(t, True, True, 0)
-            sw = Gtk.Switch(active=flatpaks.has(a["perms"], pid), valign=Gtk.Align.CENTER)
+            sw = describe(Gtk.Switch(active=flatpaks.has(a["perms"], pid), valign=Gtk.Align.CENTER),
+                          f"{a['name']}: {title}", desc)
             sw.connect("notify::active", self._on_fp_perm, a, pid)
             pr.pack_end(sw, False, False, 0)
             perms.pack_start(pr, False, False, 0)
@@ -4663,6 +4748,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 ("kernel", _("Kernel"), ORANGE), ("initrd", "initrd", "#f472b6"), ("userspace", _("Services"), EMERALD)]
         self.boot_total.set_text(f"{times['total']:.1f} s" if times.get("total") else "n/a")
         self.boot_bar.set_segments([(times.get(k, 0), col) for k, _x, col in segs])
+        describe(self.boot_bar, _("Last boot"), ", ".join(f"{name} {times[k]:.1f} s" for k, name, _c in segs if times.get(k)))
         for ch in self.boot_legend.get_children():
             ch.destroy()
         for k, name, col in segs:
@@ -4757,7 +4843,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             text.pack_start(label(a["comment"], ("muted",), ellipsize=True), False, False, 0)
         text.pack_start(label(a["exec"], ("faint", "mono"), ellipsize=True), False, False, 0)
         box.pack_start(text, True, True, 0)
-        sw = Gtk.Switch(active=a["enabled"], valign=Gtk.Align.CENTER, sensitive=not locked)
+        sw = describe(Gtk.Switch(active=a["enabled"], valign=Gtk.Align.CENTER, sensitive=not locked),
+                      _('Start {0} at login').format(a["name"]))
         if locked:
             sw.set_tooltip_text(_("Part of the desktop; switching it off can break shortcuts, keyrings or logins"))
         sw.connect("notify::active", self._on_app_toggle, a)
@@ -4819,7 +4906,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         h = hbox(8)
         h.pack_start(icon("alarm-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
         h.pack_start(label(_("Scheduled check-up"), ("h2",)), True, True, 0)
-        self.sched_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.sched_switch = describe(Gtk.Switch(valign=Gtk.Align.CENTER), _("Scheduled check-up"))
         self.sched_switch.connect("notify::active", self._on_sched_toggle)
         h.pack_end(self.sched_switch, False, False, 0)
         sc.pack_start(h, False, False, 0)
