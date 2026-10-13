@@ -1,3 +1,16 @@
+mintcare (1.7.0) noble; urgency=medium
+
+  * Self-update: checks GitHub for new releases, verifies the SHA-256
+    checksum and installs the package.
+  * Firmware updates through fwupd/LVFS on the Hardware page.
+  * Software sources health: never-downloaded, wrong-series, duplicate and
+    broken-key sources; disable/enable third-party sources; apt test run.
+  * Security page: listening services, exposure, firewall state, identify
+    programs (admin) and turn off risky services.
+  * Health trend chart on the dashboard.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 13 Oct 2026 22:52:54 +0100
+
 mintcare (1.6.1) noble; urgency=low
 
   * Package now includes its changelog and a man page; fixed file

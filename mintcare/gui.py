@@ -16,8 +16,8 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from .i18n import _
-from . import (__version__, autostart, boot, checks, cleaner, flatpaks, hardware,  # noqa: E402
-               maintenance, space, theme, tweaks, widgets)
+from . import (__version__, autostart, boot, checks, cleaner, firmware, flatpaks, hardware,  # noqa: E402
+               maintenance, ports, selfupdate, sources, space, theme, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
 from .util import human, q, read, sysctl  # noqa: E402
@@ -37,8 +37,10 @@ NAV = [
     ("optimise", _("Optimise"), "power-profile-performance-symbolic"),
     ("clean", _("Clean"), "user-trash-symbolic"),
     ("space", _("Disk space"), "drive-multidisk-symbolic"),
+    ("software", _("Software & updates"), "software-update-available-symbolic"),
     ("flatpak", _("Flatpak apps"), "system-software-install-symbolic"),
     ("hardware", _("Hardware"), "drive-harddisk-symbolic"),
+    ("security", _("Security"), "security-high-symbolic"),
     ("startup", _("Boot & Startup"), "system-run-symbolic"),
     ("maintenance", _("Maintenance"), "alarm-symbolic"),
     ("log", _("Activity log"), "utilities-terminal-symbolic"),
@@ -50,7 +52,7 @@ LEVELS = [
     ("intermediate", _("Intermediate"), _("Everything except the most technical tweaks.")),
     ("advanced", _("Advanced"), _("Every page and every tweak.")),
 ]
-BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "maintenance", "log"}
+BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "security", "maintenance", "log"}
 ADVANCED_TWEAKS = {"dns", "swappiness", "dirty", "waitonline", "iosched", "aspm"}
 
 
@@ -164,6 +166,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._fp_open = set()
         self._space_loaded = False
         self._space_cancel = threading.Event()
+        self._sw_loaded = self._sec_loaded = False
+        self.update_info = None
+        self.root_port_names = {}
 
         self._gtk_settings = Gtk.Settings.get_default()
         self._system_dark = theme.system_is_dark(self._gtk_settings)
@@ -183,8 +188,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.stack.add_named(self._build_optimise(), "optimise")
         self.stack.add_named(self._build_clean(), "clean")
         self.stack.add_named(self._build_space(), "space")
+        self.stack.add_named(self._build_software(), "software")
         self.stack.add_named(self._build_flatpak(), "flatpak")
         self.stack.add_named(self._build_hardware(), "hardware")
+        self.stack.add_named(self._build_security(), "security")
         self.stack.add_named(self._build_startup(), "startup")
         self.stack.add_named(self._build_maintenance(), "maintenance")
         self.stack.add_named(self._build_log(), "log")
@@ -216,6 +223,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._on_page(self.stack, None)
         GLib.idle_add(self.run_diagnose)
         GLib.idle_add(self.run_clean_scan)
+        GLib.timeout_add_seconds(4, self.check_mintcare_update)
 
     # ------------------------------------------------------------ chrome
 
@@ -320,6 +328,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.tray_login_check = Gtk.CheckButton(label=_("Start in the tray when I log in"))
         self.tray_login_check.connect("toggled", lambda w: self._set_pref("tray_autostart", w.get_active()))
         box.pack_start(self.tray_login_check, False, False, 0)
+        box.pack_start(label(_("UPDATES"), ("kicker",)), False, False, 8)
+        self.updates_check = Gtk.CheckButton(label=_("Check GitHub for new MintCare versions"))
+        self.updates_check.connect("toggled", lambda w: self._set_pref("check_updates", w.get_active()))
+        box.pack_start(self.updates_check, False, False, 0)
+        chk = Gtk.ModelButton(text=_("Check for MintCare updates now"))
+        chk.connect("clicked", lambda *_x: self.check_mintcare_update(force=True))
+        box.pack_start(chk, False, False, 0)
         box.pack_start(Gtk.Separator(), False, False, 8)
         exp = Gtk.ModelButton(text=_("Export health report…"))
         exp.connect("clicked", lambda *_x: self.export_report())
@@ -336,6 +351,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.tray_check.set_active(self.prefs.get("tray", False))
         self.tray_login_check.set_active(self.prefs.get("tray_autostart", False))
         self.tray_login_check.set_sensitive(self.prefs.get("tray", False))
+        self.updates_check.set_active(self.prefs.get("check_updates", True))
         self._menu_loading = False
         return pop
 
@@ -700,6 +716,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._space_loaded = True
             self.scan_folders(space.HOME)
             self.load_snapshots()
+        elif name == "software" and not self._sw_loaded:
+            self._sw_loaded = True
+            self.load_software()
+        elif name == "security" and not self._sec_loaded:
+            self._sec_loaded = True
+            self.load_security()
         elif name == "flatpak" and not self._fp_loaded:
             self._fp_loaded = True
             self.load_flatpaks(check_updates=True)
@@ -1021,6 +1043,26 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_dashboard(self):
         page = vbox(12, "page")
 
+        # "new version" banner, revealed when GitHub has a newer release
+        self.update_banner = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        ub = card("ecard")
+        ur = hbox(12)
+        ur.pack_start(icon("software-update-available-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"),
+                      False, False, 0)
+        ut = vbox(2)
+        ut.set_valign(Gtk.Align.CENTER)
+        self.update_title = label("", ("h2",))
+        ut.pack_start(self.update_title, False, False, 0)
+        self.update_sub = label("", ("muted",), ellipsize=True)
+        ut.pack_start(self.update_sub, False, False, 0)
+        ur.pack_start(ut, True, True, 0)
+        ur.pack_end(self.action_button(_("Update now"), lambda: self.install_mintcare_update(), primary=True,
+                                       icon_name="software-update-available-symbolic"), False, False, 0)
+        ur.pack_end(self.action_button(_("What's new"), lambda: self.goto("software")), False, False, 0)
+        ub.pack_start(ur, False, False, 0)
+        self.update_banner.add(ub)
+        page.pack_start(self.update_banner, False, False, 0)
+
         # upper bar
         top = card("ecard")
         row = hbox(12)
@@ -1099,6 +1141,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
         for p in (self.cnt_fail, self.cnt_warn, self.cnt_info):
             counts.pack_start(p, False, False, 0)
         hc.pack_start(counts, False, False, 4)
+        self.trend_chart = LineChart([("Score", EMERALD)], points=30, height=48, fixed_max=100, axis=False)
+        hc.pack_start(self.trend_chart, False, False, 2)
+        self.trend_lbl = label("", ("faint",), xalign=0.5, wrap=True)
+        self.trend_lbl.set_justify(Gtk.Justification.CENTER)
+        hc.pack_start(self.trend_lbl, False, False, 0)
         self.issue_summary = label(_("Scanning…"), ("faint",), xalign=0.5, wrap=True)
         self.issue_summary.set_justify(Gtk.Justification.CENTER)
         hc.pack_start(self.issue_summary, False, False, 6)
@@ -1256,11 +1303,393 @@ class MintCareWindow(Gtk.ApplicationWindow):
             (f"{fixable} issue(s) can be fixed automatically." if fixable else
              "Nothing needs fixing — tips have their own buttons on Diagnose & Fix."))
         issues = counts[checks.FAIL] + counts[checks.WARN]
+        maintenance.record_score(score, {"fail": counts[checks.FAIL], "warn": counts[checks.WARN],
+                                         "info": counts[checks.INFO]})
+        self._render_trend()
         GLib.idle_add(self._update_tray)
         badge = self.nav_badges["diagnose"]
         badge.set_text(str(issues))
         badge.set_visible(issues > 0)
         self._fill_details()
+
+    def _render_trend(self):
+        pts = maintenance.scores(30)
+        if len(pts) < 2:
+            self.trend_chart.set_values([p["score"] for p in pts] or [0])
+            self.trend_lbl.set_text(_("The health trend appears after a few scans."))
+            return
+        self.trend_chart.set_values([p["score"] for p in pts])
+        first, last = pts[0], pts[-1]
+        delta = last["score"] - first["score"]
+        since = time.strftime("%d %b", time.localtime(first["ts"]))
+        arrow = "↑" if delta > 0 else "↓" if delta < 0 else "→"
+        self.trend_lbl.set_text(f"Health over time: {arrow} {abs(delta)} since {since} ({len(pts)} scans)")
+
+    # ------------------------------------------------------------ MintCare updates
+
+    def check_mintcare_update(self, force=False):
+        if not force and not self.prefs.get("check_updates", True):
+            return False
+
+        def work():
+            if force:
+                try:
+                    return selfupdate.check(timeout=10)
+                except (OSError, ValueError):
+                    return None
+            return selfupdate.latest(timeout=8)
+
+        def done(info):
+            self.update_info = info
+            newer = bool(info) and selfupdate.is_newer(info["version"])
+            if newer:
+                self.update_title.set_text(f"MintCare {info['version']} is available")
+                self.update_sub.set_text(f"You have {__version__}. " + (
+                    _("Update installs the verified package from GitHub.") if selfupdate.installed_from_package()
+                    else _("You're running from source — update with 'git pull'.")))
+            self.update_banner.set_reveal_child(newer)
+            if force:
+                self.set_status(f"MintCare {info['version']} is available" if newer else
+                                (f"MintCare {__version__} is up to date" if info else
+                                 _("Couldn't reach GitHub to check for updates")), bad=info is None)
+            if hasattr(self, "sw_update_lbl"):
+                self._render_mintcare_card()
+        self.bg(work, done)
+        return False
+
+    def install_mintcare_update(self):
+        info = self.update_info
+        if not info or not selfupdate.is_newer(info["version"]):
+            self.set_status(_("No newer MintCare version found"))
+            return
+        if not selfupdate.installed_from_package():
+            self.set_status(_("Running from source: update with 'git pull' in the project folder"))
+            return
+        if not self.confirm(f"Update MintCare to {info['version']}?",
+                            f"Downloads <tt>{GLib.markup_escape_text(info.get('asset_name') or '')}</tt> "
+                            f"({human(info.get('size', 0))}) from GitHub, checks its SHA-256 checksum, then "
+                            "installs it. MintCare restarts afterwards."):
+            return
+
+        def work():
+            self.log(f"\n━━━ Updating MintCare to {info['version']} ━━━")
+            path = selfupdate.download(info, lambda d, t: GLib.idle_add(
+                self.set_status, f"Downloading… {human(d)} of {human(t)}") if t else None)
+            self.log(f"Downloaded and verified {path} (sha256 {info['sha256'][:16]}…)")
+            return self.execute([selfupdate.install_step(path, info["version"])], [], "Update")
+
+        def done(results):
+            if not results or results.get("selfupdate") != 0:
+                self.set_status(_("The update didn't install — see Activity log"), bad=True)
+                return
+            maintenance.record("update", f"Updated MintCare to {info['version']}")
+            if self.confirm(f"MintCare {info['version']} is installed", _("Restart MintCare now to use it?")):
+                cmd = " ".join(maintenance.launcher())
+                subprocess.Popen(["bash", "-c", f"sleep 1; exec {cmd}"], start_new_session=True)
+                self.quit_app()
+        self.in_thread(_("Updating MintCare…"), work, done)
+
+    # ------------------------------------------------------------ software & sources
+
+    def _build_software(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "software-update-available-symbolic", _("Software & updates"),
+            _("MintCare's own updates and the health of the software sources apt installs from."),
+            [self.action_button(_("Open Software Sources"), lambda: self._launch("mintsources"),
+                                icon_name="preferences-system-symbolic"),
+             self.action_button(_("Test sources"), self.test_sources, primary=True,
+                                icon_name="emblem-synchronizing-symbolic")]), False, False, 0)
+        mc = card("ecard")
+        h = hbox(10)
+        h.pack_start(icon("software-update-available-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
+        h.pack_start(label(_("MintCare updates"), ("h2",)), True, True, 0)
+        self.sw_update_btn = self.action_button(_("Update now"), self.install_mintcare_update, primary=True)
+        self.sw_update_btn.set_no_show_all(True)
+        h.pack_end(self.sw_update_btn, False, False, 0)
+        h.pack_end(self.action_button(_("Release notes"), lambda: self._open_uri(
+            (self.update_info or {}).get("url") or selfupdate.RELEASES_PAGE)), False, False, 0)
+        h.pack_end(self.action_button(_("Check now"), lambda: self.check_mintcare_update(force=True),
+                                      icon_name="view-refresh-symbolic"), False, False, 0)
+        mc.pack_start(h, False, False, 0)
+        self.sw_update_lbl = label("", ("muted",), wrap=True)
+        mc.pack_start(self.sw_update_lbl, False, False, 8)
+        self.sw_notes = label("", ("faint",), wrap=True)
+        mc.pack_start(self.sw_notes, False, False, 0)
+        page.pack_start(mc, False, False, 0)
+
+        self.src_head = label(_("SOFTWARE SOURCES"), ("kicker",))
+        page.pack_start(self.src_head, False, False, 0)
+        self.src_note = label(_("Official Mint and Ubuntu sources can't be switched off here — use Software "
+                                "Sources for mirrors. Test sources runs apt-get update and records any errors."),
+                              ("faint",), wrap=True)
+        page.pack_start(self.src_note, False, False, 0)
+        self.src_card, self.src_list = list_card()
+        page.pack_start(self.src_card, False, False, 0)
+        return scrolled(page)
+
+    def _render_mintcare_card(self):
+        info = self.update_info
+        if not info:
+            self.sw_update_lbl.set_text(f"You have MintCare {__version__}. " +
+                                        _("Press Check now to look for a newer version on GitHub."))
+            self.sw_notes.set_text("")
+            self.sw_update_btn.hide()
+            return
+        newer = selfupdate.is_newer(info["version"])
+        when = (info.get("published") or "")[:10]
+        checked = time.strftime("%H:%M", time.localtime(info.get("checked", time.time())))
+        self.sw_update_lbl.set_markup(
+            (f"<b>MintCare {GLib.markup_escape_text(info['version'])} is available</b> (released {when}). "
+             f"You have {__version__}." if newer else
+             f"You have the latest version, <b>{__version__}</b>.") + f"  <small>Checked at {checked}.</small>")
+        notes = info.get("notes", "").strip()
+        self.sw_notes.set_text(notes[:600] if newer else "")
+        self.sw_update_btn.set_visible(newer and selfupdate.installed_from_package())
+
+    def load_software(self):
+        self._render_mintcare_card()
+        if self.update_info is None:
+            self.check_mintcare_update()
+        self.bg(sources.analyse, self._render_sources)
+
+    def _render_sources(self, srcs):
+        self._action_buttons = [b for b in self._action_buttons if not getattr(b, "src_row", False)]
+        for ch in self.src_list.get_children():
+            ch.destroy()
+        srcs = srcs or []
+        test = sources.last_test()
+        bad = sum(1 for x in srcs if x.enabled and x.health in (sources.WARN, sources.FAIL))
+        tested = (" · last tested " + time.strftime("%d %b %H:%M", time.localtime(test["ts"]))) if test else ""
+        self.src_head.set_text(f"SOFTWARE SOURCES ({len(srcs)}, {bad} with problems){tested}")
+        icons = {"Linux Mint": "computer-symbolic", "Ubuntu": "system-software-install-symbolic",
+                 "PPA": "package-x-generic-symbolic", "Third-party": "network-server-symbolic"}
+        order = {"Linux Mint": 0, "Ubuntu": 1, "PPA": 2, "Third-party": 3}
+        for x in sorted(srcs, key=lambda x: (not x.enabled, order[x.kind], x.label)):
+            row = Gtk.ListBoxRow(activatable=False)
+            box = hbox(12)
+            box.pack_start(icon(icons[x.kind], Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
+            t = vbox(2)
+            th = hbox(8)
+            th.pack_start(label(x.label, ("h3",), ellipsize=True), False, False, 0)
+            th.pack_start(pill(x.kind, "blue" if x.kind in ("Linux Mint", "Ubuntu") else "dim"), False, False, 0)
+            th.pack_start(pill(x.suite, "dim"), False, False, 0)
+            hl = x.health
+            word = {"ok": "working", "info": "note", "warn": "check", "fail": "broken", "disabled": "disabled"}[hl]
+            th.pack_start(pill(word, {"disabled": "dim"}.get(hl, hl)), False, False, 0)
+            t.pack_start(th, False, False, 0)
+            sub = f"{x.type} {x.uri} {x.suite} {' '.join(x.comps)}  ·  {os.path.basename(x.file)}"
+            sl = label(sub, ("faint", "mono"), ellipsize=True)
+            sl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+            t.pack_start(sl, False, False, 0)
+            for lvl, text in x.problems:
+                r = hbox(6)
+                r.pack_start(icon(STATUS_ICON[lvl][0], Gtk.IconSize.MENU, STATUS_ICON[lvl][1]), False, False, 0)
+                r.pack_start(label(text, ("muted",), wrap=True), True, True, 0)
+                t.pack_start(r, False, False, 0)
+            box.pack_start(t, True, True, 0)
+            if x.kind in ("PPA", "Third-party") and (x.enabled or x.mintcare_disabled):
+                b = self.action_button(_("Disable") if x.enabled else _("Enable"),
+                                       lambda src=x: self.toggle_source(src))
+                b.src_row = True
+                box.pack_end(b, False, False, 0)
+            row.add(box)
+            self.src_list.add(row)
+        self.src_list.show_all()
+
+    def toggle_source(self, src):
+        enable = not src.enabled
+        if not self.confirm(f"{'Enable' if enable else 'Disable'} {src.label}?",
+                            ("Packages from this source will get updates again." if enable else
+                             "apt will stop installing and updating packages from this source. Installed "
+                             "packages stay installed. You can enable it again here.") +
+                            f"\n\n<tt>{GLib.markup_escape_text(os.path.basename(src.file))}</tt> is backed up "
+                            "to /var/lib/mintcare first."):
+            return
+        steps = [("source", f"{'Enable' if enable else 'Disable'} source {src.label}",
+                  sources.toggle_script(src, enable))]
+
+        def done(results):
+            self.notify_done(results or {}, "Software source")
+            self.load_software()
+            self.run_diagnose()
+        self.in_thread(_("Updating software sources…"), lambda: self.execute(steps, [], "Sources"), done)
+
+    def test_sources(self):
+        def work():
+            self.log("\n━━━ Testing software sources (apt-get update) ━━━")
+            lines = []
+
+            def collect(line):
+                lines.append(line)
+                self.log(line)
+            res = run_steps([sources.test_step()], root=True, on_line=collect)
+            data = sources.save_test("\n".join(lines)) if res.get("sources-test") == 0 else None
+            return res, data
+
+        def done(out):
+            res, data = out or ({}, None)
+            if data is None:
+                self.set_status(_("Source test was cancelled or failed"), bad=True)
+                return
+            n = len(data["errors"])
+            self.set_status(f"Tested sources: {n} error(s)" if n else _("All software sources downloaded fine"),
+                            bad=bool(n))
+            maintenance.record("other", f"Tested software sources: {n} error(s)", n == 0)
+            self.load_software()
+            self.run_diagnose()
+        self.in_thread(_("Testing software sources…"), work, done)
+
+    def _launch(self, cmd):
+        try:
+            subprocess.Popen([cmd], start_new_session=True)
+        except OSError as e:
+            self.set_status(f"Could not start {cmd}: {e}", bad=True)
+
+    def _open_uri(self, uri):
+        try:
+            Gio.AppInfo.launch_default_for_uri(uri, None)
+        except GLib.Error as e:
+            self.log(f"Could not open {uri}: {e.message}")
+
+    # ------------------------------------------------------------ security
+
+    def _build_security(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "security-high-symbolic", _("Security"),
+            _("What other computers can reach on this PC, and whether the firewall is in front of it."),
+            [self.action_button(_("Identify programs"), self.identify_ports,
+                                icon_name="system-search-symbolic")]), False, False, 0)
+        fc = card("ecard")
+        h = hbox(10)
+        self.fw_icon = icon("security-high-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico")
+        h.pack_start(self.fw_icon, False, False, 0)
+        t = vbox(2)
+        t.set_valign(Gtk.Align.CENTER)
+        th = hbox(8)
+        th.pack_start(label(_("Firewall (UFW)"), ("h2",)), False, False, 0)
+        self.fw_pill = pill("…", "dim")
+        th.pack_start(self.fw_pill, False, False, 0)
+        t.pack_start(th, False, False, 0)
+        self.fw_text = label("", ("muted",), wrap=True)
+        t.pack_start(self.fw_text, False, False, 0)
+        h.pack_start(t, True, True, 0)
+        self.fw_btn = self.action_button(_("Enable firewall"), self._enable_firewall, primary=True)
+        self.fw_btn.set_no_show_all(True)
+        h.pack_end(self.fw_btn, False, False, 0)
+        fc.pack_start(h, False, False, 0)
+        self.fw_rules = label("", ("faint", "mono"), wrap=True, selectable=True)
+        self.fw_rules.set_no_show_all(True)
+        fc.pack_start(self.fw_rules, False, False, 8)
+        page.pack_start(fc, False, False, 0)
+
+        hh = hbox(8)
+        self.port_head = label(_("LISTENING SERVICES"), ("kicker",))
+        hh.pack_start(self.port_head, True, True, 0)
+        self.show_local = Gtk.CheckButton(label=_("Show local-only services"))
+        self.show_local.connect("toggled", lambda *_x: self.load_security())
+        hh.pack_end(self.show_local, False, False, 0)
+        page.pack_start(hh, False, False, 0)
+        self.port_card, self.port_list = list_card()
+        page.pack_start(self.port_card, False, False, 0)
+        return scrolled(page)
+
+    def load_security(self):
+        self.bg(lambda: (ports.firewall_enabled(), ports.services(root_names=self.root_port_names)),
+                self._render_security)
+
+    def _render_security(self, res):
+        if not res:
+            return
+        fw, svcs = res
+        set_pill(self.fw_pill, "on" if fw else "off", "ok" if fw else "fail")
+        self.fw_text.set_text(_("Incoming connections are blocked unless you allowed them. Outgoing traffic is "
+                                "unaffected.") if fw else
+                              _("Anything listening on the network can be reached by other computers."))
+        self.fw_btn.set_visible(not fw)
+        self._action_buttons = [b for b in self._action_buttons if not getattr(b, "port_row", False)]
+        for ch in self.port_list.get_children():
+            ch.destroy()
+        net = [x for x in svcs if x["scope"] != "local"]
+        shown = svcs if self.show_local.get_active() else net
+        self.port_head.set_text(f"LISTENING SERVICES ({len(net)} open to the network, "
+                                f"{len(svcs) - len(net)} local only)")
+        if not shown:
+            r = Gtk.ListBoxRow(activatable=False)
+            r.add(label(_("Nothing is listening for connections from other computers."), ("muted",)))
+            self.port_list.add(r)
+        order = {"warn": 0, "fail": 0, "info": 1, "ok": 2}
+        scope_word = {"network": ("network", "warn"), "link": ("local network", "dim"), "local": ("this PC only", "ok")}
+        for x in sorted(shown, key=lambda x: (order[x["level"]], x["scope"] != "network", x["port"])):
+            row = Gtk.ListBoxRow(activatable=False)
+            box = hbox(12)
+            box.pack_start(icon(STATUS_ICON[x["level"]][0], Gtk.IconSize.LARGE_TOOLBAR, STATUS_ICON[x["level"]][1]),
+                           False, False, 0)
+            t = vbox(2)
+            th = hbox(8)
+            th.pack_start(label(x["name"], ("h3",), ellipsize=True), False, False, 0)
+            th.pack_start(pill(f"{x['port']}/{x['proto']}", "dim"), False, False, 0)
+            w, k = scope_word[x["scope"]]
+            th.pack_start(pill(w, k if x["scope"] != "network" else ("ok" if fw else "warn")), False, False, 0)
+            if x["scope"] == "network" and fw:
+                th.pack_start(pill("firewalled", "ok"), False, False, 0)
+            t.pack_start(th, False, False, 0)
+            who = x["process"] or (_("(owned by a system service — use Identify programs)") if not x["known"] else "")
+            meta = "  ·  ".join(p for p in (who, ", ".join(x["addresses"])) if p)
+            t.pack_start(label(meta, ("faint", "mono"), ellipsize=True), False, False, 0)
+            t.pack_start(label(x["advice"], ("muted",), wrap=True), False, False, 0)
+            box.pack_start(t, True, True, 0)
+            if x["unit"] and boot.unit_enabled(x["unit"]):
+                b = self.action_button(_("Turn off"), lambda u=x["unit"], n=x["name"]: self._turn_off_service(u, n))
+                b.port_row = True
+                box.pack_end(b, False, False, 0)
+            row.add(box)
+            self.port_list.add(row)
+        self.port_list.show_all()
+
+    def identify_ports(self):
+        def work():
+            lines = []
+            res = run_steps([ports.root_scan_step()], root=True, on_line=lines.append)
+            return res, lines
+
+        def done(out):
+            res, lines = out or ({}, [])
+            if res.get("ports-root") != 0:
+                self.set_status(_("Identify was cancelled or failed"), bad=True)
+                return
+            names, ufw = ports.parse_root_scan(lines)
+            self.root_port_names = names
+            self.fw_rules.set_text("\n".join(ufw) or _("No firewall rules reported."))
+            self.fw_rules.show()
+            self.set_status(f"Identified {len(names)} listening program(s)")
+            self.load_security()
+        self.in_thread(_("Reading services and firewall rules…"), work, done)
+
+    def _enable_firewall(self):
+        t = tweaks.BY_ID["ufw"]
+        steps = [("on-ufw", "Apply: " + t.title, t.apply_script())]
+
+        def done(results):
+            self.notify_done(results or {}, "Firewall")
+            self._refresh_tweaks()
+            self.load_security()
+            self.run_diagnose()
+        self.in_thread(_("Enabling the firewall…"), lambda: self.execute(steps, [], "Optimise"), done)
+
+    def _turn_off_service(self, unit, name):
+        if not self.confirm(f"Turn off {name}?",
+                            f"Stops <tt>{GLib.markup_escape_text(unit)}</tt> now and at boot. Undo it from "
+                            "Maintenance › Undo, or with Enable on the Boot &amp; Startup page."):
+            return
+        steps = [("unit", f"Disable {unit}", boot.disable_script(unit))]
+
+        def done(results):
+            self.notify_done(results or {}, f"Turn off {name}")
+            self.load_security()
+            self.run_diagnose()
+        self.in_thread(f"Turning off {name}…", lambda: self.execute(steps, [], "Boot services"), done)
 
     # ------------------------------------------------------------ diagnose
 
@@ -2461,6 +2890,26 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.sensor_tiles = {}
         page.pack_start(tc, False, False, 0)
 
+        fwc = card()
+        fh = hbox(8)
+        fh.pack_start(icon("drive-harddisk-solidstate-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
+        fh.pack_start(label(_("Firmware"), ("h2",)), True, True, 0)
+        self.fw_install_btn = self.action_button(_("Install updates"), self.install_firmware, primary=True)
+        self.fw_install_btn.set_no_show_all(True)
+        fh.pack_end(self.fw_install_btn, False, False, 0)
+        fh.pack_end(self.action_button(_("Check online"), self.refresh_firmware, icon_name="view-refresh-symbolic"),
+                    False, False, 0)
+        fwc.pack_start(fh, False, False, 0)
+        self.fwup_lbl = label(_("Reading firmware information…"), ("muted",), wrap=True)
+        fwc.pack_start(self.fwup_lbl, False, False, 8)
+        self.fwup_box = vbox(4)
+        fwc.pack_start(self.fwup_box, False, False, 0)
+        self.fwdev_exp = Gtk.Expander(label=_("Devices"))
+        self.fwdev_box = vbox(2)
+        self.fwdev_exp.add(self.fwdev_box)
+        fwc.pack_start(self.fwdev_exp, False, False, 4)
+        page.pack_start(fwc, False, False, 0)
+
         self.drives_head = label(_("DRIVES"), ("kicker",))
         page.pack_start(self.drives_head, False, False, 0)
         self.drives_box = vbox(12)
@@ -2470,6 +2919,82 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def load_drives(self):
         self.bg(hardware.drives, self._render_drives)
+        self.load_firmware()
+
+    def load_firmware(self):
+        if not firmware.available():
+            self.fwup_lbl.set_text(_("fwupd isn't installed, so firmware can't be checked here."))
+            return
+        self.bg(lambda: (firmware.updates(), firmware.devices(), firmware.metadata_age()), self._render_firmware)
+
+    def _render_firmware(self, res):
+        if not res:
+            return
+        ups, devs, age = res
+        self.fw_updates = ups
+        for box in (self.fwup_box, self.fwdev_box):
+            for ch in box.get_children():
+                ch.destroy()
+        updatable = [d for d in devs if d["updatable"]]
+        if ups:
+            self.fwup_lbl.set_markup(f"<b>{len(ups)} firmware update(s) available.</b> Keep the computer plugged "
+                                     "in and don't switch it off while updating.")
+            for u in ups:
+                r = hbox(8)
+                r.pack_start(icon("software-update-available-symbolic", Gtk.IconSize.MENU, "warn"), False, False, 0)
+                r.pack_start(label(f"{u['device']}: {u['current']} → {u['new']}", ("h3",), ellipsize=True),
+                             False, False, 0)
+                if u["reboot"]:
+                    r.pack_start(pill("needs restart", "warn"), False, False, 0)
+                if u["urgency"] in ("high", "critical"):
+                    r.pack_start(pill(u["urgency"], "fail"), False, False, 0)
+                self.fwup_box.pack_start(r, False, False, 0)
+                if u["summary"]:
+                    self.fwup_box.pack_start(label(u["summary"], ("faint",), wrap=True), False, False, 0)
+        else:
+            self.fwup_lbl.set_text(f"Firmware is up to date for {len(updatable)} updatable device(s)."
+                                   + (f" The firmware catalogue was refreshed {age} ago." if age else ""))
+        self.fw_install_btn.set_visible(bool(ups))
+        self.fwdev_exp.set_label(f"Devices ({len(devs)}, {len(updatable)} support updates)")
+        for d in devs:
+            r = hbox(8)
+            r.pack_start(label(d["name"], ("muted",), ellipsize=True), True, True, 0)
+            r.pack_end(pill("updatable" if d["updatable"] else "fixed", "info" if d["updatable"] else "dim"),
+                       False, False, 0)
+            r.pack_end(label(d["version"] or "—", ("faint", "mono")), False, False, 0)
+            self.fwdev_box.pack_start(r, False, False, 0)
+        self.fwup_box.show_all()
+        self.fwdev_box.show_all()
+
+    def refresh_firmware(self):
+        def done(results):
+            self.notify_done(results or {}, "Firmware check")
+            self.load_firmware()
+        self.in_thread(_("Checking for firmware updates…"),
+                       lambda: self.execute([firmware.refresh_step()], [], "Firmware"), done)
+
+    def install_firmware(self):
+        ups = getattr(self, "fw_updates", [])
+        if not ups:
+            return
+        listing = "\n".join(f"• {GLib.markup_escape_text(u['device'])}: {GLib.markup_escape_text(u['current'])} → "
+                            f"{GLib.markup_escape_text(u['new'])}" for u in ups)
+        reboot = any(u["reboot"] for u in ups)
+        if not self.confirm(f"Install {len(ups)} firmware update(s)?",
+                            listing + "\n\nKeep the computer plugged in and don't turn it off." +
+                            ("\n<b>Some updates finish during the next restart.</b>" if reboot else "")):
+            return
+        snap = self.ask_snapshot("firmware updates")
+        if snap is None:
+            return
+
+        def done(results):
+            self.notify_done(results or {}, "Firmware update")
+            self.load_firmware()
+            if reboot and results and all(rc == 0 for rc in results.values()):
+                self.set_status(_("Firmware staged — restart the computer to finish installing it"))
+        self.in_thread(_("Installing firmware updates…"),
+                       lambda: self.execute([firmware.update_step()], [], "Firmware", snap), done)
 
     def _render_drives(self, ds):
         for ch in self.drives_box.get_children():
@@ -2974,7 +3499,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         kinds = {"fix": ("repair", "ok"), "tweak": ("tweak", "info"), "clean": ("clean", "ok"),
                  "service": ("service", "warn"), "flatpak": ("flatpak", "blue"), "snapshot": ("snapshot", "info"),
                  "undo": ("undo", "warn"), "startup": ("startup", "dim"), "trash": ("trash", "orange"),
-                 "scheduled": ("check-up", "ok"), "other": ("other", "dim")}
+                 "scheduled": ("check-up", "ok"), "update": ("update", "ok"), "firmware": ("firmware", "info"),
+                 "sources": ("sources", "warn"), "other": ("other", "dim")}
         last_day = None
         for e in events:
             day = time.strftime("%A %d %B %Y", time.localtime(e["ts"]))

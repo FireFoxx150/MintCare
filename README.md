@@ -7,7 +7,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.6.1_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.7.0_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -33,13 +33,15 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 
 | Page | What it does |
 |---|---|
-| **Dashboard** | Live CPU / RAM / disk ring gauges, live performance and network charts, health score, system details, one-click *Fix all / Recommended tweaks / Quick clean* |
-| **Diagnose & Fix** | 34 checks with a Fix button where a safe fix exists |
+| **Dashboard** | Update banner, health-score trend, live CPU / RAM / disk ring gauges, live performance and network charts, health score, system details, one-click *Fix all / Recommended tweaks / Quick clean* |
+| **Diagnose & Fix** | 38 checks with a Fix button where a safe fix exists |
 | **Optimise** | 4 one-click profiles (Everyday desktop, Gaming, Laptop battery, Developer) and 29 toggleable tweaks; switching one off reverts it |
 | **Disk space** | Clickable treemap of any folder (or the whole system) with the largest files, a content-based duplicate finder (BLAKE2, oldest copy kept) and Timeshift snapshot clean-up. Files go to the Trash |
+| **Software & updates** | MintCare self-update from GitHub (SHA-256 verified); APT source health — never downloaded, wrong Ubuntu series, duplicates, missing keys, apt test run — with disable/enable for third-party sources |
 | **Flatpak apps** | Every Flatpak with size, origin and a sandbox rating; Flatseal-style switches (network, home, whole filesystem, Downloads, devices, sound, X11) via per-user overrides; update, repair, uninstall |
 | **Clean** | Measures and removes junk |
-| **Hardware** | SMART health per drive (NVMe wear/spare/errors, HDD reallocated/pending/CRC), live temperature tiles, CPU/GPU throttling, full `smartctl -x` report |
+| **Hardware** | Firmware updates via fwupd/LVFS; SMART health per drive (NVMe wear/spare/errors, HDD reallocated/pending/CRC), live temperature tiles, CPU/GPU throttling, full `smartctl -x` report |
+| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…) |
 | **Boot & Startup** | Boot timeline (firmware/loader/kernel/services), slowest units with *blocks boot* markers and Disable/Enable for known-safe services, startup-app switches |
 | **Maintenance** | Scheduled check-up (systemd user timer, daily/weekly/monthly) with optional safe cleaning and a desktop notification when something needs attention; safety-snapshot preference (ask / always / never); *Undo all* for every MintCare change; a persistent history timeline |
 | **Activity log** | Full output of every command that ran |
@@ -107,7 +109,7 @@ mintcare --tray            # start the GUI hidden in the tray
 
 ## Development
 ```
-./run-tests.sh                 # 46 stdlib unittest tests; never needs root or changes the system
+./run-tests.sh                 # 58 stdlib unittest tests; never needs root or changes the system
 po/update-pot.sh               # refresh the translation template (see po/README.md)
 ```
 See `RELEASING.md` for GitHub releases and a Launchpad PPA.

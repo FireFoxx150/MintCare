@@ -107,10 +107,11 @@ class RingGauge(Gtk.DrawingArea):
 class LineChart(Gtk.DrawingArea):
     """Scrolling multi-series area chart. Series values are 0..max."""
 
-    def __init__(self, series, points=60, height=150, fixed_max=None, fmt=lambda v: f"{v:.0f}%", log=False):
+    def __init__(self, series, points=60, height=150, fixed_max=None, fmt=lambda v: f"{v:.0f}%", log=False,
+                 axis=True):
         super().__init__()
         self.series = [(name, color, deque([0.0] * points, maxlen=points)) for name, color in series]
-        self.fixed_max, self.fmt, self.log = fixed_max, fmt, log
+        self.fixed_max, self.fmt, self.log, self.axis = fixed_max, fmt, log, axis
         self._started = False
         self.set_size_request(-1, height)
         self.connect("draw", self._draw)
@@ -136,7 +137,7 @@ class LineChart(Gtk.DrawingArea):
     def _draw(self, w, cr):
         import cairo
         a = w.get_allocation()
-        pad_l, pad_r, pad_t, pad_b = 52 if self.log else 44, 8, 8, 18
+        pad_l, pad_r, pad_t, pad_b = (52 if self.log else 44, 8, 8, 18) if self.axis else (4, 6, 4, 4)
         W, H = a.width - pad_l - pad_r, a.height - pad_t - pad_b
         top = self.fixed_max or max([max(b) for _x, _x, b in self.series] + [1.0]) * 1.15
         cr.set_line_width(1)
@@ -146,6 +147,8 @@ class LineChart(Gtk.DrawingArea):
             cr.move_to(pad_l, int(y) + 0.5)
             cr.line_to(pad_l + W, int(y) + 0.5)
             cr.stroke()
+            if not self.axis:
+                continue
             layout = PangoCairo.create_layout(cr)
             layout.set_font_description(Pango.FontDescription.from_string(f"{MONO} 8px"))
             layout.set_text(self.fmt(self._label_value((4 - i) / 4, top)), -1)
@@ -382,3 +385,17 @@ class Treemap(Gtk.DrawingArea):
                 PangoCairo.show_layout(cr, layout2)
                 cr.restore()
         return False
+
+
+def _set_values(self, *value_lists):
+    """Replace a LineChart's history (e.g. stored health scores) instead of streaming."""
+    for (_name, _color, buf), vals in zip(self.series, value_lists):
+        vals = [float(v) for v in vals][-buf.maxlen:]
+        buf.clear()
+        if vals:
+            buf.extend([vals[0]] * (buf.maxlen - len(vals)) + vals)
+    self._started = True
+    self.queue_draw()
+
+
+LineChart.set_values = _set_values

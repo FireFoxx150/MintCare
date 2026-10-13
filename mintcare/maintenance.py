@@ -34,6 +34,7 @@ DEFAULTS = {
     "theme": "dark",                     # system | dark | light | contrast
     "level": "intermediate",             # beginner | intermediate | advanced
     "tray": False, "tray_autostart": False,
+    "check_updates": True,               # ask GitHub (at most every 6 h) whether a newer MintCare exists
     "snapshot_before": "ask",            # ask | always | never
     "maintenance": {"frequency": "weekly", "clean": ["thumbs", "usercache"], "notify": "issues"},
 }
@@ -65,6 +66,7 @@ KIND_FOR_HEADING = {
     "Repair": "fix", "Optimise": "tweak", "Clean": "clean", "Boot services": "service",
     "Flatpak": "flatpak", "Flatpak update": "flatpak", "Flatpak repair": "flatpak",
     "Timeshift": "snapshot", "Undo": "undo", "Snapshot": "snapshot",
+    "Update": "update", "Firmware": "firmware", "Sources": "sources",
 }
 
 
@@ -110,6 +112,44 @@ def clear_history():
         HISTORY_FILE.unlink()
     except OSError:
         pass
+
+
+# ------------------------------------------------------------------ health trend
+
+SCORES_FILE = STATE / "scores.jsonl"
+
+
+def record_score(score, counts):
+    """Append a health-score point; points closer than 30 minutes replace the previous one."""
+    point = {"ts": time.time(), "score": score, "fail": counts.get("fail", 0),
+             "warn": counts.get("warn", 0), "info": counts.get("info", 0)}
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        lines = SCORES_FILE.read_text().splitlines() if SCORES_FILE.exists() else []
+        if lines:
+            try:
+                if point["ts"] - json.loads(lines[-1])["ts"] < 1800:
+                    lines.pop()
+            except (ValueError, KeyError):
+                pass
+        lines.append(json.dumps(point))
+        SCORES_FILE.write_text("\n".join(lines[-500:]) + "\n")
+    except OSError:
+        pass
+
+
+def scores(limit=60):
+    try:
+        lines = SCORES_FILE.read_text().splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in lines[-limit:]:
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            pass
+    return out
 
 
 # ------------------------------------------------------------------ change tracking (for Undo all)
@@ -288,6 +328,8 @@ def run_maintenance(notify=True, on_line=None):
     results = [(c, c.run()) for c in checks.CHECKS]
     issues = [(c.title, r.summary) for c, r in results if r.status in (checks.WARN, checks.FAIL)]
     tips = sum(1 for _c, r in results if r.status == checks.INFO)
+    counts = {st: sum(1 for _c, r in results if r.status == st) for st in ("fail", "warn", "info")}
+    record_score(max(0, 100 - counts["fail"] * 15 - counts["warn"] * 5 - counts["info"]), counts)
 
     wanted = set(s.get("clean", []))
     items = [i for i in cleaner.ITEMS if i.user_script and not i.root_script and i.available()

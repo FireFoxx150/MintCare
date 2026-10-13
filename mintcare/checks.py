@@ -481,6 +481,63 @@ def c_grub_recordfail():
     return Result(OK, f"GRUB menu timeout {t:.0f} s, {rf:.0f} s after a failed boot")
 
 
+# ------------------------------------------------------------ updates, firmware, sources, ports
+
+def c_mintcare_update():
+    from . import __version__, maintenance, selfupdate
+    if not maintenance.load_settings().get("check_updates", True):
+        return Result(OK, _("Update checks for MintCare are turned off"))
+    info = selfupdate.latest(timeout=5)
+    if info is None:
+        return Result(INFO, _("Couldn't reach GitHub to check for MintCare updates"))
+    if selfupdate.is_newer(info["version"], __version__):
+        return Result(WARN, f"MintCare {info['version']} is available (you have {__version__})",
+                      Fix("page", "software", _("Update")))
+    return Result(OK, f"MintCare {__version__} is the latest version")
+
+
+def c_firmware():
+    from . import firmware
+    if not firmware.available():
+        return Result(OK, _("fwupd is not installed; firmware updates are checked by your vendor's tools"))
+    ups = firmware.updates()
+    if ups:
+        names = ", ".join(u["device"] for u in ups[:3])
+        return Result(WARN, f"{len(ups)} firmware update(s) available: {names}",
+                      Fix("page", "hardware", _("View firmware")))
+    age = firmware.metadata_age()
+    return Result(OK, "Firmware is up to date" + (f" (catalogue checked {age} ago)" if age else ""))
+
+
+def c_sources():
+    from . import sources
+    srcs = [x for x in sources.analyse() if x.enabled]
+    bad = [x for x in srcs if x.health in (sources.WARN, sources.FAIL)]
+    if not bad:
+        return Result(OK, f"All {len(srcs)} software sources look healthy")
+    worst = max(bad, key=lambda x: sources.RANK[x.health])
+    text = next(t for lvl, t in worst.problems if lvl == worst.health)
+    return Result(worst.health, f"{len(bad)} software source(s) need attention — {worst.label}: {text}",
+                  Fix("page", "software", _("Review sources")))
+
+
+def c_ports():
+    from . import ports
+    svcs = [x for x in ports.services() if x["scope"] == "network"]
+    warn = [x for x in svcs if x["level"] in (WARN, FAIL)]
+    info = [x for x in svcs if x["level"] == INFO]
+    if warn:
+        names = ", ".join(f"{x['name']} ({x['port']})" for x in warn[:3])
+        return Result(WARN, f"Reachable from the network with no firewall: {names}",
+                      tweak_fix("ufw", _("Enable firewall")))
+    if info:
+        names = ", ".join(f"{x['name']} ({x['port']}/{x['proto']})" for x in info[:3])
+        return Result(INFO, f"Open to the network behind the firewall: {names}",
+                      Fix("page", "security", _("Review")))
+    return Result(OK, f"{len(svcs)} network-facing port(s), all expected or blocked by the firewall"
+                  if svcs else _("No services are reachable from the network"))
+
+
 CHECKS = [
     Check("internet", _("Internet connection"), _("Network"), c_internet),
     Check("dns", _("DNS resolution"), _("Network"), c_dns),
@@ -492,6 +549,8 @@ CHECKS = [
     Check("reboot", _("Restart needed"), _("Packages"), c_reboot),
     Check("kernels", _("Installed kernels"), _("Packages"), c_kernels),
     Check("residual", _("Leftover package config"), _("Packages"), c_residual),
+    Check("sources", _("Software sources"), _("Packages"), c_sources),
+    Check("selfupdate", _("MintCare updates"), _("Packages"), c_mintcare_update),
     Check("rootdisk", _("Disk space"), _("Storage"), c_disk_root),
     Check("bootdisk", _("/boot space"), _("Storage"), c_disk_boot),
     Check("trim", _("SSD TRIM"), _("Storage"), c_trim),
@@ -504,8 +563,10 @@ CHECKS = [
     Check("power", _("Laptop power management"), _("Hardware"), c_power),
     Check("smart", _("Disk health (SMART)"), _("Hardware"), c_smart),
     Check("temps", _("Temperatures & throttling"), _("Hardware"), c_temps),
+    Check("firmware", _("Firmware updates"), _("Hardware"), c_firmware),
     Check("firewall", _("Firewall"), _("Security"), c_firewall),
     Check("homeperms", _("Home folder privacy"), _("Security"), c_home_perms),
+    Check("ports", _("Open network ports"), _("Security"), c_ports),
     Check("time", _("Clock sync"), _("System"), c_time),
     Check("failed", _("Failed services"), _("System"), c_failed_units),
     Check("userfailed", _("Failed user services"), _("System"), c_user_failed_units),
