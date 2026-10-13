@@ -1,0 +1,9 @@
+#!/bin/bash
+# Privileged half of MintCare, started through pkexec (polkit action org.mintcare.run).
+# Runs one batch script that the MintCare app generated for the requesting user.
+set -u
+[ "$(id -u)" -eq 0 ] || { echo "mintcare-root must run as root" >&2; exit 126; }
+[ $# -eq 1 ] && [ -f "$1" ] || { echo "usage: mintcare-root SCRIPT" >&2; exit 2; }
+SCRIPT=$(realpath -e "$1")
+case "$SCRIPT" in /tmp/mintcare-*.sh) ;; *) echo "refusing script outside /tmp/mintcare-*.sh" >&2; exit 2;; esac
+exec /bin/bash "$SCRIPT"
