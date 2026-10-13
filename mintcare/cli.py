@@ -133,6 +133,14 @@ def cmd_maintain(args):
     return 1 if rep["issues"] else 0
 
 
+def cmd_report(args):
+    from . import report
+    out = args.output or f"MintCare-report-{__import__('time').strftime('%Y-%m-%d')}.html"
+    report.write_html(out, private=not args.personal, progress=lambda m: print(m))
+    print(f"Saved {out}")
+    return 0
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="mintcare", description="Clean, optimise and repair Linux Mint.")
     ap.add_argument("--version", action="version", version=f"MintCare {__version__}")
@@ -144,6 +152,9 @@ def main(argv):
     g.add_argument("--apply", nargs="+", metavar="ID")
     g.add_argument("--revert", nargs="+", metavar="ID")
     sub.add_parser("hardware", help="disk SMART health, temperatures and boot time")
+    rp = sub.add_parser("report", help="export an HTML health report")
+    rp.add_argument("-o", "--output", help="file to write (default: MintCare-report-DATE.html)")
+    rp.add_argument("--personal", action="store_true", help="keep hostname, user name and serial numbers")
     mt = sub.add_parser("maintain", help="scheduled check-up: scan, safe clean, notify")
     mt.add_argument("--no-notify", action="store_true")
     sp = sub.add_parser("space", help="what's using disk space")
@@ -155,4 +166,4 @@ def main(argv):
     if a.cmd == "clean" and a.run == []:
         a.run = ["default"]
     return {"scan": cmd_scan, "tweaks": cmd_tweaks, "clean": cmd_clean, "hardware": cmd_hardware, "space": cmd_space,
-            "maintain": cmd_maintain}[a.cmd](a)
+            "maintain": cmd_maintain, "report": cmd_report}[a.cmd](a)

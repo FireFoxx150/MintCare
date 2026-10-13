@@ -78,5 +78,28 @@ class HardwareLevels(unittest.TestCase):
         self.assertEqual(hardware._years(9278), "1.1 yrs")
 
 
+
+class ReportPrivacy(unittest.TestCase):
+    def test_scrub_removes_identity(self):
+        import getpass
+        import socket
+        from mintcare import report
+        home, user, host = str(Path.home()), getpass.getuser(), socket.gethostname()
+        text = f"{host} {home}/Downloads/{user}.txt /home/{user}/x"
+        out = report._scrub(text, private=True)
+        self.assertNotIn(host, out)
+        self.assertNotIn(home, out)
+        if len(user) > 2:
+            self.assertNotIn(user, out)
+        self.assertEqual(report._scrub(text, private=False), text)
+
+    def test_score(self):
+        from types import SimpleNamespace as R
+        from mintcare import report
+        sc, n = report.score([R(status="fail"), R(status="warn"), R(status="info"), R(status="ok")])
+        self.assertEqual(sc, 100 - 15 - 5 - 1)
+        self.assertEqual(n, {"fail": 1, "warn": 1, "info": 1})
+
+
 if __name__ == "__main__":
     unittest.main()

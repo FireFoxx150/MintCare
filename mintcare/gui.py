@@ -7,6 +7,7 @@ import socket
 import subprocess
 import threading
 import time
+from pathlib import Path
 
 import gi
 
@@ -816,7 +817,112 @@ class MintCareWindow(Gtk.ApplicationWindow):
         pass
 
     def export_report(self):
-        pass
+        d = Gtk.FileChooserDialog(title="Export health report", transient_for=self,
+                                  action=Gtk.FileChooserAction.SAVE)
+        css(d, "mintcare")
+        d.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Export", Gtk.ResponseType.OK)
+        d.set_do_overwrite_confirmation(True)
+        d.set_current_folder(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS) or space.HOME)
+        stamp = time.strftime("%Y-%m-%d")
+        d.set_current_name(f"MintCare-report-{stamp}.pdf")
+        extra = vbox(6)
+        fmt = hbox(12)
+        fmt.pack_start(label("Format:", ("muted",)), False, False, 0)
+        pdf_rb = Gtk.RadioButton.new_with_label_from_widget(None, "PDF")
+        html_rb = Gtk.RadioButton.new_with_label_from_widget(pdf_rb, "Web page (HTML)")
+
+        def set_ext(_w):
+            name = d.get_current_name() or f"MintCare-report-{stamp}"
+            base = name.rsplit(".", 1)[0] if name.lower().endswith((".pdf", ".html")) else name
+            d.set_current_name(base + (".pdf" if pdf_rb.get_active() else ".html"))
+        pdf_rb.connect("toggled", set_ext)
+        fmt.pack_start(pdf_rb, False, False, 0)
+        fmt.pack_start(html_rb, False, False, 0)
+        extra.pack_start(fmt, False, False, 0)
+        priv = Gtk.CheckButton(label="Leave out personal details (computer name, user name, drive serial numbers)",
+                               active=True)
+        extra.pack_start(priv, False, False, 0)
+        extra.show_all()
+        d.set_extra_widget(extra)
+        resp, path, as_pdf, private = d.run(), d.get_filename(), pdf_rb.get_active(), priv.get_active()
+        d.destroy()
+        if resp != Gtk.ResponseType.OK or not path:
+            return
+        if as_pdf and not path.lower().endswith(".pdf"):
+            path += ".pdf"
+        if not as_pdf and not path.lower().endswith((".html", ".htm")):
+            path += ".html"
+        from . import report
+
+        def work():
+            data = report.collect(private, progress=lambda m: GLib.idle_add(self.set_status, m))
+            return report.render_html(data)
+
+        def done(page):
+            if not page:
+                self.set_status("Could not build the report", bad=True)
+                return
+            if as_pdf:
+                self._print_pdf(page, path)
+            else:
+                Path(path).write_text(page)
+                self._report_saved(path)
+        self.in_thread("Building health report…", work, done)
+
+    def _print_pdf(self, page, path):
+        try:
+            gi.require_version("WebKit2", "4.1")
+            from gi.repository import WebKit2
+        except (ValueError, ImportError):
+            alt = path[:-4] + ".html"
+            Path(alt).write_text(page)
+            self.log("WebKit is not available for PDF output; saved the report as HTML instead.")
+            self._report_saved(alt)
+            return
+        win = Gtk.OffscreenWindow()
+        view = WebKit2.WebView()
+        win.add(view)
+        win.set_default_size(980, 1300)
+        win.show_all()
+        self._pdf_keep = win               # keep alive until printing finishes
+
+        def finished(*_a):
+            self._pdf_keep = None
+            win.destroy()
+            self._report_saved(path)
+
+        def failed(_op, err):
+            self._pdf_keep = None
+            win.destroy()
+            self.log(f"PDF export failed: {err.message if hasattr(err, 'message') else err}")
+            self.set_status("PDF export failed", bad=True)
+
+        def loaded(v, ev):
+            if ev != WebKit2.LoadEvent.FINISHED:
+                return
+            op = WebKit2.PrintOperation.new(v)
+            ps = Gtk.PrintSettings()
+            ps.set_printer("Print to File")
+            ps.set(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT, "pdf")
+            ps.set(Gtk.PRINT_SETTINGS_OUTPUT_URI, Gio.File.new_for_path(path).get_uri())
+            op.set_print_settings(ps)
+            setup = Gtk.PageSetup()
+            setup.set_paper_size(Gtk.PaperSize.new(Gtk.PAPER_NAME_A4))
+            op.set_page_setup(setup)
+            op.connect("finished", finished)
+            op.connect("failed", failed)
+            op.print_()
+        view.connect("load-changed", loaded)
+        view.load_html(page, "file:///")
+
+    def _report_saved(self, path):
+        maintenance.record("other", f"Exported health report ({os.path.basename(path)})")
+        self.log(f"Health report saved: {path}")
+        self.set_status(f"Report saved: {os.path.basename(path)}")
+        try:
+            Gio.AppInfo.launch_default_for_uri(Gio.File.new_for_path(path).get_uri(), None)
+        except GLib.Error:
+            pass
 
     def show_about(self):
         d = Gtk.AboutDialog(transient_for=self, modal=True, program_name="MintCare", version=__version__,
