@@ -147,7 +147,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         super().__init__(application=app, title="MintCare")
         css(self, "mintcare")
         self.set_default_size(1240, 820)
-        self.set_size_request(980, 640)
+        self.set_size_request(720, 560)
+        self._layout_mode = None
+        self._responsive = []          # (grid, {mode: [(widget, left, top, width, height)]})
         self.set_icon_name("mintcare")
         self.busy = False
         self.check_results = {}
@@ -194,6 +196,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.add(root)
 
         self.show_all()
+        self.connect("size-allocate", self._on_size)
+        self._apply_layout("wide")
         self.apply_level(self.prefs.get("level", "intermediate"))
         self.goto(os.environ.get("MINTCARE_PAGE", "dashboard"))
         self._tick()
@@ -220,6 +224,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         hb.pack_start(brand)
 
         chips = hbox(16)
+        self.chip_boxes = {}
         osr = dict(l.split("=", 1) for l in read("/etc/os-release").splitlines() if "=" in l)
         self.chip_vals = {}
         for i, (key, val) in enumerate([
@@ -233,6 +238,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 sep.set_size_request(1, 24)
                 sep.set_valign(Gtk.Align.CENTER)
                 chips.pack_start(sep, False, False, 0)
+                self.chip_boxes.setdefault(key + "-sep", sep)
             c = vbox(1)
             c.set_valign(Gtk.Align.CENTER)
             c.pack_start(label(key, ("kicker",)), False, False, 0)
@@ -240,13 +246,20 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.chip_vals[key] = v
             c.pack_start(v, False, False, 0)
             chips.pack_start(c, False, False, 0)
+            self.chip_boxes[key] = c
+        chip_scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.EXTERNAL,
+                                           vscrollbar_policy=Gtk.PolicyType.NEVER)
+        chip_scroller.set_propagate_natural_width(True)
+        chip_scroller.set_propagate_natural_height(True)
+        chip_scroller.add(chips)
+        self.header_chips = chip_scroller
         menu_btn = Gtk.MenuButton(valign=Gtk.Align.CENTER)
         menu_btn.add(icon("open-menu-symbolic"))
         menu_btn.set_tooltip_text("Appearance, experience level, tray and report")
         css(menu_btn, "ghost")
         menu_btn.set_popover(self._build_app_menu(menu_btn))
         hb.pack_end(menu_btn)
-        hb.pack_end(chips)
+        hb.pack_end(chip_scroller)
         return hb
 
     def _build_app_menu(self, relative):
@@ -319,6 +332,36 @@ class MintCareWindow(Gtk.ApplicationWindow):
         elif key == "tray_autostart":
             self.set_tray_autostart(value)
 
+    # ------------------------------------------------------------ responsive layout
+
+    def _on_size(self, _w, alloc):
+        mode = "wide" if alloc.width >= 1180 else "medium" if alloc.width >= 900 else "narrow"
+        if mode != self._layout_mode:
+            self._layout_mode = mode
+            GLib.idle_add(self._apply_layout, mode)
+
+    def _apply_layout(self, mode):
+        for grid, layouts in self._responsive:
+            spec = layouts[mode]
+            for wdg, *_pos in spec:
+                if wdg.get_parent() is grid:
+                    grid.remove(wdg)
+            for wdg, left, top, w, h in spec:
+                grid.attach(wdg, left, top, w, h)
+            grid.set_column_homogeneous(True)
+            grid.show_all()
+        compact = mode == "narrow"
+        for lbl in self.nav_labels:
+            lbl.set_visible(not compact)
+        self.nav_kicker.set_visible(not compact)
+        self.side_foot.set_visible(not compact)
+        self.sidebar.set_size_request(64 if compact else 220, -1)
+        for key in ("SYSTEM", "SYSTEM-sep", "KERNEL", "KERNEL-sep"):     # separators sit before their chip
+            if key in self.chip_boxes:
+                self.chip_boxes[key].set_visible(mode == "wide")
+        self.header_chips.set_visible(mode != "narrow")
+        return False
+
     # ------------------------------------------------------------ theme & level
 
     def apply_theme(self, name):
@@ -362,7 +405,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_sidebar(self):
         side = vbox(4, "sidebar")
         side.set_size_request(220, -1)
-        side.pack_start(label("NAVIGATION", ("kicker",)), False, False, 6)
+        self.sidebar = side
+        self.nav_kicker = label("NAVIGATION", ("kicker",))
+        side.pack_start(self.nav_kicker, False, False, 6)
         self.nav = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.nav_rows, self.nav_badges = {}, {}
         for key, title, icon_name in NAV:
@@ -370,7 +415,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
             row.page = key
             b = hbox(10)
             b.pack_start(icon(icon_name), False, False, 0)
-            b.pack_start(label(title, ("nav-label",)), True, True, 0)
+            nl = label(title, ("nav-label",))
+            self.nav_labels = getattr(self, "nav_labels", [])
+            self.nav_labels.append(nl)
+            row.set_tooltip_text(title)
+            b.pack_start(nl, True, True, 0)
             badge = label("", ("nav-badge",))
             badge.set_no_show_all(True)
             self.nav_badges[key] = badge
@@ -400,6 +449,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         css(self.level_pill, "level-pill")
         foot.pack_start(self.level_pill, False, False, 0)
         side.pack_end(foot, False, False, 0)
+        self.side_foot = foot
         return side
 
     def _build_footer(self):
@@ -636,7 +686,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         t.pack_start(label(socket.gethostname(), ("h1",)), False, False, 0)
         desk = os.environ.get("XDG_CURRENT_DESKTOP", "unknown").replace("X-", "")
         t.pack_start(label(f"● {platform.system()} ({platform.machine()}) • {desk} • Kernel {platform.release()}",
-                           ("faint", "mono")), False, False, 0)
+                           ("faint", "mono"), ellipsize=True), False, False, 0)
         row.pack_start(t, True, True, 0)
         row.pack_end(self.action_button("Refresh", self.run_diagnose, icon_name="view-refresh-symbolic"),
                      False, False, 0)
@@ -666,19 +716,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.load_lbl = label("–", ("stat-val",), xalign=1.0)
         lr.pack_end(self.load_lbl, False, False, 0)
         cpu_foot.pack_start(lr, False, False, 0)
-        grid.attach(cpu_card, 0, 0, 1, 1)
 
         self.g_mem, mem_card, mem_foot = self._gauge_card(
             "System Memory", "media-flash-symbolic", BLUE, "RAM used", human(self.sampler.sample()["mem_total"]),
             "blue")
         self.mem_used, self.mem_swap = self._tiles(mem_foot, "USED", "SWAP USED")
-        grid.attach(mem_card, 1, 0, 1, 1)
 
         self.g_disk, disk_card, disk_foot = self._gauge_card(
             "Root Disk", "drive-harddisk-symbolic", ORANGE, "Storage full", human(shutil.disk_usage("/").total),
             "orange")
         self.disk_used, self.disk_free = self._tiles(disk_foot, "OCCUPIED", "AVAILABLE")
-        grid.attach(disk_card, 2, 0, 1, 1)
 
         # performance chart (2 columns)
         perf = card()
@@ -690,7 +737,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
         perf.pack_start(ph, False, False, 0)
         self.perf_chart = LineChart([("CPU", EMERALD), ("RAM", BLUE)], points=90, height=150, fixed_max=100)
         perf.pack_start(self.perf_chart, True, True, 10)
-        grid.attach(perf, 0, 1, 2, 1)
 
         # health card
         hc = card("ecard")
@@ -715,25 +761,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
         acts = vbox(6)
         acts.pack_start(self.action_button("Fix all issues", self.fix_all, primary=True,
                                            icon_name="emblem-ok-symbolic"), False, False, 0)
-        two = hbox(6)
-        two.set_homogeneous(True)
-        two.pack_start(self.action_button("Recommended tweaks", self.apply_recommended), True, True, 0)
-        two.pack_start(self.action_button("Quick clean", self.quick_clean), True, True, 0)
-        acts.pack_start(two, False, False, 0)
+        # stacked, not side by side: in an equal-width grid this card sets every column's minimum
+        acts.pack_start(self.action_button("Recommended tweaks", self.apply_recommended), False, False, 0)
+        acts.pack_start(self.action_button("Quick clean", self.quick_clean), False, False, 0)
         hc.pack_end(acts, False, False, 0)
-        grid.attach(hc, 2, 1, 1, 2)
 
         # network chart
         net = card()
         nh = hbox(8)
         nh.pack_start(icon("network-wired-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
         nh.pack_start(label("Network Throughput", ("h2",)), False, False, 0)
-        self.net_lbl = label("", ("faint", "mono"))
-        nh.pack_end(self.net_lbl, False, False, 0)
+        self.net_lbl = label("", ("faint", "mono"), xalign=1.0, ellipsize=True)
+        nh.pack_end(self.net_lbl, True, True, 0)
         net.pack_start(nh, False, False, 0)
         self.net_chart = LineChart([("Down", VIOLET), ("Up", ORANGE)], points=90, height=100, fmt=rate, log=True)
         net.pack_start(self.net_chart, True, True, 10)
-        grid.attach(net, 0, 2, 1, 1)
 
         # system details
         det = card()
@@ -744,7 +786,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.kv_grid = Gtk.Grid(column_spacing=14, row_spacing=6)
         det.pack_start(self.kv_grid, False, False, 10)
         self._fill_details()
-        grid.attach(det, 1, 2, 1, 1)
+        self._responsive.append((grid, {
+            "wide": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 2, 0, 1, 1),
+                     (perf, 0, 1, 2, 1), (hc, 2, 1, 1, 2), (net, 0, 2, 1, 1), (det, 1, 2, 1, 1)],
+            "medium": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 0, 1, 1, 1),
+                       (hc, 1, 1, 1, 2), (det, 0, 2, 1, 1), (perf, 0, 3, 2, 1), (net, 0, 4, 2, 1)],
+            "narrow": [(w, 0, i, 1, 1) for i, w in enumerate((hc, cpu_card, mem_card, disk_card, perf, net, det))],
+        }))
 
         note = label("MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and records what "
                      "it changed in <tt>/var/lib/mintcare</tt>, so every optimisation can be switched off again "
@@ -1004,8 +1052,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(self.opt_header, False, False, 0)
 
         page.pack_start(label("PROFILES", ("kicker",)), False, False, 0)
-        prow = hbox(12)
-        prow.set_homogeneous(True)
+        prow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, min_children_per_line=1,
+                           max_children_per_line=4, column_spacing=12, row_spacing=12)
         self.profile_meters = {}
         for pr in tweaks.PROFILES:
             tile = vbox(6, "profile-tile")
@@ -1024,7 +1072,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             foot.pack_end(self.action_button("Select", lambda pid=pr.id: self.select_profile(pid)), False, False, 0)
             tile.pack_start(foot, False, False, 0)
             self.profile_meters[pr.id] = (meter, cnt)
-            prow.pack_start(tile, True, True, 0)
+            tile.set_size_request(230, -1)
+            prow.add(tile)
         page.pack_start(prow, False, False, 0)
 
         self.switches, self.tweak_state_lbls, self.tweak_rows, self.opt_sections = {}, {}, {}, []
@@ -1331,8 +1380,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                           icon_name="folder-symbolic"), False, False, 0)
         self.space_spinner = Gtk.Spinner()
         ctl.pack_end(self.space_spinner, False, False, 0)
-        self.space_status = label("", ("faint", "mono"))
-        ctl.pack_end(self.space_status, False, False, 0)
+        self.space_status = label("", ("faint", "mono"), xalign=1.0, ellipsize=True)
+        ctl.pack_end(self.space_status, True, True, 0)
         box.pack_start(ctl, False, False, 0)
 
         tc = card()
@@ -1517,6 +1566,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         r2.pack_start(self.dup_min, False, False, 0)
         self.dup_hidden = Gtk.CheckButton(label="Include hidden files and folders")
         r2.pack_start(self.dup_hidden, False, False, 12)
+        c.pack_start(r2, False, False, 10)
+        r2 = hbox(8)                      # buttons on their own row so narrow windows fit
         self.dup_cancel_btn = Gtk.Button(label="Cancel")
         css(self.dup_cancel_btn, "ghost")
         self.dup_cancel_btn.connect("clicked", lambda *_: self._space_cancel.set())
@@ -1532,7 +1583,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.dup_scan_btn.connect("clicked", lambda *_: self.scan_dups())
         self.dup_running = False
         r2.pack_end(self.dup_scan_btn, False, False, 0)
-        c.pack_start(r2, False, False, 10)
+        c.pack_start(r2, False, False, 0)
         self.dup_progress = Gtk.ProgressBar()
         self.dup_progress.set_no_show_all(True)
         c.pack_start(self.dup_progress, False, False, 0)
@@ -2459,7 +2510,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
         row.pack_end(self.action_button("Run check-up now", self.run_checkup_now, primary=True,
                                         icon_name="media-playback-start-symbolic"), False, False, 0)
         sc.pack_end(row, False, False, 0)
-        grid.attach(sc, 0, 0, 1, 1)
 
         # safety snapshots
         sf = card()
@@ -2484,7 +2534,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
         row.pack_end(self.action_button("Take snapshot now", self.snapshot_now,
                                         icon_name="document-save-symbolic"), False, False, 0)
         sf.pack_end(row, False, False, 0)
-        grid.attach(sf, 1, 0, 1, 1)
 
         # undo
         uc = card()
@@ -2497,7 +2546,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         h.pack_start(t, True, True, 0)
         h.pack_end(self.action_button("Undo…", self.undo_all, icon_name="edit-undo-symbolic"), False, False, 0)
         uc.pack_start(h, False, False, 0)
-        grid.attach(uc, 0, 1, 2, 1)
+        two = [(sc, 0, 0, 1, 1), (sf, 1, 0, 1, 1), (uc, 0, 1, 2, 1)]
+        stacked = [(sc, 0, 0, 1, 1), (sf, 0, 1, 1, 1), (uc, 0, 2, 1, 1)]
+        self._responsive.append((grid, {"wide": two, "medium": stacked, "narrow": stacked}))
 
         # history
         hh = hbox(8)

@@ -45,6 +45,7 @@ RULES = """
   background-image: none; }
 .mintcare radio { background-image: none; background-color: @checkbg; border: 1px solid @checkborder; }
 .level-pill { margin-top: 2px; }
+flowboxchild { padding: 0; }
 .flash { background-color: alpha(@emerald, 0.18); }.mintcare, .mintcare .main { background-color: @bg; color: @slate3;
   font-family: "Inter", "Ubuntu Sans", "Ubuntu", sans-serif; }
 
