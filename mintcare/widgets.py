@@ -116,7 +116,7 @@ class LineChart(Gtk.DrawingArea):
         self.connect("draw", self._draw)
 
     def push(self, *values):
-        for (_, _, buf), v in zip(self.series, values):
+        for (_x, _x, buf), v in zip(self.series, values):
             if not self._started:  # fill history with the first sample, not a flat zero line
                 buf.extend([float(v)] * buf.maxlen)
             buf.append(float(v))
@@ -138,7 +138,7 @@ class LineChart(Gtk.DrawingArea):
         a = w.get_allocation()
         pad_l, pad_r, pad_t, pad_b = 52 if self.log else 44, 8, 8, 18
         W, H = a.width - pad_l - pad_r, a.height - pad_t - pad_b
-        top = self.fixed_max or max([max(b) for _, _, b in self.series] + [1.0]) * 1.15
+        top = self.fixed_max or max([max(b) for _x, _x, b in self.series] + [1.0]) * 1.15
         cr.set_line_width(1)
         for i in range(5):
             y = pad_t + H * i / 4
@@ -231,7 +231,7 @@ class StackedBar(Gtk.DrawingArea):
     def _draw(self, w, cr):
         a = w.get_allocation()
         r = a.height / 2
-        total = sum(v for v, _ in self.segments) or 1
+        total = sum(v for v, _x in self.segments) or 1
         cr.new_sub_path()
         cr.arc(r, r, r, math.pi / 2, 3 * math.pi / 2)
         cr.arc(a.width - r, r, r, -math.pi / 2, math.pi / 2)
@@ -257,15 +257,15 @@ def _squarify(items, x, y, w, h):
     """items: [(value, payload)] sorted desc. Returns [(x, y, w, h, payload)]."""
     out = []
     items = [it for it in items if it[0] > 0]
-    total = sum(v for v, _ in items)
+    total = sum(v for v, _x in items)
     if not items or w <= 0 or h <= 0 or total <= 0:
         return out
     scale = w * h / total
     rest = [(v * scale, p) for v, p in items]
 
     def worst(row, side):
-        s = sum(a for a, _ in row)
-        mx, mn = max(a for a, _ in row), min(a for a, _ in row)
+        s = sum(a for a, _x in row)
+        mx, mn = max(a for a, _x in row), min(a for a, _x in row)
         return max(side * side * mx / (s * s), (s * s) / (side * side * mn))
 
     while rest:
@@ -273,7 +273,7 @@ def _squarify(items, x, y, w, h):
         row = [rest.pop(0)]
         while rest and worst(row + [rest[0]], side) <= worst(row, side):
             row.append(rest.pop(0))
-        s = sum(a for a, _ in row)
+        s = sum(a for a, _x in row)
         if w >= h:                       # lay the row out as a column on the left
             cw = s / h
             cy = y
@@ -307,7 +307,7 @@ class Treemap(Gtk.DrawingArea):
                         Gdk.EventMask.LEAVE_NOTIFY_MASK)
         self.connect("draw", self._draw)
         self.connect("motion-notify-event", self._motion)
-        self.connect("leave-notify-event", lambda *_: self._set_hover(None))
+        self.connect("leave-notify-event", lambda *_x: self._set_hover(None))
         self.connect("button-press-event", self._click)
         self.connect("query-tooltip", self._tooltip)
 

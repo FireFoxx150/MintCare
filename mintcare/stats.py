@@ -23,7 +23,7 @@ class Sampler:
     def _net_bytes():
         rx = tx = 0
         for line in read("/proc/net/dev").splitlines()[2:]:
-            name, _, data = line.partition(":")
+            name, _x, data = line.partition(":")
             name = name.strip()
             if name == "lo" or name.startswith(("veth", "docker", "br-", "virbr")):
                 continue
@@ -41,7 +41,7 @@ class Sampler:
 
         mem = {}
         for line in read("/proc/meminfo").splitlines():
-            k, _, v = line.partition(":")
+            k, _x, v = line.partition(":")
             mem[k] = int(v.split()[0]) * 1024
         mtotal = mem.get("MemTotal", 1)
         mavail = mem.get("MemAvailable", 0)

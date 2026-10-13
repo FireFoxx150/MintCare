@@ -68,7 +68,7 @@ def _parse_context(text):
             continue
         if section != "[Context]" or "=" not in line:
             continue
-        k, _, v = line.partition("=")
+        k, _x, v = line.partition("=")
         if k in ctx:
             ctx[k] = [x for x in v.split(";") if x]
     return ctx

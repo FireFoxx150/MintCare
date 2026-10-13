@@ -15,6 +15,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
+from .i18n import _
 from . import (__version__, autostart, boot, checks, cleaner, flatpaks, hardware,  # noqa: E402
                maintenance, space, theme, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
@@ -31,23 +32,23 @@ STATUS_ICON = {
 STATUS_WORD = {checks.OK: "OK", checks.INFO: "TIP", checks.WARN: "WARN", checks.FAIL: "FAIL"}
 
 NAV = [
-    ("dashboard", "Dashboard", "view-grid-symbolic"),
-    ("diagnose", "Diagnose & Fix", "system-search-symbolic"),
-    ("optimise", "Optimise", "power-profile-performance-symbolic"),
-    ("clean", "Clean", "user-trash-symbolic"),
-    ("space", "Disk space", "drive-multidisk-symbolic"),
-    ("flatpak", "Flatpak apps", "system-software-install-symbolic"),
-    ("hardware", "Hardware", "drive-harddisk-symbolic"),
-    ("startup", "Boot & Startup", "system-run-symbolic"),
-    ("maintenance", "Maintenance", "alarm-symbolic"),
-    ("log", "Activity log", "utilities-terminal-symbolic"),
+    ("dashboard", _("Dashboard"), "view-grid-symbolic"),
+    ("diagnose", _("Diagnose & Fix"), "system-search-symbolic"),
+    ("optimise", _("Optimise"), "power-profile-performance-symbolic"),
+    ("clean", _("Clean"), "user-trash-symbolic"),
+    ("space", _("Disk space"), "drive-multidisk-symbolic"),
+    ("flatpak", _("Flatpak apps"), "system-software-install-symbolic"),
+    ("hardware", _("Hardware"), "drive-harddisk-symbolic"),
+    ("startup", _("Boot & Startup"), "system-run-symbolic"),
+    ("maintenance", _("Maintenance"), "alarm-symbolic"),
+    ("log", _("Activity log"), "utilities-terminal-symbolic"),
 ]
 
 # Pages and tweaks shown at each experience level (advanced shows everything).
 LEVELS = [
-    ("beginner", "Beginner", "Essentials only: health check, recommended tweaks, cleaning."),
-    ("intermediate", "Intermediate", "Everything except the most technical tweaks."),
-    ("advanced", "Advanced", "Every page and every tweak."),
+    ("beginner", _("Beginner"), _("Essentials only: health check, recommended tweaks, cleaning.")),
+    ("intermediate", _("Intermediate"), _("Everything except the most technical tweaks.")),
+    ("advanced", _("Advanced"), _("Every page and every tweak.")),
 ]
 BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "maintenance", "log"}
 ADVANCED_TWEAKS = {"dns", "swappiness", "dirty", "waitonline", "iosched", "aspm"}
@@ -203,7 +204,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.set_tray(True)
         accel = Gtk.AccelGroup()
         accel.connect(Gdk.keyval_from_name("f"), Gdk.ModifierType.CONTROL_MASK, 0,
-                      lambda *_: self.search.grab_focus() or True)
+                      lambda *_x: self.search.grab_focus() or True)
         self.add_accel_group(accel)
         self._apply_layout("wide")
         self.apply_level(self.prefs.get("level", "intermediate"))
@@ -226,11 +227,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
         brand.pack_start(logo, False, False, 0)
         titles = vbox(1)
         titles.set_valign(Gtk.Align.CENTER)
-        titles.pack_start(label("MintCare", ("app-title",)), False, False, 0)
-        titles.pack_start(label("LINUX MINT CLEAN · OPTIMISE · REPAIR", ("app-sub",)), False, False, 0)
+        titles.pack_start(label(_("MintCare"), ("app-title",)), False, False, 0)
+        titles.pack_start(label(_("LINUX MINT CLEAN · OPTIMISE · REPAIR"), ("app-sub",)), False, False, 0)
         brand.pack_start(titles, False, False, 0)
         hb.pack_start(brand)
-        self.search = Gtk.SearchEntry(placeholder_text="Search  (Ctrl+F)", width_chars=24, valign=Gtk.Align.CENTER)
+        self.search = Gtk.SearchEntry(placeholder_text=_("Search  (Ctrl+F)"), width_chars=24, valign=Gtk.Align.CENTER)
         self.search.set_margin_start(18)
         self.search.connect("search-changed", self._on_search)
         self.search.connect("activate", self._search_activate_first)
@@ -279,7 +280,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.header_chips = chip_scroller
         menu_btn = Gtk.MenuButton(valign=Gtk.Align.CENTER)
         menu_btn.add(icon("open-menu-symbolic"))
-        menu_btn.set_tooltip_text("Appearance, experience level, tray and report")
+        menu_btn.set_tooltip_text(_("Appearance, experience level, tray and report"))
         css(menu_btn, "ghost")
         menu_btn.set_popover(self._build_app_menu(menu_btn))
         hb.pack_end(menu_btn)
@@ -290,7 +291,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         pop = Gtk.Popover(relative_to=relative)
         box = vbox(4)
         box.set_border_width(14)
-        box.pack_start(label("APPEARANCE", ("kicker",)), False, False, 0)
+        box.pack_start(label(_("APPEARANCE"), ("kicker",)), False, False, 0)
         first = None
         self.theme_radios = {}
         for key, title in theme.NAMES:
@@ -299,7 +300,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             rb.connect("toggled", lambda w, k=key: w.get_active() and self._set_pref("theme", k))
             self.theme_radios[key] = rb
             box.pack_start(rb, False, False, 0)
-        box.pack_start(label("EXPERIENCE LEVEL", ("kicker",)), False, False, 8)
+        box.pack_start(label(_("EXPERIENCE LEVEL"), ("kicker",)), False, False, 8)
         first = None
         self.level_radios = {}
         for key, title, desc in LEVELS:
@@ -312,19 +313,19 @@ class MintCareWindow(Gtk.ApplicationWindow):
             rb.connect("toggled", lambda w, k=key: w.get_active() and self._set_pref("level", k))
             self.level_radios[key] = rb
             box.pack_start(rb, False, False, 0)
-        box.pack_start(label("SYSTEM TRAY", ("kicker",)), False, False, 8)
-        self.tray_check = Gtk.CheckButton(label="Show MintCare in the system tray")
+        box.pack_start(label(_("SYSTEM TRAY"), ("kicker",)), False, False, 8)
+        self.tray_check = Gtk.CheckButton(label=_("Show MintCare in the system tray"))
         self.tray_check.connect("toggled", lambda w: self._set_pref("tray", w.get_active()))
         box.pack_start(self.tray_check, False, False, 0)
-        self.tray_login_check = Gtk.CheckButton(label="Start in the tray when I log in")
+        self.tray_login_check = Gtk.CheckButton(label=_("Start in the tray when I log in"))
         self.tray_login_check.connect("toggled", lambda w: self._set_pref("tray_autostart", w.get_active()))
         box.pack_start(self.tray_login_check, False, False, 0)
         box.pack_start(Gtk.Separator(), False, False, 8)
-        exp = Gtk.ModelButton(text="Export health report…")
-        exp.connect("clicked", lambda *_: self.export_report())
+        exp = Gtk.ModelButton(text=_("Export health report…"))
+        exp.connect("clicked", lambda *_x: self.export_report())
         box.pack_start(exp, False, False, 0)
-        about = Gtk.ModelButton(text="About MintCare")
-        about.connect("clicked", lambda *_: self.show_about())
+        about = Gtk.ModelButton(text=_("About MintCare"))
+        about.connect("clicked", lambda *_x: self.show_about())
         box.pack_start(about, False, False, 0)
         box.show_all()
         pop.add(box)
@@ -563,7 +564,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         side = vbox(4, "sidebar")
         side.set_size_request(220, -1)
         self.sidebar = side
-        self.nav_kicker = label("NAVIGATION", ("kicker",))
+        self.nav_kicker = label(_("NAVIGATION"), ("kicker",))
         side.pack_start(self.nav_kicker, False, False, 6)
         self.nav = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.nav_rows, self.nav_badges = {}, {}
@@ -588,20 +589,20 @@ class MintCareWindow(Gtk.ApplicationWindow):
         side.pack_start(self.nav, False, False, 0)
 
         foot = vbox(6, "side-foot")
-        foot.pack_start(label("SYSTEM HEALTH", ("kicker",)), False, False, 0)
+        foot.pack_start(label(_("SYSTEM HEALTH"), ("kicker",)), False, False, 0)
         row = hbox(8)
         self.side_score = label("–", ("big",))
         row.pack_start(self.side_score, False, False, 0)
-        self.side_pill = pill("scanning", "dim")
+        self.side_pill = pill(_("scanning"), "dim")
         row.pack_end(self.side_pill, False, False, 0)
         foot.pack_start(row, False, False, 0)
         self.side_bar = Bar(EMERALD)
         foot.pack_start(self.side_bar, False, False, 0)
         live = hbox(6)
         live.pack_start(label("●", ("pill", "ok")), False, False, 0)
-        live.pack_start(label("Live monitoring", ("faint",)), False, False, 0)
+        live.pack_start(label(_("Live monitoring"), ("faint",)), False, False, 0)
         foot.pack_start(live, False, False, 4)
-        self.level_pill = pill("intermediate mode", "dim")
+        self.level_pill = pill(_("intermediate mode"), "dim")
         self.level_pill.set_halign(Gtk.Align.START)
         css(self.level_pill, "level-pill")
         foot.pack_start(self.level_pill, False, False, 0)
@@ -614,7 +615,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         f.pack_start(label(f"MintCare v{__version__}  •  {len(checks.CHECKS)} checks  •  "
                            f"{len(tweaks.TWEAKS)} tweaks  •  {len(cleaner.ITEMS)} cleaners"), False, False, 0)
         self.spinner = Gtk.Spinner()
-        self.status_lbl = label("Ready", ("status",))
+        self.status_lbl = label(_("Ready"), ("status",))
         f.pack_end(self.status_lbl, False, False, 0)
         f.pack_end(self.spinner, False, False, 0)
         return f
@@ -635,7 +636,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         b.add(inner)
         css(b, "primary" if primary else "ghost")
         b.set_valign(Gtk.Align.CENTER)
-        b.connect("clicked", lambda *_: cb())
+        b.connect("clicked", lambda *_x: cb())
         self._action_buttons.append(b)
         return b
 
@@ -755,16 +756,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if pref == "always":
             return [maintenance.snapshot_step(reason)]
         d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
-                              text="Take a Timeshift snapshot first?")
+                              text=_("Take a Timeshift snapshot first?"))
         css(d, "mintcare")
         d.format_secondary_text(f"You're about to apply {reason}. A snapshot lets you roll the whole "
                                 "system back if anything goes wrong. It usually takes a minute or two.")
-        remember = Gtk.CheckButton(label="Remember my choice")
+        remember = Gtk.CheckButton(label=_("Remember my choice"))
         remember.set_margin_start(12)
         d.get_message_area().pack_start(remember, False, False, 6)
         remember.show()
-        d.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Continue without", Gtk.ResponseType.NO,
-                      "Snapshot first", Gtk.ResponseType.YES)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Continue without"), Gtk.ResponseType.NO,
+                      _("Snapshot first"), Gtk.ResponseType.YES)
         d.set_default_response(Gtk.ResponseType.YES)
         css(d.get_widget_for_response(Gtk.ResponseType.YES), "primary")
         resp = d.run()
@@ -822,13 +823,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 from gi.repository import XApp
             except (ValueError, ImportError):
                 self.log("System tray icon needs the XApp library (gir1.2-xapp-1.0).")
-                self.set_status("Tray icon not available on this desktop", bad=True)
+                self.set_status(_("Tray icon not available on this desktop"), bad=True)
                 return
             self.tray = XApp.StatusIcon()
             self.tray.set_name("mintcare")
             theme_ = Gtk.IconTheme.get_default()
             self.tray.set_icon_name("mintcare" if theme_.has_icon("mintcare") else "applications-system")
-            self.tray.connect("activate", lambda *_: self.toggle_visible())
+            self.tray.connect("activate", lambda *_x: self.toggle_visible())
             menu = Gtk.Menu()
             for text, cb in (("Open MintCare", self.show_from_tray), ("Run check-up now", self.run_checkup_now),
                              ("Quick clean", lambda: (self.show_from_tray(), self.quick_clean())), (None, None),
@@ -852,7 +853,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             return
         res = self.check_results
         if not res:
-            self.tray.set_tooltip_text("MintCare — scanning…")
+            self.tray.set_tooltip_text(_("MintCare — scanning…"))
             return
         issues = [r for r in res.values() if r.status in (checks.WARN, checks.FAIL)]
         sc = int(self.side_score.get_text() or 0) if self.side_score.get_text().isdigit() else 0
@@ -893,26 +894,26 @@ class MintCareWindow(Gtk.ApplicationWindow):
                          "Comment=Keep an eye on system health from the panel\n"
                          f"Exec={cmd}\nIcon=mintcare\nX-GNOME-Autostart-enabled=true\n"
                          "X-GNOME-Autostart-Delay=20\n# Managed by MintCare\n")
-            self.set_status("MintCare will start in the tray when you log in")
+            self.set_status(_("MintCare will start in the tray when you log in"))
         else:
             f.unlink(missing_ok=True)
-            self.set_status("MintCare won't start at login")
+            self.set_status(_("MintCare won't start at login"))
         maintenance.record("startup", f"Start in tray at login {'on' if on else 'off'}")
 
     def export_report(self):
-        d = Gtk.FileChooserDialog(title="Export health report", transient_for=self,
+        d = Gtk.FileChooserDialog(title=_("Export health report"), transient_for=self,
                                   action=Gtk.FileChooserAction.SAVE)
         css(d, "mintcare")
-        d.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Export", Gtk.ResponseType.OK)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Export"), Gtk.ResponseType.OK)
         d.set_do_overwrite_confirmation(True)
         d.set_current_folder(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS) or space.HOME)
         stamp = time.strftime("%Y-%m-%d")
         d.set_current_name(f"MintCare-report-{stamp}.pdf")
         extra = vbox(6)
         fmt = hbox(12)
-        fmt.pack_start(label("Format:", ("muted",)), False, False, 0)
-        pdf_rb = Gtk.RadioButton.new_with_label_from_widget(None, "PDF")
-        html_rb = Gtk.RadioButton.new_with_label_from_widget(pdf_rb, "Web page (HTML)")
+        fmt.pack_start(label(_("Format:"), ("muted",)), False, False, 0)
+        pdf_rb = Gtk.RadioButton.new_with_label_from_widget(None, _("PDF"))
+        html_rb = Gtk.RadioButton.new_with_label_from_widget(pdf_rb, _("Web page (HTML)"))
 
         def set_ext(_w):
             name = d.get_current_name() or f"MintCare-report-{stamp}"
@@ -922,7 +923,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         fmt.pack_start(pdf_rb, False, False, 0)
         fmt.pack_start(html_rb, False, False, 0)
         extra.pack_start(fmt, False, False, 0)
-        priv = Gtk.CheckButton(label="Leave out personal details (computer name, user name, drive serial numbers)",
+        priv = Gtk.CheckButton(label=_("Leave out personal details (computer name, user name, drive serial numbers)"),
                                active=True)
         extra.pack_start(priv, False, False, 0)
         extra.show_all()
@@ -943,7 +944,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         def done(page):
             if not page:
-                self.set_status("Could not build the report", bad=True)
+                self.set_status(_("Could not build the report"), bad=True)
                 return
             if as_pdf:
                 self._print_pdf(page, path)
@@ -978,7 +979,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._pdf_keep = None
             win.destroy()
             self.log(f"PDF export failed: {err.message if hasattr(err, 'message') else err}")
-            self.set_status("PDF export failed", bad=True)
+            self.set_status(_("PDF export failed"), bad=True)
 
         def loaded(v, ev):
             if ev != WebKit2.LoadEvent.FINISHED:
@@ -1009,7 +1010,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def show_about(self):
         d = Gtk.AboutDialog(transient_for=self, modal=True, program_name="MintCare", version=__version__,
-                            comments="Clean, optimise and repair Linux Mint.", logo_icon_name="mintcare")
+                            comments=_("Clean, optimise and repair Linux Mint."), logo_icon_name="mintcare")
         css(d, "mintcare")
         d.run()
         d.destroy()
@@ -1030,13 +1031,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
         t.pack_start(label(f"● {platform.system()} ({platform.machine()}) • {desk} • Kernel {platform.release()}",
                            ("faint", "mono"), ellipsize=True), False, False, 0)
         row.pack_start(t, True, True, 0)
-        row.pack_end(self.action_button("Refresh", self.run_diagnose, icon_name="view-refresh-symbolic"),
+        row.pack_end(self.action_button(_("Refresh"), self.run_diagnose, icon_name="view-refresh-symbolic"),
                      False, False, 0)
-        row.pack_end(self.action_button("Health scan", self._health_scan, primary=True,
+        row.pack_end(self.action_button(_("Health scan"), self._health_scan, primary=True,
                                         icon_name="emblem-favorite-symbolic"), False, False, 0)
         up = vbox(1)
         up.set_valign(Gtk.Align.CENTER)
-        up.pack_start(label("SYSTEM UPTIME", ("kicker",), xalign=1.0), False, False, 0)
+        up.pack_start(label(_("SYSTEM UPTIME"), ("kicker",), xalign=1.0), False, False, 0)
         self.uptime_lbl = label("–", ("chip-val",), xalign=1.0)
         up.pack_start(self.uptime_lbl, False, False, 0)
         row.pack_end(up, False, False, 12)
@@ -1054,7 +1055,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             "Processor Activity", "speedometer-symbolic", EMERALD, "CPU load", f"{os.cpu_count()} threads", "ok")
         cpu_foot.pack_start(label(cpu_model, ("faint", "mono"), xalign=0.5, ellipsize=True), False, False, 0)
         lr = hbox(0)
-        lr.pack_start(label("Load average", ("faint", "mono")), False, False, 0)
+        lr.pack_start(label(_("Load average"), ("faint", "mono")), False, False, 0)
         self.load_lbl = label("–", ("stat-val",), xalign=1.0)
         lr.pack_end(self.load_lbl, False, False, 0)
         cpu_foot.pack_start(lr, False, False, 0)
@@ -1073,7 +1074,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         perf = card()
         ph = hbox(8)
         ph.pack_start(icon("org.gnome.SystemMonitor-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
-        ph.pack_start(label("Live Performance", ("h2",)), False, False, 0)
+        ph.pack_start(label(_("Live Performance"), ("h2",)), False, False, 0)
         for name, col in (("RAM", BLUE), ("CPU", EMERALD)):
             ph.pack_end(self._legend(name, col), False, False, 4)
         perf.pack_start(ph, False, False, 0)
@@ -1084,35 +1085,35 @@ class MintCareWindow(Gtk.ApplicationWindow):
         hc = card("ecard")
         hh = hbox(8)
         hh.pack_start(icon("emblem-favorite-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
-        hh.pack_start(label("Health Score", ("h2",)), False, False, 0)
-        self.health_pill = pill("scanning", "dim")
+        hh.pack_start(label(_("Health Score"), ("h2",)), False, False, 0)
+        self.health_pill = pill(_("scanning"), "dim")
         hh.pack_end(self.health_pill, False, False, 0)
         hc.pack_start(hh, False, False, 0)
         self.g_health = RingGauge(EMERALD, "of 100", size=118)
         hc.pack_start(self.g_health, False, False, 6)
         counts = hbox(6)
         counts.set_halign(Gtk.Align.CENTER)
-        self.cnt_fail, self.cnt_warn, self.cnt_info = pill("0 problems", "fail"), pill("0 warnings", "warn"), \
-            pill("0 tips", "info")
+        self.cnt_fail, self.cnt_warn, self.cnt_info = pill(_("0 problems"), "fail"), pill(_("0 warnings"), "warn"), \
+            pill(_("0 tips"), "info")
         for p in (self.cnt_fail, self.cnt_warn, self.cnt_info):
             counts.pack_start(p, False, False, 0)
         hc.pack_start(counts, False, False, 4)
-        self.issue_summary = label("Scanning…", ("faint",), xalign=0.5, wrap=True)
+        self.issue_summary = label(_("Scanning…"), ("faint",), xalign=0.5, wrap=True)
         self.issue_summary.set_justify(Gtk.Justification.CENTER)
         hc.pack_start(self.issue_summary, False, False, 6)
         acts = vbox(6)
-        acts.pack_start(self.action_button("Fix all issues", self.fix_all, primary=True,
+        acts.pack_start(self.action_button(_("Fix all issues"), self.fix_all, primary=True,
                                            icon_name="emblem-ok-symbolic"), False, False, 0)
         # stacked, not side by side: in an equal-width grid this card sets every column's minimum
-        acts.pack_start(self.action_button("Recommended tweaks", self.apply_recommended), False, False, 0)
-        acts.pack_start(self.action_button("Quick clean", self.quick_clean), False, False, 0)
+        acts.pack_start(self.action_button(_("Recommended tweaks"), self.apply_recommended), False, False, 0)
+        acts.pack_start(self.action_button(_("Quick clean"), self.quick_clean), False, False, 0)
         hc.pack_end(acts, False, False, 0)
 
         # network chart
         net = card()
         nh = hbox(8)
         nh.pack_start(icon("network-wired-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
-        nh.pack_start(label("Network Throughput", ("h2",)), False, False, 0)
+        nh.pack_start(label(_("Network Throughput"), ("h2",)), False, False, 0)
         self.net_lbl = label("", ("faint", "mono"), xalign=1.0, ellipsize=True)
         nh.pack_end(self.net_lbl, True, True, 0)
         net.pack_start(nh, False, False, 0)
@@ -1123,7 +1124,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         det = card()
         dh = hbox(8)
         dh.pack_start(icon("dialog-information-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
-        dh.pack_start(label("System Details", ("h2",)), False, False, 0)
+        dh.pack_start(label(_("System Details"), ("h2",)), False, False, 0)
         det.pack_start(dh, False, False, 0)
         self.kv_grid = Gtk.Grid(column_spacing=14, row_spacing=6)
         det.pack_start(self.kv_grid, False, False, 10)
@@ -1136,9 +1137,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             "narrow": [(w, 0, i, 1, 1) for i, w in enumerate((hc, cpu_card, mem_card, disk_card, perf, net, det))],
         }))
 
-        note = label("MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and records what "
+        note = label(_("MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and records what "
                      "it changed in <tt>/var/lib/mintcare</tt>, so every optimisation can be switched off again "
-                     "from the Optimise page.", ("faint",), wrap=True, markup=True)
+                     "from the Optimise page."), ("faint",), wrap=True, markup=True)
         page.pack_start(note, False, False, 0)
         return scrolled(page)
 
@@ -1265,10 +1266,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_diagnose(self):
         page = vbox(14, "page")
         self.diag_header = self.page_header(
-            "system-search-symbolic", "Diagnose & Fix",
-            "Checks networking (incl. TCP BBR), packages, disks, memory, drivers, security and services.",
-            [self.action_button("Rescan", self.run_diagnose, icon_name="view-refresh-symbolic"),
-             self.action_button("Fix all", self.fix_all, primary=True, icon_name="emblem-ok-symbolic")])
+            "system-search-symbolic", _("Diagnose & Fix"),
+            _("Checks networking (incl. TCP BBR), packages, disks, memory, drivers, security and services."),
+            [self.action_button(_("Rescan"), self.run_diagnose, icon_name="view-refresh-symbolic"),
+             self.action_button(_("Fix all"), self.fix_all, primary=True, icon_name="emblem-ok-symbolic")])
         page.pack_start(self.diag_header, False, False, 0)
         self.diag_box = vbox(10)
         page.pack_start(self.diag_box, False, False, 0)
@@ -1377,7 +1378,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                  and self.check_results[c.id].fix
                  and self.check_results[c.id].fix.kind in ("root", "user", "tweak")]
         if not items:
-            self.set_status("Nothing to fix automatically")
+            self.set_status(_("Nothing to fix automatically"))
             return
         listing = "\n".join(f"• {GLib.markup_escape_text(c.title)}: "
                             f"{GLib.markup_escape_text(r.fix.label)}" for c, r in items)
@@ -1389,16 +1390,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_optimise(self):
         page = vbox(14, "page")
         self.opt_header = self.page_header(
-            "power-profile-performance-symbolic", "Optimise",
-            "Toggle tweaks, then press Apply. Switching a tweak off reverts it.",
-            [self.action_button("Undo all…", self.undo_all, icon_name="edit-undo-symbolic"),
-             self.action_button("Select recommended", self.select_recommended),
-             self.action_button("Apply changes", self.apply_tweaks, primary=True,
+            "power-profile-performance-symbolic", _("Optimise"),
+            _("Toggle tweaks, then press Apply. Switching a tweak off reverts it."),
+            [self.action_button(_("Undo all…"), self.undo_all, icon_name="edit-undo-symbolic"),
+             self.action_button(_("Select recommended"), self.select_recommended),
+             self.action_button(_("Apply changes"), self.apply_tweaks, primary=True,
                                 icon_name="emblem-ok-symbolic")])
         self.pending_lbl = self.opt_header.subtitle
         page.pack_start(self.opt_header, False, False, 0)
 
-        page.pack_start(label("PROFILES", ("kicker",)), False, False, 0)
+        page.pack_start(label(_("PROFILES"), ("kicker",)), False, False, 0)
         prow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, min_children_per_line=1,
                            max_children_per_line=4, column_spacing=12, row_spacing=12)
         self.profile_meters = {}
@@ -1416,7 +1417,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             foot = hbox(8)
             cnt = label("", ("faint", "mono"))
             foot.pack_start(cnt, True, True, 0)
-            foot.pack_end(self.action_button("Select", lambda pid=pr.id: self.select_profile(pid)), False, False, 0)
+            foot.pack_end(self.action_button(_("Select"), lambda pid=pr.id: self.select_profile(pid)), False, False, 0)
             tile.pack_start(foot, False, False, 0)
             self.profile_meters[pr.id] = (meter, cnt)
             self.profile_tiles = getattr(self, "profile_tiles", {})
@@ -1448,7 +1449,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         title = hbox(8)
         title.pack_start(label(t.title, ("h3",)), False, False, 0)
         if t.recommended:
-            title.pack_start(pill("recommended", "ok"), False, False, 0)
+            title.pack_start(pill(_("recommended"), "ok"), False, False, 0)
         state = pill("", "dim")
         state.set_no_show_all(True)
         self.tweak_state_lbls[t.id] = state
@@ -1566,7 +1567,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def apply_tweaks(self):
         on, off = self._pending()
         if not (on or off):
-            self.set_status("No changes to apply")
+            self.set_status(_("No changes to apply"))
             return
         steps = [("off-" + t.id, "Revert: " + t.title, t.revert_script()) for t in off]
         steps += [("on-" + t.id, "Apply: " + t.title, t.apply_script()) for t in on]
@@ -1584,7 +1585,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.select_recommended()
         on, off = self._pending()
         if not on and not off:
-            self.set_status("All recommended tweaks are already active")
+            self.set_status(_("All recommended tweaks are already active"))
             return
         listing = "\n".join(f"• {GLib.markup_escape_text(t.title)}" for t in on)
         if self.confirm(f"Apply {len(on)} recommended tweak(s)?", listing):
@@ -1597,22 +1598,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_clean(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
-            "user-trash-symbolic", "Clean",
-            "Measures junk first, then removes only what you select.",
-            [self.action_button("Rescan", self.run_clean_scan, icon_name="view-refresh-symbolic"),
-             self.action_button("Clean selected", self.run_clean, primary=True,
+            "user-trash-symbolic", _("Clean"),
+            _("Measures junk first, then removes only what you select."),
+            [self.action_button(_("Rescan"), self.run_clean_scan, icon_name="view-refresh-symbolic"),
+             self.action_button(_("Clean selected"), self.run_clean, primary=True,
                                 icon_name="user-trash-symbolic")]), False, False, 0)
 
         hero = card("ecard")
         hr = hbox(16)
         left = vbox(2)
-        left.pack_start(label("RECLAIMABLE", ("kicker",)), False, False, 0)
+        left.pack_start(label(_("RECLAIMABLE"), ("kicker",)), False, False, 0)
         self.clean_big = label("…", ("big",))
         left.pack_start(self.clean_big, False, False, 0)
         hr.pack_start(left, False, False, 0)
         right = vbox(6)
         right.set_valign(Gtk.Align.CENTER)
-        self.clean_total = label("Scanning…", ("muted",), wrap=True)
+        self.clean_total = label(_("Scanning…"), ("muted",), wrap=True)
         right.pack_start(self.clean_total, False, False, 0)
         self.clean_bar = Bar(EMERALD, 8)
         right.pack_start(self.clean_bar, False, False, 0)
@@ -1628,14 +1629,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
             row = Gtk.ListBoxRow(activatable=False)
             box = hbox(12)
             cb = Gtk.CheckButton(active=item.default, valign=Gtk.Align.CENTER)
-            cb.connect("toggled", lambda *_: self._update_clean_total())
+            cb.connect("toggled", lambda *_x: self._update_clean_total())
             self.clean_checks[item.id] = cb
             box.pack_start(cb, False, False, 0)
             text = vbox(2)
             th = hbox(8)
             th.pack_start(label(item.title, ("h3",)), False, False, 0)
             if item.root_script:
-                th.pack_start(pill("admin", "dim"), False, False, 0)
+                th.pack_start(pill(_("admin"), "dim"), False, False, 0)
             text.pack_start(th, False, False, 0)
             det = label(item.description, ("muted",), wrap=True)
             self.clean_details[item.id] = det
@@ -1681,7 +1682,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if not sel:
             return
         if any(i.id == "trash" for i in sel) and not self.confirm(
-                "Empty the Trash?", "Files in the Trash will be permanently deleted."):
+                _("Empty the Trash?"), _("Files in the Trash will be permanently deleted.")):
             return
         root = [(i.id, i.title, i.root_script) for i in sel if i.root_script]
         user = [(i.id + "-user", i.title, i.user_script) for i in sel if i.user_script]
@@ -1706,9 +1707,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_space(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
-            "drive-multidisk-symbolic", "Disk space",
-            "Find what's using your space: big folders and files, duplicate copies and old system "
-            "snapshots. Files go to the Trash, so nothing is lost until you empty it."), False, False, 0)
+            "drive-multidisk-symbolic", _("Disk space"),
+            _("Find what's using your space: big folders and files, duplicate copies and old system "
+            "snapshots. Files go to the Trash, so nothing is lost until you empty it.")), False, False, 0)
         self.space_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vhomogeneous=False)
         sw = Gtk.StackSwitcher(stack=self.space_stack, halign=Gtk.Align.START)
         page.pack_start(sw, False, False, 0)
@@ -1723,11 +1724,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_folders_tab(self):
         box = vbox(12)
         ctl = hbox(8)
-        ctl.pack_start(self.action_button("Home folder", lambda: self.scan_folders(space.HOME),
+        ctl.pack_start(self.action_button(_("Home folder"), lambda: self.scan_folders(space.HOME),
                                           icon_name="user-home-symbolic"), False, False, 0)
-        ctl.pack_start(self.action_button("Whole system", lambda: self.scan_folders("/"),
+        ctl.pack_start(self.action_button(_("Whole system"), lambda: self.scan_folders("/"),
                                           icon_name="drive-harddisk-symbolic"), False, False, 0)
-        ctl.pack_start(self.action_button("Choose folder…", self._choose_scan_folder,
+        ctl.pack_start(self.action_button(_("Choose folder…"), self._choose_scan_folder,
                                           icon_name="folder-symbolic"), False, False, 0)
         self.space_spinner = Gtk.Spinner()
         ctl.pack_end(self.space_spinner, False, False, 0)
@@ -1737,7 +1738,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         tc = card()
         nav = hbox(8)
-        self.up_btn = self.action_button("Up", self._tree_up, icon_name="go-up-symbolic")
+        self.up_btn = self.action_button(_("Up"), self._tree_up, icon_name="go-up-symbolic")
         nav.pack_start(self.up_btn, False, False, 0)
         self.crumb = label("", ("crumb",), ellipsize=True)
         self.crumb.set_ellipsize(Pango.EllipsizeMode.START)
@@ -1747,10 +1748,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         tc.pack_start(nav, False, False, 0)
         self.treemap = Treemap(self._treemap_activate, height=320)
         tc.pack_start(self.treemap, False, False, 10)
-        tc.pack_start(label("Click a folder to look inside it. Hover for details.", ("faint",)), False, False, 0)
+        tc.pack_start(label(_("Click a folder to look inside it. Hover for details."), ("faint",)), False, False, 0)
         box.pack_start(tc, False, False, 0)
 
-        self.big_head = label("LARGEST FILES", ("kicker",))
+        self.big_head = label(_("LARGEST FILES"), ("kicker",))
         box.pack_start(self.big_head, False, False, 0)
         self.big_card, self.big_list = list_card()
         box.pack_start(self.big_card, False, False, 0)
@@ -1759,10 +1760,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         return box
 
     def _choose_scan_folder(self):
-        d = Gtk.FileChooserDialog(title="Choose a folder to analyse", transient_for=self,
+        d = Gtk.FileChooserDialog(title=_("Choose a folder to analyse"), transient_for=self,
                                   action=Gtk.FileChooserAction.SELECT_FOLDER)
         css(d, "mintcare")
-        d.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Analyse", Gtk.ResponseType.OK)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Analyse"), Gtk.ResponseType.OK)
         d.set_current_folder(space.HOME)
         resp, path = d.run(), d.get_filename()
         d.destroy()
@@ -1833,7 +1834,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.big_head.set_text(f"LARGEST FILES IN {self.space_node.name.upper()} ({len(rows)})")
         if not rows:
             r = Gtk.ListBoxRow(activatable=False)
-            r.add(label("No files over 50 MB here.", ("muted",)))
+            r.add(label(_("No files over 50 MB here."), ("muted",)))
             self.big_list.add(r)
         for size, path, mtime in rows:
             row = Gtk.ListBoxRow(activatable=False)
@@ -1849,9 +1850,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             t.pack_start(label(f"Modified {time.strftime('%Y-%m-%d', time.localtime(mtime))} · "
                                f"{Gio.content_type_get_description(ctype)}", ("muted",)), False, False, 0)
             box.pack_start(t, True, True, 0)
-            b2 = self.action_button("Trash", lambda p=path, sz=size: self._trash_big(p, sz),
+            b2 = self.action_button(_("Trash"), lambda p=path, sz=size: self._trash_big(p, sz),
                                     icon_name="user-trash-symbolic")
-            b1 = self.action_button("Show", lambda p=path: self.show_in_folder(p), icon_name="folder-symbolic")
+            b1 = self.action_button(_("Show"), lambda p=path: self.show_in_folder(p), icon_name="folder-symbolic")
             b1.big_row = b2.big_row = True
             box.pack_end(b2, False, False, 0)
             box.pack_end(b1, False, False, 0)
@@ -1869,7 +1870,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             space.trash(path)
         except GLib.Error as e:
             self.log(f"Could not trash {path}: {e.message}")
-            self.set_status("Could not move to Trash", bad=True)
+            self.set_status(_("Could not move to Trash"), bad=True)
             return
         self.log(f"Moved to Trash: {path} ({human(size)})")
         maintenance.record("trash", f"Moved {os.path.basename(path)} to the Trash ({human(size)})", True, path)
@@ -1900,53 +1901,53 @@ class MintCareWindow(Gtk.ApplicationWindow):
         box = vbox(12)
         c = card()
         r1 = hbox(8)
-        r1.pack_start(label("Search in:", ("muted",)), False, False, 0)
+        r1.pack_start(label(_("Search in:"), ("muted",)), False, False, 0)
         self.dup_roots = space.default_dup_roots()
         self.dup_roots_lbl = label("", ("crumb",), ellipsize=True, wrap=False)
         r1.pack_start(self.dup_roots_lbl, True, True, 0)
-        r1.pack_end(self.action_button("Reset", self._dup_reset_roots), False, False, 0)
-        r1.pack_end(self.action_button("Add folder…", self._dup_add_root, icon_name="list-add-symbolic"),
+        r1.pack_end(self.action_button(_("Reset"), self._dup_reset_roots), False, False, 0)
+        r1.pack_end(self.action_button(_("Add folder…"), self._dup_add_root, icon_name="list-add-symbolic"),
                     False, False, 0)
         c.pack_start(r1, False, False, 0)
         r2 = hbox(12)
-        r2.pack_start(label("Ignore files smaller than", ("muted",)), False, False, 0)
+        r2.pack_start(label(_("Ignore files smaller than"), ("muted",)), False, False, 0)
         self.dup_min = Gtk.ComboBoxText()
         for t in ("1 MB", "10 MB", "100 MB"):
             self.dup_min.append(t, t)
         self.dup_min.set_active(0)
         r2.pack_start(self.dup_min, False, False, 0)
-        self.dup_hidden = Gtk.CheckButton(label="Include hidden files and folders")
+        self.dup_hidden = Gtk.CheckButton(label=_("Include hidden files and folders"))
         r2.pack_start(self.dup_hidden, False, False, 12)
         c.pack_start(r2, False, False, 10)
         r2 = hbox(8)                      # buttons on their own row so narrow windows fit
-        self.dup_cancel_btn = Gtk.Button(label="Cancel")
+        self.dup_cancel_btn = Gtk.Button(label=_("Cancel"))
         css(self.dup_cancel_btn, "ghost")
-        self.dup_cancel_btn.connect("clicked", lambda *_: self._space_cancel.set())
+        self.dup_cancel_btn.connect("clicked", lambda *_x: self._space_cancel.set())
         self.dup_cancel_btn.set_sensitive(False)
         r2.pack_end(self.dup_cancel_btn, False, False, 0)
         # Not registered with action_button(): its state follows the scan, not the global busy flag
         self.dup_scan_btn = Gtk.Button()
         inner = hbox(6)
         inner.pack_start(icon("system-search-symbolic"), False, False, 0)
-        inner.pack_start(Gtk.Label(label="Find duplicates"), False, False, 0)
+        inner.pack_start(Gtk.Label(label=_("Find duplicates")), False, False, 0)
         self.dup_scan_btn.add(inner)
         css(self.dup_scan_btn, "primary")
-        self.dup_scan_btn.connect("clicked", lambda *_: self.scan_dups())
+        self.dup_scan_btn.connect("clicked", lambda *_x: self.scan_dups())
         self.dup_running = False
         r2.pack_end(self.dup_scan_btn, False, False, 0)
         c.pack_start(r2, False, False, 0)
         self.dup_progress = Gtk.ProgressBar()
         self.dup_progress.set_no_show_all(True)
         c.pack_start(self.dup_progress, False, False, 0)
-        self.dup_status = label("Duplicates are compared by content (BLAKE2 hash), not by name. "
-                                "The oldest copy in each group is kept by default.", ("faint",), wrap=True)
+        self.dup_status = label(_("Duplicates are compared by content (BLAKE2 hash), not by name. "
+                                "The oldest copy in each group is kept by default."), ("faint",), wrap=True)
         c.pack_start(self.dup_status, False, False, 6)
         box.pack_start(c, False, False, 0)
 
         self.dup_summary = hbox(10)
         self.dup_sel_lbl = label("", ("h2",))
         self.dup_summary.pack_start(self.dup_sel_lbl, True, True, 0)
-        self.dup_trash_btn = self.action_button("Move selected to Trash", self.trash_dups, primary=True,
+        self.dup_trash_btn = self.action_button(_("Move selected to Trash"), self.trash_dups, primary=True,
                                                 icon_name="user-trash-symbolic")
         self.dup_summary.pack_end(self.dup_trash_btn, False, False, 0)
         self.dup_summary.set_no_show_all(True)
@@ -1966,10 +1967,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._dup_show_roots()
 
     def _dup_add_root(self):
-        d = Gtk.FileChooserDialog(title="Add a folder to search", transient_for=self,
+        d = Gtk.FileChooserDialog(title=_("Add a folder to search"), transient_for=self,
                                   action=Gtk.FileChooserAction.SELECT_FOLDER)
         css(d, "mintcare")
-        d.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Add", Gtk.ResponseType.OK)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Add"), Gtk.ResponseType.OK)
         d.set_current_folder(space.HOME)
         resp, path = d.run(), d.get_filename()
         d.destroy()
@@ -2043,7 +2044,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 pl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                 rb.pack_start(pl, True, True, 0)
                 if i == 0:
-                    rb.pack_end(pill("oldest", "ok"), False, False, 0)
+                    rb.pack_end(pill(_("oldest"), "ok"), False, False, 0)
                 rb.pack_end(label(time.strftime("%Y-%m-%d", time.localtime(m)), ("faint", "mono")), False, False, 0)
                 row.add(rb)
                 self.dup_list.add(row)
@@ -2066,16 +2067,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._dup_update_sel()
 
     def _dup_update_sel(self):
-        visible = {p for g in self.dup_groups[:120] for p, _ in g["files"]}
+        visible = {p for g in self.dup_groups[:120] for p, _x in g["files"]}
         n = sum(1 for p, v in self.dup_sel.items() if v and p in visible)
-        size = sum(g["size"] for g in self.dup_groups[:120] for p, _ in g["files"] if self.dup_sel.get(p))
+        size = sum(g["size"] for g in self.dup_groups[:120] for p, _x in g["files"] if self.dup_sel.get(p))
         self.dup_sel_lbl.set_text(f"{n:,} files selected · {human(size)}")
 
     def trash_dups(self):
         groups = self.dup_groups[:120]
         picked, skipped = [], 0
         for g in groups:
-            sel = [p for p, _ in g["files"] if self.dup_sel.get(p)]
+            sel = [p for p, _x in g["files"] if self.dup_sel.get(p)]
             if len(sel) == len(g["files"]):
                 skipped += 1                          # never remove every copy
                 continue
@@ -2083,7 +2084,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if not picked:
             self.set_status("Nothing selected" + (" (a group can't have every copy selected)" if skipped else ""))
             return
-        total = sum(s_ for _, s_ in picked)
+        total = sum(s_ for _x, s_ in picked)
         extra = f"\n\n{skipped} group(s) had every copy ticked and will be skipped." if skipped else ""
         if not self.confirm(f"Move {len(picked):,} duplicate file(s) to the Trash?",
                             f"Frees {human(total)} once you empty the Trash. One copy of each file is kept."
@@ -2102,21 +2103,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         def done(res):
             ok, failed = res or ([], [])
-            for p, _ in ok:
+            for p, _x in ok:
                 self.log(f"Moved duplicate to Trash: {p}")
             if ok:
                 maintenance.record("trash", f"Moved {len(ok):,} duplicate file(s) to the Trash "
-                                            f"({human(sum(s_ for _, s_ in ok))})", not failed)
+                                            f"({human(sum(s_ for _x, s_ in ok))})", not failed)
             for f in failed:
                 self.log(f"Could not trash {f}")
-            gone = {p for p, _ in ok}
+            gone = {p for p, _x in ok}
             for g in self.dup_groups:
                 g["files"] = [f for f in g["files"] if f[0] not in gone]
                 g["wasted"] = g["size"] * max(0, len(g["files"]) - 1)
             self.dup_groups = [g for g in self.dup_groups if len(g["files"]) > 1]
             for p in gone:
                 self.dup_sel.pop(p, None)
-            self.set_status(f"Moved {len(ok):,} duplicates ({human(sum(s_ for _, s_ in ok))}) to the Trash",
+            self.set_status(f"Moved {len(ok):,} duplicates ({human(sum(s_ for _x, s_ in ok))}) to the Trash",
                             bad=bool(failed))
             self._render_dups()
             self.run_clean_scan()
@@ -2129,23 +2130,23 @@ class MintCareWindow(Gtk.ApplicationWindow):
         c = card("ecard")
         row = hbox(16)
         left = vbox(2)
-        left.pack_start(label("SNAPSHOTS", ("kicker",)), False, False, 0)
+        left.pack_start(label(_("SNAPSHOTS"), ("kicker",)), False, False, 0)
         self.snap_count = label("…", ("boot-big",))
         left.pack_start(self.snap_count, False, False, 0)
         row.pack_start(left, False, False, 0)
         self.snap_info = label("", ("muted",), wrap=True)
         self.snap_info.set_valign(Gtk.Align.CENTER)
         row.pack_start(self.snap_info, True, True, 0)
-        row.pack_end(self.action_button("Delete selected", self.delete_snapshots, primary=True,
+        row.pack_end(self.action_button(_("Delete selected"), self.delete_snapshots, primary=True,
                                         icon_name="user-trash-symbolic"), False, False, 0)
-        row.pack_end(self.action_button("Open Timeshift", lambda: subprocess.Popen(
+        row.pack_end(self.action_button(_("Open Timeshift"), lambda: subprocess.Popen(
             ["timeshift-launcher"], start_new_session=True), icon_name="document-open-recent-symbolic"),
             False, False, 0)
         c.pack_start(row, False, False, 0)
         box.pack_start(c, False, False, 0)
-        box.pack_start(label("Snapshots share unchanged files, so deleting one frees only what changed "
+        box.pack_start(label(_("Snapshots share unchanged files, so deleting one frees only what changed "
                              "around it. The newest snapshot is always kept, and snapshots you gave a "
-                             "comment are never pre-selected.", ("faint",), wrap=True), False, False, 0)
+                             "comment are never pre-selected."), ("faint",), wrap=True), False, False, 0)
         self.snap_card, self.snap_list = list_card()
         box.pack_start(self.snap_card, False, False, 0)
         self.snap_sel = {}
@@ -2192,7 +2193,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             for tag in sn["tags"]:
                 th.pack_start(pill(tag, "dim"), False, False, 0)
             if sn.get("latest"):
-                th.pack_start(pill("newest · kept", "ok"), False, False, 0)
+                th.pack_start(pill(_("newest · kept"), "ok"), False, False, 0)
             t.pack_start(th, False, False, 0)
             if sn["comment"]:
                 t.pack_start(label(f"“{sn['comment']}”", ("muted",)), False, False, 0)
@@ -2205,7 +2206,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def delete_snapshots(self):
         names = [n for n, v in self.snap_sel.items() if v]
         if not names:
-            self.set_status("Tick the snapshots you want to delete first")
+            self.set_status(_("Tick the snapshots you want to delete first"))
             return
         info = {s_["name"]: s_ for s_ in getattr(self, "snaps", [])}
         lines = []
@@ -2233,13 +2234,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_flatpak(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
-            "system-software-install-symbolic", "Flatpak apps",
-            "Installed apps, how tightly each one is sandboxed, and switches to tighten or loosen "
-            "permissions (your account only — like Flatseal).",
-            [self.action_button("Refresh", lambda: self.load_flatpaks(check_updates=True),
+            "system-software-install-symbolic", _("Flatpak apps"),
+            _("Installed apps, how tightly each one is sandboxed, and switches to tighten or loosen "
+            "permissions (your account only — like Flatseal)."),
+            [self.action_button(_("Refresh"), lambda: self.load_flatpaks(check_updates=True),
                                 icon_name="view-refresh-symbolic"),
-             self.action_button("Repair", self.flatpak_repair, icon_name="emblem-synchronizing-symbolic"),
-             self.action_button("Update all", self.flatpak_update, primary=True,
+             self.action_button(_("Repair"), self.flatpak_repair, icon_name="emblem-synchronizing-symbolic"),
+             self.action_button(_("Update all"), self.flatpak_update, primary=True,
                                 icon_name="software-update-available-symbolic")]), False, False, 0)
         sc = card("ecard")
         tiles = hbox(10)
@@ -2254,9 +2255,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.fp_stats[key] = v
         sc.pack_start(tiles, False, False, 0)
         page.pack_start(sc, False, False, 0)
-        page.pack_start(label("Sandbox ratings: STRONG = no broad file or device access; MODERATE = home "
+        page.pack_start(label(_("Sandbox ratings: STRONG = no broad file or device access; MODERATE = home "
                               "folder, all devices or X11; LOOSE = several of those or the whole filesystem. "
-                              "Changes apply the next time the app starts.", ("faint",), wrap=True),
+                              "Changes apply the next time the app starts."), ("faint",), wrap=True),
                         False, False, 0)
         self.fp_card, self.fp_list = list_card()
         page.pack_start(self.fp_card, False, False, 0)
@@ -2323,7 +2324,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         th.pack_start(pill({"weak": "loose"}.get(rating, rating) + " sandbox", kind), False, False, 0)
         th.pack_start(pill(a["install"], "dim"), False, False, 0)
         if a["overridden"]:
-            th.pack_start(pill("customised", "info"), False, False, 0)
+            th.pack_start(pill(_("customised"), "info"), False, False, 0)
         text.pack_start(th, False, False, 0)
         text.pack_start(label(f"{a['id']}  •  {a['version'] or '—'}  •  {a['origin']}  •  {a['size']}",
                               ("faint", "mono"), ellipsize=True), False, False, 0)
@@ -2331,7 +2332,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             text.pack_start(label("Has access to: " + ", ".join(why), ("muted",), wrap=True), False, False, 0)
         box.pack_start(text, True, True, 0)
         rev = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
-        btn = self.action_button("Permissions", lambda: self._toggle_fp(a["id"], rev))
+        btn = self.action_button(_("Permissions"), lambda: self._toggle_fp(a["id"], rev))
         btn.fp_row = True
         box.pack_end(btn, False, False, 0)
         outer.pack_start(box, False, False, 0)
@@ -2343,7 +2344,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             tt = hbox(6)
             tt.pack_start(label(title, ("h3",)), False, False, 0)
             if weight >= 2:
-                tt.pack_start(pill("broad", "warn"), False, False, 0)
+                tt.pack_start(pill(_("broad"), "warn"), False, False, 0)
             t.pack_start(tt, False, False, 0)
             t.pack_start(label(desc, ("faint",)), False, False, 0)
             pr.pack_start(t, True, True, 0)
@@ -2352,8 +2353,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             pr.pack_end(sw, False, False, 0)
             perms.pack_start(pr, False, False, 0)
         acts = hbox(8)
-        b1 = self.action_button("Reset to app defaults", lambda: self._fp_reset(a))
-        b2 = self.action_button("Uninstall…", lambda: self._fp_uninstall(a), icon_name="user-trash-symbolic")
+        b1 = self.action_button(_("Reset to app defaults"), lambda: self._fp_reset(a))
+        b2 = self.action_button(_("Uninstall…"), lambda: self._fp_uninstall(a), icon_name="user-trash-symbolic")
         b1.fp_row = b2.fp_row = True
         acts.pack_start(b1, False, False, 0)
         acts.pack_start(b2, False, False, 0)
@@ -2375,7 +2376,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             flatpaks.set_permission(a["id"], pid, grant)
         except Exception as e:
             self.log(f"Flatpak override failed for {a['id']}: {e}")
-            self.set_status("Could not change permission", bad=True)
+            self.set_status(_("Could not change permission"), bad=True)
             sw.handler_block_by_func(self._on_fp_perm)
             sw.set_active(not grant)
             sw.handler_unblock_by_func(self._on_fp_perm)
@@ -2393,7 +2394,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             flatpaks.reset(a["id"])
         except Exception as e:
             self.log(f"Reset failed for {a['id']}: {e}")
-            self.set_status("Reset failed", bad=True)
+            self.set_status(_("Reset failed"), bad=True)
             return
         maintenance.note_flatpak(a["id"], reset=True)
         maintenance.record("flatpak", f"{a['name']}: permissions reset to defaults")
@@ -2436,19 +2437,19 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_hardware(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
-            "drive-harddisk-symbolic", "Hardware Health",
-            "SMART disk health and live temperatures, read through UDisks2 and kernel sensors — "
-            "no password needed.",
-            [self.action_button("Refresh", lambda: (self.load_drives(), self._poll_sensors(force=True)),
+            "drive-harddisk-symbolic", _("Hardware Health"),
+            _("SMART disk health and live temperatures, read through UDisks2 and kernel sensors — "
+            "no password needed."),
+            [self.action_button(_("Refresh"), lambda: (self.load_drives(), self._poll_sensors(force=True)),
                                 icon_name="view-refresh-symbolic"),
-             self.action_button("Full SMART report", self.smart_report, icon_name="utilities-terminal-symbolic")]),
+             self.action_button(_("Full SMART report"), self.smart_report, icon_name="utilities-terminal-symbolic")]),
             False, False, 0)
 
         tc = card()
         th = hbox(8)
         th.pack_start(icon("weather-clear-symbolic", Gtk.IconSize.BUTTON, "warn"), False, False, 0)
-        th.pack_start(label("Temperatures & Throttling", ("h2",)), False, False, 0)
-        th.pack_end(label("updates every 2 s", ("faint", "mono")), False, False, 0)
+        th.pack_start(label(_("Temperatures & Throttling"), ("h2",)), False, False, 0)
+        th.pack_end(label(_("updates every 2 s"), ("faint", "mono")), False, False, 0)
         tc.pack_start(th, False, False, 0)
         self.throttle_box = vbox(4)
         tc.pack_start(self.throttle_box, False, False, 10)
@@ -2459,10 +2460,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.sensor_tiles = {}
         page.pack_start(tc, False, False, 0)
 
-        self.drives_head = label("DRIVES", ("kicker",))
+        self.drives_head = label(_("DRIVES"), ("kicker",))
         page.pack_start(self.drives_head, False, False, 0)
         self.drives_box = vbox(12)
-        self.drives_box.pack_start(label("Reading SMART data…", ("faint",)), False, False, 0)
+        self.drives_box.pack_start(label(_("Reading SMART data…"), ("faint",)), False, False, 0)
         page.pack_start(self.drives_box, False, False, 0)
         return scrolled(page)
 
@@ -2476,7 +2477,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.drives = ds
         self.drives_head.set_text(f"DRIVES ({len(ds)})")
         if not ds:
-            self.drives_box.pack_start(label("No drives found, or UDisks2 is not running.", ("faint",)),
+            self.drives_box.pack_start(label(_("No drives found, or UDisks2 is not running."), ("faint",)),
                                        False, False, 0)
         word = {checks.OK: ("healthy", "ok"), checks.INFO: ("healthy", "ok"),
                 checks.WARN: ("check", "warn"), checks.FAIL: ("failing", "fail")}
@@ -2518,7 +2519,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if not d["notes"] and d["stats"]:
                 r = hbox(8)
                 r.pack_start(icon("emblem-ok-symbolic", Gtk.IconSize.MENU, "ok"), False, False, 0)
-                r.pack_start(label("No warning signs in SMART data", ("muted",)), True, True, 0)
+                r.pack_start(label(_("No warning signs in SMART data"), ("muted",)), True, True, 0)
                 c.pack_start(r, False, False, 2)
             self.drives_box.pack_start(c, False, False, 0)
         self.drives_box.show_all()
@@ -2570,7 +2571,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             for ch in self.sensor_flow.get_children():
                 ch.destroy()
             self.sensor_tiles = {}
-            for key, *_ in tiles:
+            for key, *_x in tiles:
                 box = vbox(4, "sensor-tile")
                 box.pack_start(label(key.upper(), ("kicker",), ellipsize=True), False, False, 0)
                 val = label("", ("tval",))
@@ -2597,7 +2598,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def smart_report(self):
         ds = [d for d in getattr(self, "drives", []) if d.get("device")]
         if not ds:
-            self.set_status("No drives loaded yet")
+            self.set_status(_("No drives loaded yet"))
             return
         steps = [(f"smart{i}", f"SMART report: {d['model']} ({d['device']})",
                   f"smartctl -x {q(d['device'])} || true") for i, d in enumerate(ds)]
@@ -2612,14 +2613,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_startup(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
-            "system-run-symbolic", "Boot & Startup",
-            "How long boot takes, what slows it down, and which apps start when you log in.",
-            [self.action_button("Refresh", self.load_boot, icon_name="view-refresh-symbolic")]), False, False, 0)
+            "system-run-symbolic", _("Boot & Startup"),
+            _("How long boot takes, what slows it down, and which apps start when you log in."),
+            [self.action_button(_("Refresh"), self.load_boot, icon_name="view-refresh-symbolic")]), False, False, 0)
 
         bc = card("ecard")
         row = hbox(20)
         left = vbox(2)
-        left.pack_start(label("LAST BOOT", ("kicker",)), False, False, 0)
+        left.pack_start(label(_("LAST BOOT"), ("kicker",)), False, False, 0)
         self.boot_total = label("…", ("boot-big",))
         left.pack_start(self.boot_total, False, False, 0)
         row.pack_start(left, False, False, 0)
@@ -2635,21 +2636,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
         bc.pack_start(self.boot_tip, False, False, 10)
         page.pack_start(bc, False, False, 0)
 
-        page.pack_start(label("SLOWEST TO START", ("kicker",)), False, False, 0)
-        page.pack_start(label("Services start in parallel, so times overlap. Only those marked "
-                              "BLOCKS BOOT actually delay reaching the desktop.", ("faint",), wrap=True),
+        page.pack_start(label(_("SLOWEST TO START"), ("kicker",)), False, False, 0)
+        page.pack_start(label(_("Services start in parallel, so times overlap. Only those marked "
+                              "BLOCKS BOOT actually delay reaching the desktop."), ("faint",), wrap=True),
                         False, False, 0)
         self.blame_card, self.blame_list = list_card()
         page.pack_start(self.blame_card, False, False, 0)
 
-        self.auto_head = label("STARTUP APPLICATIONS", ("kicker",))
+        self.auto_head = label(_("STARTUP APPLICATIONS"), ("kicker",))
         page.pack_start(self.auto_head, False, False, 0)
-        page.pack_start(label("Switching an app off only affects your account and takes effect at next login. "
-                              "This is the same setting as Cinnamon's Startup Applications.", ("faint",), wrap=True),
+        page.pack_start(label(_("Switching an app off only affects your account and takes effect at next login. "
+                              "This is the same setting as Cinnamon's Startup Applications."), ("faint",), wrap=True),
                         False, False, 0)
         self.auto_card, self.auto_list = list_card()
         page.pack_start(self.auto_card, False, False, 0)
-        self.ess_exp = Gtk.Expander(label="Desktop components (locked)")
+        self.ess_exp = Gtk.Expander(label=_("Desktop components (locked)"))
         self.ess_card, self.ess_list = list_card()
         self.ess_exp.add(self.ess_card)
         page.pack_start(self.ess_exp, False, False, 0)
@@ -2665,7 +2666,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         segs = [("firmware", "Firmware", VIOLET), ("loader", "Boot loader", BLUE),
                 ("kernel", "Kernel", ORANGE), ("initrd", "initrd", "#f472b6"), ("userspace", "Services", EMERALD)]
         self.boot_total.set_text(f"{times['total']:.1f} s" if times.get("total") else "n/a")
-        self.boot_bar.set_segments([(times.get(k, 0), col) for k, _, col in segs])
+        self.boot_bar.set_segments([(times.get(k, 0), col) for k, _x, col in segs])
         for ch in self.boot_legend.get_children():
             ch.destroy()
         for k, name, col in segs:
@@ -2695,9 +2696,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             th = hbox(8)
             th.pack_start(label(r["unit"], ("unit-name",), ellipsize=True), False, False, 0)
             if r["critical"]:
-                th.pack_start(pill("blocks boot", "warn"), False, False, 0)
+                th.pack_start(pill(_("blocks boot"), "warn"), False, False, 0)
             if r["enabled"] is False:
-                th.pack_start(pill("disabled", "dim"), False, False, 0)
+                th.pack_start(pill(_("disabled"), "dim"), False, False, 0)
             text.pack_start(th, False, False, 0)
             if r["desc"] and r["desc"] != r["unit"]:
                 text.pack_start(label(r["desc"], ("muted",), ellipsize=True), False, False, 0)
@@ -2750,9 +2751,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         th = hbox(8)
         th.pack_start(label(a["name"], ("h3",)), False, False, 0)
         if a["origin"] == "user":
-            th.pack_start(pill("added by you", "info"), False, False, 0)
+            th.pack_start(pill(_("added by you"), "info"), False, False, 0)
         elif a["overridden"]:
-            th.pack_start(pill("customised", "dim"), False, False, 0)
+            th.pack_start(pill(_("customised"), "dim"), False, False, 0)
         if a["delay"]:
             th.pack_start(pill(f"delay {a['delay']}s", "dim"), False, False, 0)
         text.pack_start(th, False, False, 0)
@@ -2762,7 +2763,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         box.pack_start(text, True, True, 0)
         sw = Gtk.Switch(active=a["enabled"], valign=Gtk.Align.CENTER, sensitive=not locked)
         if locked:
-            sw.set_tooltip_text("Part of the desktop; switching it off can break shortcuts, keyrings or logins")
+            sw.set_tooltip_text(_("Part of the desktop; switching it off can break shortcuts, keyrings or logins"))
         sw.connect("notify::active", self._on_app_toggle, a)
         box.pack_end(sw, False, False, 0)
         row.add(box)
@@ -2810,9 +2811,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _build_maintenance(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
-            "alarm-symbolic", "Maintenance",
-            "Automatic check-ups, safety snapshots, one-click undo and a record of every change "
-            "MintCare makes."), False, False, 0)
+            "alarm-symbolic", _("Maintenance"),
+            _("Automatic check-ups, safety snapshots, one-click undo and a record of every change "
+            "MintCare makes.")), False, False, 0)
         grid = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
         page.pack_start(grid, False, False, 0)
         self._maint_loading = True
@@ -2821,34 +2822,34 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sc = card("ecard")
         h = hbox(8)
         h.pack_start(icon("alarm-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
-        h.pack_start(label("Scheduled check-up", ("h2",)), True, True, 0)
+        h.pack_start(label(_("Scheduled check-up"), ("h2",)), True, True, 0)
         self.sched_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         self.sched_switch.connect("notify::active", self._on_sched_toggle)
         h.pack_end(self.sched_switch, False, False, 0)
         sc.pack_start(h, False, False, 0)
-        sc.pack_start(label("Runs every check in the background and tells you only when something needs "
-                            "attention. Uses a systemd user timer — no password needed.", ("faint",), wrap=True),
+        sc.pack_start(label(_("Runs every check in the background and tells you only when something needs "
+                            "attention. Uses a systemd user timer — no password needed."), ("faint",), wrap=True),
                       False, False, 6)
         g = Gtk.Grid(column_spacing=12, row_spacing=8)
-        g.attach(label("How often", ("muted",)), 0, 0, 1, 1)
+        g.attach(label(_("How often"), ("muted",)), 0, 0, 1, 1)
         self.sched_freq = Gtk.ComboBoxText()
         for k, t in (("daily", "Every day"), ("weekly", "Every Monday"), ("monthly", "1st of each month")):
             self.sched_freq.append(k, t)
-        self.sched_freq.connect("changed", lambda *_: self._save_maint_settings())
+        self.sched_freq.connect("changed", lambda *_x: self._save_maint_settings())
         g.attach(self.sched_freq, 1, 0, 1, 1)
-        g.attach(label("Notify me", ("muted",)), 0, 1, 1, 1)
+        g.attach(label(_("Notify me"), ("muted",)), 0, 1, 1, 1)
         self.sched_notify = Gtk.ComboBoxText()
-        self.sched_notify.append("issues", "Only when something needs attention")
-        self.sched_notify.append("always", "After every check-up")
-        self.sched_notify.connect("changed", lambda *_: self._save_maint_settings())
+        self.sched_notify.append("issues", _("Only when something needs attention"))
+        self.sched_notify.append("always", _("After every check-up"))
+        self.sched_notify.connect("changed", lambda *_x: self._save_maint_settings())
         g.attach(self.sched_notify, 1, 1, 1, 1)
-        g.attach(label("Also clean", ("muted",)), 0, 2, 1, 1)
+        g.attach(label(_("Also clean"), ("muted",)), 0, 2, 1, 1)
         cl = vbox(2)
         self.sched_clean = {}
         for k, t in (("thumbs", "Thumbnail cache"), ("usercache", "Stale application cache (30+ days)"),
                      ("browser", "Browser caches (skipped while a browser is open)")):
             cb = Gtk.CheckButton(label=t)
-            cb.connect("toggled", lambda *_: self._save_maint_settings())
+            cb.connect("toggled", lambda *_x: self._save_maint_settings())
             self.sched_clean[k] = cb
             cl.pack_start(cb, False, False, 0)
         g.attach(cl, 1, 2, 1, 1)
@@ -2858,7 +2859,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.sched_last = label("", ("faint",), wrap=True)
         sc.pack_start(self.sched_last, False, False, 0)
         row = hbox(8)
-        row.pack_end(self.action_button("Run check-up now", self.run_checkup_now, primary=True,
+        row.pack_end(self.action_button(_("Run check-up now"), self.run_checkup_now, primary=True,
                                         icon_name="media-playback-start-symbolic"), False, False, 0)
         sc.pack_end(row, False, False, 0)
 
@@ -2866,23 +2867,23 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sf = card()
         h = hbox(8)
         h.pack_start(icon("document-open-recent-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
-        h.pack_start(label("Safety snapshots", ("h2",)), True, True, 0)
+        h.pack_start(label(_("Safety snapshots"), ("h2",)), True, True, 0)
         sf.pack_start(h, False, False, 0)
-        sf.pack_start(label("Before fixes, optimisations, boot-service changes and Undo, MintCare can take a "
-                            "Timeshift snapshot so the whole system can be rolled back.", ("faint",), wrap=True),
+        sf.pack_start(label(_("Before fixes, optimisations, boot-service changes and Undo, MintCare can take a "
+                            "Timeshift snapshot so the whole system can be rolled back."), ("faint",), wrap=True),
                       False, False, 6)
         r = hbox(10)
-        r.pack_start(label("Before big changes", ("muted",)), False, False, 0)
+        r.pack_start(label(_("Before big changes"), ("muted",)), False, False, 0)
         self.snap_pref = Gtk.ComboBoxText()
         for k, t in (("ask", "Ask me"), ("always", "Always take a snapshot"), ("never", "Never")):
             self.snap_pref.append(k, t)
-        self.snap_pref.connect("changed", lambda *_: self._save_maint_settings())
+        self.snap_pref.connect("changed", lambda *_x: self._save_maint_settings())
         r.pack_start(self.snap_pref, False, False, 0)
         sf.pack_start(r, False, False, 6)
         self.snap_ready = label("", ("muted",), wrap=True)
         sf.pack_start(self.snap_ready, False, False, 4)
         row = hbox(8)
-        row.pack_end(self.action_button("Take snapshot now", self.snapshot_now,
+        row.pack_end(self.action_button(_("Take snapshot now"), self.snapshot_now,
                                         icon_name="document-save-symbolic"), False, False, 0)
         sf.pack_end(row, False, False, 0)
 
@@ -2891,11 +2892,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
         h = hbox(10)
         h.pack_start(icon("edit-undo-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
         t = vbox(2)
-        t.pack_start(label("Undo MintCare changes", ("h2",)), False, False, 0)
+        t.pack_start(label(_("Undo MintCare changes"), ("h2",)), False, False, 0)
         self.undo_summary = label("", ("muted",), wrap=True)
         t.pack_start(self.undo_summary, False, False, 0)
         h.pack_start(t, True, True, 0)
-        h.pack_end(self.action_button("Undo…", self.undo_all, icon_name="edit-undo-symbolic"), False, False, 0)
+        h.pack_end(self.action_button(_("Undo…"), self.undo_all, icon_name="edit-undo-symbolic"), False, False, 0)
         uc.pack_start(h, False, False, 0)
         two = [(sc, 0, 0, 1, 1), (sf, 1, 0, 1, 1), (uc, 0, 1, 2, 1)]
         stacked = [(sc, 0, 0, 1, 1), (sf, 0, 1, 1, 1), (uc, 0, 2, 1, 1)]
@@ -2903,9 +2904,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         # history
         hh = hbox(8)
-        self.hist_head = label("HISTORY", ("kicker",))
+        self.hist_head = label(_("HISTORY"), ("kicker",))
         hh.pack_start(self.hist_head, True, True, 0)
-        hh.pack_end(self.action_button("Clear history", self._clear_history), False, False, 0)
+        hh.pack_end(self.action_button(_("Clear history"), self._clear_history), False, False, 0)
         page.pack_start(hh, False, False, 0)
         self.hist_card, self.hist_list = list_card()
         page.pack_start(self.hist_card, False, False, 0)
@@ -2943,7 +2944,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             when = time.strftime("%a %d %b %H:%M", time.localtime(lr["ts"]))
             issues = lr.get("issues", [])
             self.sched_last.set_text(f"Last check-up {when}: " +
-                                     (f"{len(issues)} issue(s) — " + ", ".join(t for t, _ in issues[:3])
+                                     (f"{len(issues)} issue(s) — " + ", ".join(t for t, _x in issues[:3])
                                       if issues else "no issues") +
                                      (f"; freed {human(lr['freed'])}" if lr.get("freed", 0) > 1 << 20 else ""))
         else:
@@ -2967,7 +2968,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.hist_head.set_text(f"HISTORY ({len(events)})")
         if not events:
             r = Gtk.ListBoxRow(activatable=False)
-            r.add(label("Nothing recorded yet. Every fix, tweak, clean-up and undo will appear here.", ("muted",)))
+            r.add(label(_("Nothing recorded yet. Every fix, tweak, clean-up and undo will appear here."), ("muted",)))
             self.hist_list.add(r)
         kinds = {"fix": ("repair", "ok"), "tweak": ("tweak", "info"), "clean": ("clean", "ok"),
                  "service": ("service", "warn"), "flatpak": ("flatpak", "blue"), "snapshot": ("snapshot", "info"),
@@ -2995,7 +2996,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             word, k = kinds.get(e.get("kind"), ("other", "dim"))
             b.pack_end(pill(word, k), False, False, 0)
             if not ok:
-                b.pack_end(pill("failed", "fail"), False, False, 0)
+                b.pack_end(pill(_("failed"), "fail"), False, False, 0)
             r.add(b)
             self.hist_list.add(r)
         self.hist_list.show_all()
@@ -3015,7 +3016,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 maintenance.install_timer(m["frequency"])
             except Exception as e:
                 self.log(f"Could not update the check-up timer: {e}")
-        self.set_status("Maintenance settings saved")
+        self.set_status(_("Maintenance settings saved"))
 
     def _on_sched_toggle(self, sw, _pspec):
         if self._maint_loading:
@@ -3025,14 +3026,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self._save_maint_settings()
                 maintenance.install_timer(maintenance.load_settings()["maintenance"]["frequency"])
                 maintenance.record("scheduled", "Scheduled check-up turned on")
-                self.set_status("Scheduled check-up turned on")
+                self.set_status(_("Scheduled check-up turned on"))
             else:
                 maintenance.remove_timer()
                 maintenance.record("scheduled", "Scheduled check-up turned off")
-                self.set_status("Scheduled check-up turned off")
+                self.set_status(_("Scheduled check-up turned off"))
         except Exception as e:
             self.log(f"Scheduled check-up: {e}")
-            self.set_status("Could not change the schedule", bad=True)
+            self.set_status(_("Could not change the schedule"), bad=True)
         self.refresh_maintenance()
 
     def run_checkup_now(self):
@@ -3059,25 +3060,25 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.in_thread("Taking a Timeshift snapshot…", lambda: self.execute([step], [], "Snapshot"), done)
 
     def _clear_history(self):
-        if self.confirm("Clear the change history?", "This only clears the list; it doesn't undo anything."):
+        if self.confirm(_("Clear the change history?"), _("This only clears the list; it doesn't undo anything.")):
             maintenance.clear_history()
             self.refresh_maintenance()
 
     def undo_all(self):
         inv = maintenance.undo_inventory()
         if not inv:
-            self.set_status("Nothing to undo")
+            self.set_status(_("Nothing to undo"))
             return
-        d = Gtk.Dialog(title="Undo MintCare changes", transient_for=self, modal=True)
+        d = Gtk.Dialog(title=_("Undo MintCare changes"), transient_for=self, modal=True)
         css(d, "mintcare")
         d.set_default_size(560, 460)
-        d.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Undo selected", Gtk.ResponseType.OK)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Undo selected"), Gtk.ResponseType.OK)
         css(d.get_widget_for_response(Gtk.ResponseType.OK), "primary")
         box = d.get_content_area()
         box.set_spacing(8)
         box.set_border_width(14)
-        box.pack_start(label("Untick anything you want to keep. Optimisations and boot services need your "
-                             "password; startup apps and Flatpak permissions don't.", ("muted",), wrap=True),
+        box.pack_start(label(_("Untick anything you want to keep. Optimisations and boot services need your "
+                             "password; startup apps and Flatpak permissions don't."), ("muted",), wrap=True),
                        False, False, 0)
         lst = vbox(4)
         checks_ = []
@@ -3140,8 +3141,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def _build_log(self):
         page = vbox(14, "page")
-        page.pack_start(self.page_header("utilities-terminal-symbolic", "Activity log",
-                                         "Full output of every command MintCare runs."), False, False, 0)
+        page.pack_start(self.page_header("utilities-terminal-symbolic", _("Activity log"),
+                                         _("Full output of every command MintCare runs.")), False, False, 0)
         c = card("tight")
         self.log_view = Gtk.TextView(editable=False, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                      left_margin=12, right_margin=12, top_margin=10, bottom_margin=10)

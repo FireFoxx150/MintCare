@@ -1,5 +1,7 @@
 """Colour themes: Dark (MintCare Companion style), Light, High contrast, or follow the system."""
 
+from .i18n import _
+
 PALETTES = {
     "dark": {
         "bg": "#05070a", "panel": "#080c12", "card": "#0c121a", "line": "rgba(255,255,255,0.05)",
@@ -27,7 +29,7 @@ PALETTES = {
     },
 }
 DARK_BASE = {"dark": True, "light": False, "contrast": True}
-NAMES = [("system", "Follow system"), ("dark", "Dark"), ("light", "Light"), ("contrast", "High contrast")]
+NAMES = [("system", _("Follow system")), ("dark", _("Dark")), ("light", _("Light")), ("contrast", _("High contrast"))]
 
 CONTRAST_EXTRA = """
 .card, .sidebar, .stat-tile, .sensor-tile, .profile-tile, .pill { border-width: 2px; }

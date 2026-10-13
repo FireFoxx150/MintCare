@@ -56,7 +56,7 @@ def _stream(p, results, on_line):
         if line.startswith(BEGIN):
             continue
         if line.startswith(END):
-            _, sid, rc = line.split()
+            _x, sid, rc = line.split()
             results[sid] = int(rc)
             on_line("    ✔ done" if rc == "0" else f"    ✖ failed (exit {rc})")
             continue

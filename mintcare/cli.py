@@ -33,7 +33,7 @@ def cmd_scan(args):
         user = [(k.id, k.title, r.fix.payload) for k, r in fixable if r.fix.kind == "user"]
         run_steps(user, root=False)
         run_steps(root, root=True)
-    return 1 if any(r.status == "fail" for _, r in results) else 0
+    return 1 if any(r.status == "fail" for _x, r in results) else 0
 
 
 def cmd_tweaks(args):

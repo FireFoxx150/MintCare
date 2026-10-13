@@ -285,7 +285,7 @@ def nvidia():
          "fan": num(f[7]), "slowdown": None, "shutdown": None}
     rc2, o2 = run("nvidia-smi -q -d TEMPERATURE", timeout=5)
     for line in o2.splitlines():
-        k, _, v = line.partition(":")
+        k, _x, v = line.partition(":")
         v = num(v.strip().split()[0]) if v.strip() else None
         if "Slowdown Temp" in k and "GPU" in k:
             g["slowdown"] = v

@@ -12,6 +12,7 @@ from glob import glob
 from pathlib import Path
 from typing import Callable, Optional
 
+from .i18n import _
 from . import STATE_DIR
 from .util import (cpu_vendor, has_cmd, has_ssd, is_laptop, pkg_installed, q, read,
                    sysctl, unit_enabled, unit_active, out)
@@ -69,8 +70,8 @@ def sysctl_tweak(id, title, category, description, settings, pre="", post_revert
     """settings: list of (key, value, op) where op is '=', '>=' or '<='."""
     conf = f"/etc/sysctl.d/99-mintcare-{id}.conf"
     bak = f"{STATE_DIR}/sysctl-{id}.bak"
-    keys = " ".join(k for k, _, _ in settings)
-    body = "\n".join(f"{k} = {v}" for k, v, _ in settings)
+    keys = " ".join(k for k, _x, _x in settings)
+    body = "\n".join(f"{k} = {v}" for k, v, _x in settings)
     apply = f"""{pre}
 mkdir -p {STATE_DIR}
 if [ ! -f {bak} ]; then
@@ -220,9 +221,9 @@ ESSENTIALS = ["build-essential", "curl", "git", "htop", "btop", "unzip", "fastfe
 TWEAKS = [
     # ---------------------------------------------------------------- Network
     sysctl_tweak(
-        "bbr", "TCP BBR congestion control", "Network",
-        "Google's BBR algorithm with the fq qdisc. Higher throughput and lower "
-        "latency on most connections, especially lossy Wi-Fi.",
+        "bbr", _("TCP BBR congestion control"), _("Network"),
+        _("Google's BBR algorithm with the fq qdisc. Higher throughput and lower "
+        "latency on most connections, especially lossy Wi-Fi."),
         [("net.core.default_qdisc", "fq", "="),
          ("net.ipv4.tcp_congestion_control", "bbr", "=")],
         pre="modprobe tcp_bbr 2>/dev/null || true\n"
@@ -230,8 +231,8 @@ TWEAKS = [
         post_revert="rm -f /etc/modules-load.d/mintcare-bbr.conf",
         recommended=True, available=_bbr_available),
     sysctl_tweak(
-        "network", "Network stack tuning", "Network",
-        "TCP Fast Open, MTU probing and larger socket buffers (16 MB) for fast links.",
+        "network", _("Network stack tuning"), _("Network"),
+        _("TCP Fast Open, MTU probing and larger socket buffers (16 MB) for fast links."),
         [("net.ipv4.tcp_fastopen", "3", "="),
          ("net.ipv4.tcp_mtu_probing", "1", "="),
          ("net.core.rmem_max", "16777216", ">="),
@@ -241,9 +242,9 @@ TWEAKS = [
          ("net.core.netdev_max_backlog", "16384", ">=")],
         recommended=True),
     Tweak(
-        "dns", "Encrypted DNS (Cloudflare + Quad9)", "Network",
-        "Use 1.1.1.1 and 9.9.9.9 with opportunistic DNS-over-TLS through "
-        "systemd-resolved. Faster lookups and more privacy than many ISP resolvers.",
+        "dns", _("Encrypted DNS (Cloudflare + Quad9)"), _("Network"),
+        _("Use 1.1.1.1 and 9.9.9.9 with opportunistic DNS-over-TLS through "
+        "systemd-resolved. Faster lookups and more privacy than many ISP resolvers."),
         probe=lambda: Path("/etc/systemd/resolved.conf.d/99-mintcare-dns.conf").exists(),
         apply="""mkdir -p /etc/systemd/resolved.conf.d
 cat > /etc/systemd/resolved.conf.d/99-mintcare-dns.conf <<'EOF'
@@ -259,9 +260,9 @@ systemctl restart systemd-resolved""",
 
     # ----------------------------------------------------------------- Memory
     Tweak(
-        "zram", "Compressed RAM swap (zram)", "Memory",
-        "Adds a zstd-compressed swap device in RAM (50% of memory). Keeps the "
-        "desktop responsive under memory pressure and reduces SSD writes.",
+        "zram", _("Compressed RAM swap (zram)"), _("Memory"),
+        _("Adds a zstd-compressed swap device in RAM (50% of memory). Keeps the "
+        "desktop responsive under memory pressure and reduces SSD writes."),
         probe=_zram_active,
         apply="""DEBIAN_FRONTEND=noninteractive apt-get install -y zram-tools
 cat > /etc/default/zramswap <<'EOF'
@@ -276,29 +277,29 @@ systemctl restart zramswap.service""",
                "DEBIAN_FRONTEND=noninteractive apt-get purge -y zram-tools",
         recommended=True, conflicts=["swappiness"]),
     sysctl_tweak(
-        "swappiness", "Low swappiness (disk swap only)", "Memory",
-        "Prefer RAM over a swap file/partition (swappiness 10, cache pressure 50). "
-        "Use this instead of zram if you keep plain disk swap.",
+        "swappiness", _("Low swappiness (disk swap only)"), _("Memory"),
+        _("Prefer RAM over a swap file/partition (swappiness 10, cache pressure 50). "
+        "Use this instead of zram if you keep plain disk swap."),
         [("vm.swappiness", "10", "<="), ("vm.vfs_cache_pressure", "50", "<=")],
         conflicts=["zram"]),
     sysctl_tweak(
-        "dirty", "Smoother disk writeback", "Memory",
-        "Flush dirty pages earlier (64 MB background / 256 MB max) so large copies "
-        "to USB sticks don't stall the desktop.",
+        "dirty", _("Smoother disk writeback"), _("Memory"),
+        _("Flush dirty pages earlier (64 MB background / 256 MB max) so large copies "
+        "to USB sticks don't stall the desktop."),
         [("vm.dirty_background_bytes", "67108864", "="),
          ("vm.dirty_bytes", "268435456", "=")]),
 
     # ---------------------------------------------------------------- Storage
     Tweak(
-        "fstrim", "Weekly SSD TRIM", "Storage",
-        "Enable fstrim.timer so SSDs are trimmed weekly, keeping write speeds up.",
+        "fstrim", _("Weekly SSD TRIM"), _("Storage"),
+        _("Enable fstrim.timer so SSDs are trimmed weekly, keeping write speeds up."),
         probe=lambda: unit_enabled("fstrim.timer"),
         apply="systemctl enable --now fstrim.timer",
         revert="systemctl disable --now fstrim.timer",
         recommended=True, available=has_ssd),
     Tweak(
-        "journal", "Cap system logs at 200 MB", "Storage",
-        "Limit the systemd journal to 200 MB and 1 month so logs never fill the disk.",
+        "journal", _("Cap system logs at 200 MB"), _("Storage"),
+        _("Limit the systemd journal to 200 MB and 1 month so logs never fill the disk."),
         probe=_journal_limited,
         apply="""mkdir -p /etc/systemd/journald.conf.d
 cat > /etc/systemd/journald.conf.d/99-mintcare.conf <<'EOF'
@@ -312,9 +313,9 @@ journalctl --vacuum-size=200M""",
         revert="rm -f /etc/systemd/journald.conf.d/99-mintcare.conf\nsystemctl restart systemd-journald",
         recommended=True),
     Tweak(
-        "autoremove", "Automatic old-kernel/orphan removal", "Storage",
-        "Turn on Mint Update's weekly automation that removes obsolete kernels "
-        "and orphaned packages.",
+        "autoremove", _("Automatic old-kernel/orphan removal"), _("Storage"),
+        _("Turn on Mint Update's weekly automation that removes obsolete kernels "
+        "and orphaned packages."),
         probe=lambda: Path("/var/lib/linuxmint/mintupdate-automatic-removals-enabled").exists(),
         apply="/usr/bin/mintupdate-automation autoremove enable",
         revert="/usr/bin/mintupdate-automation autoremove disable",
@@ -322,8 +323,8 @@ journalctl --vacuum-size=200M""",
 
     # ------------------------------------------------------------------- Boot
     Tweak(
-        "shutdown", "Faster shutdown", "Boot & Services",
-        "Wait at most 10 s (instead of 90 s) for hung services when shutting down.",
+        "shutdown", _("Faster shutdown"), _("Boot & Services"),
+        _("Wait at most 10 s (instead of 90 s) for hung services when shutting down."),
         probe=lambda: Path("/etc/systemd/system.conf.d/99-mintcare-timeout.conf").exists(),
         apply="""mkdir -p /etc/systemd/system.conf.d
 cat > /etc/systemd/system.conf.d/99-mintcare-timeout.conf <<'EOF'
@@ -335,17 +336,17 @@ systemctl daemon-reload""",
         revert="rm -f /etc/systemd/system.conf.d/99-mintcare-timeout.conf\nsystemctl daemon-reload",
         recommended=True),
     Tweak(
-        "waitonline", "Skip 'wait for network' at boot", "Boot & Services",
-        "Disable NetworkManager-wait-online, which can add several seconds to boot. "
-        "Leave this off if you mount network shares (NFS/SMB) in /etc/fstab.",
+        "waitonline", _("Skip 'wait for network' at boot"), _("Boot & Services"),
+        _("Disable NetworkManager-wait-online, which can add several seconds to boot. "
+        "Leave this off if you mount network shares (NFS/SMB) in /etc/fstab."),
         probe=lambda: not unit_enabled("NetworkManager-wait-online.service"),
         apply="systemctl disable NetworkManager-wait-online.service",
         revert="systemctl enable NetworkManager-wait-online.service"),
 
     # --------------------------------------------------------------- Security
     Tweak(
-        "ufw", "Firewall (UFW)", "Security",
-        "Enable the firewall: block all incoming connections, allow outgoing.",
+        "ufw", _("Firewall (UFW)"), _("Security"),
+        _("Enable the firewall: block all incoming connections, allow outgoing."),
         probe=_ufw_enabled,
         apply="""DEBIAN_FRONTEND=noninteractive apt-get install -y ufw
 ufw default deny incoming
@@ -354,25 +355,25 @@ ufw --force enable""",
         revert="ufw --force disable",
         recommended=True),
     Tweak(
-        "autoupdate", "Automatic updates", "Security",
-        "Let Mint Update install updates automatically in the background "
-        "(Timeshift snapshot recommended).",
+        "autoupdate", _("Automatic updates"), _("Security"),
+        _("Let Mint Update install updates automatically in the background "
+        "(Timeshift snapshot recommended)."),
         probe=lambda: Path("/var/lib/linuxmint/mintupdate-automatic-upgrades-enabled").exists(),
         apply="/usr/bin/mintupdate-automation upgrade enable",
         revert="/usr/bin/mintupdate-automation upgrade disable",
         available=lambda: has_cmd("mintupdate-automation")),
     Tweak(
-        "microcode", "CPU microcode updates", "Security",
-        "Install the vendor microcode package: fixes CPU bugs and security issues.",
+        "microcode", _("CPU microcode updates"), _("Security"),
+        _("Install the vendor microcode package: fixes CPU bugs and security issues."),
         probe=lambda: bool(_microcode_pkg()) and pkg_installed(_microcode_pkg()),
         apply=f"DEBIAN_FRONTEND=noninteractive apt-get install -y {_microcode_pkg() or 'true'}",
         recommended=True, available=lambda: _microcode_pkg() is not None),
 
     # ------------------------------------------------------------- Storage+
     Tweak(
-        "iosched", "Best I/O scheduler per drive", "Storage",
-        "NVMe: none · SATA SSD: mq-deadline · hard drives: BFQ. BFQ keeps the desktop "
-        "responsive while a hard drive is busy copying or indexing.",
+        "iosched", _("Best I/O scheduler per drive"), _("Storage"),
+        _("NVMe: none · SATA SSD: mq-deadline · hard drives: BFQ. BFQ keeps the desktop "
+        "responsive while a hard drive is busy copying or indexing."),
         probe=_iosched_ok,
         apply=f"""modprobe bfq
 echo bfq > /etc/modules-load.d/mintcare-bfq.conf
@@ -393,11 +394,11 @@ for q in /sys/block/sd*/queue; do [ "$(cat $q/rotational)" = 1 ] && echo mq-dead
 
     # ----------------------------------------------------------- Boot menu
     Tweak(
-        "grub", "Faster boot menu (GRUB)", "Boot & Services",
-        "After a crash or power cut Ubuntu-based systems show the GRUB menu for 30 s. "
+        "grub", _("Faster boot menu (GRUB)"), _("Boot & Services"),
+        _("After a crash or power cut Ubuntu-based systems show the GRUB menu for 30 s. "
         "This cuts that to 5 s and keeps the normal menu short (2 s, or 3 s when "
         "dual-booting). Uses a drop-in file; /etc/default/grub is not edited and "
-        "grub.cfg is backed up first.",
+        "grub.cfg is backed up first."),
         probe=_grub_fast,
         apply=_grub_apply_script(),
         revert=f"rm -f {GRUB_DROPIN}\nupdate-grub",
@@ -405,22 +406,22 @@ for q in /sys/block/sd*/queue; do [ "$(cat $q/rotational)" = 1 ] && echo mq-dead
 
     # ----------------------------------------------------------------- Gaming
     sysctl_tweak(
-        "mapcount", "Raise vm.max_map_count", "Gaming",
-        "Raise the memory-map limit to SteamOS's value. Prevents crashes in some "
-        "Proton/Steam games (e.g. CS2, Hogwarts Legacy).",
+        "mapcount", _("Raise vm.max_map_count"), _("Gaming"),
+        _("Raise the memory-map limit to SteamOS's value. Prevents crashes in some "
+        "Proton/Steam games (e.g. CS2, Hogwarts Legacy)."),
         [("vm.max_map_count", "2147483642", ">=")]),
     Tweak(
-        "gamemode", "Feral GameMode", "Gaming",
-        "Temporarily boosts CPU/GPU performance while a game runs. Also adds you to the "
+        "gamemode", _("Feral GameMode"), _("Gaming"),
+        _("Temporarily boosts CPU/GPU performance while a game runs. Also adds you to the "
         "'gamemode' group, which GameMode needs to switch CPU governors "
-        "(log out and back in afterwards). Launch games with: gamemoderun %command%",
+        "(log out and back in afterwards). Launch games with: gamemoderun %command%"),
         probe=lambda: pkg_installed("gamemode") and _in_group("gamemode"),
         apply=f"DEBIAN_FRONTEND=noninteractive apt-get install -y gamemode\n"
               f"getent group gamemode >/dev/null || groupadd -r gamemode\n"
               f"usermod -aG gamemode {q(USER)}",
         revert=f"gpasswd -d {q(USER)} gamemode || true"),
     Tweak(
-        "gamemodecfg", "GameMode performance profile", "Gaming",
+        "gamemodecfg", _("GameMode performance profile"), _("Gaming"),
         "While gaming: performance CPU governor, higher process and I/O priority, "
         "screensaver blocked" + (", NVIDIA 'prefer maximum performance'" if has_cmd("nvidia-smi") else "")
         + ". Writes /etc/gamemode.ini (any existing file is backed up).",
@@ -436,26 +437,26 @@ echo "Wrote {GAMEMODE_INI}" """,
 else rm -f {GAMEMODE_INI}; fi""",
         available=lambda: pkg_installed("gamemode")),
     Tweak(
-        "mangohud", "MangoHud + GOverlay", "Gaming",
-        "In-game overlay for FPS, frame times, temperatures and load, plus GOverlay to "
-        "configure it. Launch games with: mangohud %command%",
+        "mangohud", _("MangoHud + GOverlay"), _("Gaming"),
+        _("In-game overlay for FPS, frame times, temperatures and load, plus GOverlay to "
+        "configure it. Launch games with: mangohud %command%"),
         probe=lambda: pkg_installed("mangohud"),
         apply="DEBIAN_FRONTEND=noninteractive apt-get install -y mangohud goverlay",
         revert="DEBIAN_FRONTEND=noninteractive apt-get purge -y mangohud goverlay"),
     Tweak(
-        "steam", "Steam (with Proton)", "Gaming",
-        "Installs Steam from Flathub plus controller udev rules (steam-devices). Proton "
+        "steam", _("Steam (with Proton)"), _("Gaming"),
+        _("Installs Steam from Flathub plus controller udev rules (steam-devices). Proton "
         "lets Steam run most Windows games; Steam asks you to accept its licence on first "
-        "launch.",
+        "launch."),
         probe=lambda: has_cmd("steam") or _flatpak_has("com.valvesoftware.Steam"),
         apply="DEBIAN_FRONTEND=noninteractive apt-get install -y steam-devices\n"
               "flatpak install --system -y --noninteractive flathub com.valvesoftware.Steam",
         revert="flatpak uninstall --system -y --noninteractive com.valvesoftware.Steam",
         available=lambda: has_cmd("flatpak")),
     Tweak(
-        "protonup", "ProtonUp-Qt (Proton-GE manager)", "Gaming",
-        "Installs and updates community Proton builds such as Proton-GE, which fix "
-        "videos and compatibility in many games.",
+        "protonup", _("ProtonUp-Qt (Proton-GE manager)"), _("Gaming"),
+        _("Installs and updates community Proton builds such as Proton-GE, which fix "
+        "videos and compatibility in many games."),
         probe=lambda: _flatpak_has("net.davidotek.pupgui2"),
         apply="flatpak install --system -y --noninteractive flathub net.davidotek.pupgui2",
         revert="flatpak uninstall --system -y --noninteractive net.davidotek.pupgui2",
@@ -463,20 +464,20 @@ else rm -f {GAMEMODE_INI}; fi""",
 
     # -------------------------------------------------------------- Developer
     sysctl_tweak(
-        "inotify", "More file watchers", "Developer",
-        "Raise inotify limits so VS Code, IDEs and dev servers can watch large projects.",
+        "inotify", _("More file watchers"), _("Developer"),
+        _("Raise inotify limits so VS Code, IDEs and dev servers can watch large projects."),
         [("fs.inotify.max_user_watches", "524288", ">="),
          ("fs.inotify.max_user_instances", "1024", ">=")]),
     Tweak(
-        "nala", "Install Nala (faster apt front-end)", "Developer",
-        "Nala downloads packages in parallel and shows clearer output. Use 'nala' "
-        "anywhere you would type 'apt'.",
+        "nala", _("Install Nala (faster apt front-end)"), _("Developer"),
+        _("Nala downloads packages in parallel and shows clearer output. Use 'nala' "
+        "anywhere you would type 'apt'."),
         probe=lambda: has_cmd("nala"),
         apply="DEBIAN_FRONTEND=noninteractive apt-get install -y nala",
         revert="DEBIAN_FRONTEND=noninteractive apt-get purge -y nala"),
     Tweak(
-        "essentials", "Install essential tools", "Developer",
-        "build-essential, curl, git, htop, btop, unzip and fastfetch (where available).",
+        "essentials", _("Install essential tools"), _("Developer"),
+        _("build-essential, curl, git, htop, btop, unzip and fastfetch (where available)."),
         probe=lambda: all(pkg_installed(p) for p in ESSENTIALS if p != "fastfetch"),
         apply="pkgs='" + " ".join(ESSENTIALS) + "'\n"
               "avail=''; for p in $pkgs; do apt-cache show $p >/dev/null 2>&1 && avail=\"$avail $p\"; done\n"
@@ -484,17 +485,17 @@ else rm -f {GAMEMODE_INI}; fi""",
 
     # ----------------------------------------------------------------- Laptop
     Tweak(
-        "tlpconflict", "Remove TLP / power-profiles conflict", "Laptop",
-        "Having both TLP and power-profiles-daemon running causes erratic power "
-        "management. This removes TLP and keeps Mint's power-profiles-daemon.",
+        "tlpconflict", _("Remove TLP / power-profiles conflict"), _("Laptop"),
+        _("Having both TLP and power-profiles-daemon running causes erratic power "
+        "management. This removes TLP and keeps Mint's power-profiles-daemon."),
         probe=lambda: not (pkg_installed("tlp") and pkg_installed("power-profiles-daemon")),
         apply="DEBIAN_FRONTEND=noninteractive apt-get purge -y tlp tlp-rdw\n"
               "systemctl enable --now power-profiles-daemon",
         available=is_laptop),
     Tweak(
-        "chargelimit", "Battery charge limit (80%)", "Laptop",
-        "Stop charging at 80% to roughly double battery lifespan when the laptop lives on "
-        "the charger. Only shown when the battery firmware supports it.",
+        "chargelimit", _("Battery charge limit (80%)"), _("Laptop"),
+        _("Stop charging at 80% to roughly double battery lifespan when the laptop lives on "
+        "the charger. Only shown when the battery firmware supports it."),
         probe=lambda: bool(_charge_files()) and all(read(f, "100").isdigit() and int(read(f, "100")) <= 80
                                                     for f in _charge_files()),
         apply=f"""cat > {CHARGE_RULE} <<'EOF'
@@ -508,9 +509,9 @@ for f in /sys/class/power_supply/BAT*/charge_control_end_threshold; do echo 100 
 udevadm control --reload""",
         available=lambda: is_laptop() and bool(_charge_files())),
     Tweak(
-        "autopower", "Power saver on battery", "Laptop",
-        "Switch to the power-saver profile when you unplug and back to balanced when you "
-        "plug in (power-profiles-daemon).",
+        "autopower", _("Power saver on battery"), _("Laptop"),
+        _("Switch to the power-saver profile when you unplug and back to balanced when you "
+        "plug in (power-profiles-daemon)."),
         probe=lambda: Path(AUTOPOWER_RULE).exists(),
         apply=f"""cat > {AUTOPOWER_RULE} <<'EOF'
 # Managed by MintCare
@@ -521,9 +522,9 @@ udevadm control --reload""",
         revert=f"rm -f {AUTOPOWER_RULE}\nudevadm control --reload",
         available=lambda: is_laptop() and has_cmd("powerprofilesctl")),
     Tweak(
-        "aspm", "PCIe power saving (ASPM)", "Laptop",
-        "Let PCIe devices (Wi-Fi, NVMe, GPU links) drop into low-power states when idle. "
-        "Typically saves 0.5–2 W. If a device misbehaves, switch this off.",
+        "aspm", _("PCIe power saving (ASPM)"), _("Laptop"),
+        _("Let PCIe devices (Wi-Fi, NVMe, GPU links) drop into low-power states when idle. "
+        "Typically saves 0.5–2 W. If a device misbehaves, switch this off."),
         probe=lambda: any(f"[{p}]" in read(ASPM_POLICY) for p in ("powersave", "powersupersave")),
         apply=f"""cat > {ASPM_TMPFILE} <<'EOF'
 # Managed by MintCare
@@ -553,17 +554,17 @@ _BASE = ["bbr", "network", "zram", "fstrim", "journal", "autoremove", "shutdown"
          "microcode", "grub", "iosched"]
 
 PROFILES = [
-    Profile("desktop", "Everyday desktop", "computer-symbolic",
-            "Faster networking, zram, SSD care, firewall, tidy logs and a quick boot menu.", _BASE),
-    Profile("gaming", "Gaming", "input-gaming-symbolic",
-            "Everyday tweaks plus GameMode, MangoHud, Steam with Proton and the "
-            "SteamOS memory-map limit.",
+    Profile("desktop", _("Everyday desktop"), "computer-symbolic",
+            _("Faster networking, zram, SSD care, firewall, tidy logs and a quick boot menu."), _BASE),
+    Profile("gaming", _("Gaming"), "input-gaming-symbolic",
+            _("Everyday tweaks plus GameMode, MangoHud, Steam with Proton and the "
+            "SteamOS memory-map limit."),
             _BASE + ["mapcount", "gamemode", "gamemodecfg", "mangohud", "steam", "protonup"]),
-    Profile("laptop", "Laptop battery", "battery-good-symbolic",
-            "Everyday tweaks plus charge limiting, power saver on battery and PCIe power saving.",
+    Profile("laptop", _("Laptop battery"), "battery-good-symbolic",
+            _("Everyday tweaks plus charge limiting, power saver on battery and PCIe power saving."),
             _BASE + ["tlpconflict", "chargelimit", "autopower", "aspm", "dirty"]),
-    Profile("developer", "Developer", "utilities-terminal-symbolic",
-            "Everyday tweaks plus large file-watcher limits, Nala and build tools.",
+    Profile("developer", _("Developer"), "utilities-terminal-symbolic",
+            _("Everyday tweaks plus large file-watcher limits, Nala and build tools."),
             _BASE + ["inotify", "nala", "essentials"]),
 ]
 PROFILE_BY_ID = {p.id: p for p in PROFILES}

@@ -1,0 +1,1673 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the MintCare package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: MintCare 1.5.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 16:14+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: mintcare/checks.py:79
+msgid "Internet connection is working"
+msgstr ""
+
+#: mintcare/checks.py:82
+msgid "No internet connection (could not reach 1.1.1.1, 9.9.9.9 or 8.8.8.8)"
+msgstr ""
+
+#: mintcare/checks.py:83
+msgid "Restart networking"
+msgstr ""
+
+#: mintcare/checks.py:90
+msgid "Skipped: no internet connection"
+msgstr ""
+
+#: mintcare/checks.py:93
+msgid "DNS name resolution is working"
+msgstr ""
+
+#: mintcare/checks.py:95
+msgid "Internet works but DNS lookups fail"
+msgstr ""
+
+#: mintcare/checks.py:98
+msgid "Repair DNS"
+msgstr ""
+
+#: mintcare/checks.py:109
+msgid "Add entry"
+msgstr ""
+
+#: mintcare/checks.py:117
+msgid "No half-installed or unconfigured packages"
+msgstr ""
+
+#: mintcare/checks.py:118
+msgid "Some packages were left half-installed (interrupted update?)"
+msgstr ""
+
+#: mintcare/checks.py:120
+msgid "Repair packages"
+msgstr ""
+
+#: mintcare/checks.py:126
+msgid "No broken package dependencies"
+msgstr ""
+
+#: mintcare/checks.py:127
+msgid "Broken package dependencies detected"
+msgstr ""
+
+#: mintcare/checks.py:128 mintcare/gui.py:2242
+msgid "Repair"
+msgstr ""
+
+#: mintcare/checks.py:135
+msgid "System is up to date (per the last package list refresh)"
+msgstr ""
+
+#: mintcare/checks.py:139
+msgid "Install updates"
+msgstr ""
+
+#: mintcare/checks.py:161 mintcare/checks.py:170
+msgid "Open cleaner"
+msgstr ""
+
+#: mintcare/checks.py:168
+msgid "No leftover config from removed packages"
+msgstr ""
+
+#: mintcare/checks.py:180 mintcare/checks.py:182
+msgid "Free space"
+msgstr ""
+
+#: mintcare/checks.py:188
+msgid "/boot is part of the root filesystem"
+msgstr ""
+
+#: mintcare/checks.py:195
+msgid "Remove old kernels"
+msgstr ""
+
+#: mintcare/checks.py:201
+msgid "No SSD detected; TRIM not needed"
+msgstr ""
+
+#: mintcare/checks.py:203
+msgid "Weekly SSD TRIM is enabled"
+msgstr ""
+
+#: mintcare/checks.py:204
+msgid "SSD detected but periodic TRIM is disabled"
+msgstr ""
+
+#: mintcare/checks.py:219
+msgid "Cap logs"
+msgstr ""
+
+#: mintcare/checks.py:226
+msgid "Timeshift is not set up; you have no system snapshots to roll back to"
+msgstr ""
+
+#: mintcare/checks.py:227 mintcare/checks.py:235
+msgid "Set up Timeshift"
+msgstr ""
+
+#: mintcare/checks.py:232
+msgid "Timeshift config could not be parsed"
+msgstr ""
+
+#: mintcare/checks.py:234
+msgid "Timeshift has no backup device selected"
+msgstr ""
+
+#: mintcare/checks.py:238
+msgid "Timeshift is configured but no automatic schedule is set"
+msgstr ""
+
+#: mintcare/checks.py:239 mintcare/gui.py:2142
+msgid "Open Timeshift"
+msgstr ""
+
+#: mintcare/checks.py:248
+msgid "No swap configured; the system may freeze when RAM runs out"
+msgstr ""
+
+#: mintcare/checks.py:249 mintcare/checks.py:255
+msgid "Enable zram"
+msgstr ""
+
+#: mintcare/checks.py:265
+msgid "Could not read memory info"
+msgstr ""
+
+#: mintcare/checks.py:276
+msgid "No microcode package needed for this CPU"
+msgstr ""
+
+#: mintcare/checks.py:279
+msgid "Install"
+msgstr ""
+
+#: mintcare/checks.py:288
+msgid "NVIDIA proprietary driver is loaded"
+msgstr ""
+
+#: mintcare/checks.py:290
+msgid "NVIDIA GPU is using the open 'nouveau' driver (slow, no CUDA)"
+msgstr ""
+
+#: mintcare/checks.py:291 mintcare/checks.py:293
+msgid "Open Driver Manager"
+msgstr ""
+
+#: mintcare/checks.py:292
+msgid "NVIDIA GPU detected but no driver is loaded"
+msgstr ""
+
+#: mintcare/checks.py:300
+msgid "Desktop PC; laptop power checks skipped"
+msgstr ""
+
+#: mintcare/checks.py:302
+msgid "TLP and power-profiles-daemon are both installed and will fight"
+msgstr ""
+
+#: mintcare/checks.py:303
+msgid "Resolve"
+msgstr ""
+
+#: mintcare/checks.py:304
+msgid "Laptop power management looks consistent"
+msgstr ""
+
+#: mintcare/checks.py:313
+msgid "No failed system services"
+msgstr ""
+
+#: mintcare/checks.py:317 mintcare/checks.py:327
+msgid "Restart them"
+msgstr ""
+
+#: mintcare/checks.py:324
+msgid "No failed user services"
+msgstr ""
+
+#: mintcare/checks.py:335
+msgid "Could not read the system log"
+msgstr ""
+
+#: mintcare/checks.py:341
+msgid "No errors logged since boot"
+msgstr ""
+
+#: mintcare/checks.py:352
+msgid "No Bluetooth daemon installed"
+msgstr ""
+
+#: mintcare/checks.py:354
+msgid "Bluetooth SIM Access plugin is disabled"
+msgstr ""
+
+#: mintcare/checks.py:357
+msgid "Bluetooth started without plugin errors"
+msgstr ""
+
+#: mintcare/checks.py:358
+msgid ""
+"Bluetooth logs a SIM Access (SAP) plugin error every boot (harmless, noisy)"
+msgstr ""
+
+#: mintcare/checks.py:362
+msgid "Disable SAP"
+msgstr ""
+
+#: mintcare/checks.py:367
+msgid "ecryptfs is not installed"
+msgstr ""
+
+#: mintcare/checks.py:371
+msgid "ecryptfs is installed and in use"
+msgstr ""
+
+#: mintcare/checks.py:372
+msgid ""
+"ecryptfs is installed but unused; its login module logs 'seteuid error' on "
+"every unlock"
+msgstr ""
+
+#: mintcare/checks.py:375
+msgid "Remove ecryptfs"
+msgstr ""
+
+#: mintcare/checks.py:381
+msgid "Clock is synchronised with internet time"
+msgstr ""
+
+#: mintcare/checks.py:382
+msgid "Clock is not synchronised (can break HTTPS and updates)"
+msgstr ""
+
+#: mintcare/checks.py:383
+msgid "Sync clock"
+msgstr ""
+
+#: mintcare/checks.py:388
+msgid "Firewall (UFW) is enabled"
+msgstr ""
+
+#: mintcare/checks.py:389
+msgid "Enable firewall"
+msgstr ""
+
+#: mintcare/checks.py:389
+msgid "Firewall is disabled"
+msgstr ""
+
+#: mintcare/checks.py:397
+msgid "Make private"
+msgstr ""
+
+#: mintcare/checks.py:406
+msgid "Raise"
+msgstr ""
+
+#: mintcare/checks.py:415
+msgid "Could not read disk health (UDisks2 unavailable)"
+msgstr ""
+
+#: mintcare/checks.py:421 mintcare/checks.py:426
+msgid "View drives"
+msgstr ""
+
+#: mintcare/checks.py:434
+msgid "No temperature sensors found"
+msgstr ""
+
+#: mintcare/checks.py:438 mintcare/checks.py:442
+msgid "View sensors"
+msgstr ""
+
+#: mintcare/checks.py:451
+msgid "Boot timing not available"
+msgstr ""
+
+#: mintcare/checks.py:458 mintcare/checks.py:461
+msgid "Review boot"
+msgstr ""
+
+#: mintcare/checks.py:467
+msgid "GameMode not installed (optional, see Optimise > Gaming)"
+msgstr ""
+
+#: mintcare/checks.py:469
+msgid "GameMode is installed and you can use all of its features"
+msgstr ""
+
+#: mintcare/checks.py:470
+msgid ""
+"GameMode is installed but you're not in the 'gamemode' group, so it can't "
+"switch CPU governors"
+msgstr ""
+
+#: mintcare/checks.py:471
+msgid "Fix"
+msgstr ""
+
+#: mintcare/checks.py:476
+msgid "Not using GRUB"
+msgstr ""
+
+#: mintcare/checks.py:480
+msgid "Shorten"
+msgstr ""
+
+#: mintcare/checks.py:485
+msgid "Internet connection"
+msgstr ""
+
+#: mintcare/checks.py:485 mintcare/checks.py:486 mintcare/checks.py:487
+#: mintcare/checks.py:488 mintcare/tweaks.py:224 mintcare/tweaks.py:234
+#: mintcare/tweaks.py:245
+msgid "Network"
+msgstr ""
+
+#: mintcare/checks.py:486
+msgid "DNS resolution"
+msgstr ""
+
+#: mintcare/checks.py:487 mintcare/tweaks.py:224
+msgid "TCP BBR congestion control"
+msgstr ""
+
+#: mintcare/checks.py:488
+msgid "Hostname resolution"
+msgstr ""
+
+#: mintcare/checks.py:489
+msgid "Interrupted package installs"
+msgstr ""
+
+#: mintcare/checks.py:489 mintcare/checks.py:490 mintcare/checks.py:491
+#: mintcare/checks.py:492 mintcare/checks.py:493 mintcare/checks.py:494
+msgid "Packages"
+msgstr ""
+
+#: mintcare/checks.py:490
+msgid "Broken dependencies"
+msgstr ""
+
+#: mintcare/checks.py:491
+msgid "Pending updates"
+msgstr ""
+
+#: mintcare/checks.py:492
+msgid "Restart needed"
+msgstr ""
+
+#: mintcare/checks.py:493
+msgid "Installed kernels"
+msgstr ""
+
+#: mintcare/checks.py:494
+msgid "Leftover package config"
+msgstr ""
+
+#: mintcare/checks.py:495 mintcare/gui.py:39 mintcare/gui.py:1710
+msgid "Disk space"
+msgstr ""
+
+#: mintcare/checks.py:495 mintcare/checks.py:496 mintcare/checks.py:497
+#: mintcare/checks.py:498 mintcare/checks.py:499 mintcare/tweaks.py:294
+#: mintcare/tweaks.py:301 mintcare/tweaks.py:316 mintcare/tweaks.py:374
+msgid "Storage"
+msgstr ""
+
+#: mintcare/checks.py:496
+msgid "/boot space"
+msgstr ""
+
+#: mintcare/checks.py:497
+msgid "SSD TRIM"
+msgstr ""
+
+#: mintcare/checks.py:498
+msgid "Log size"
+msgstr ""
+
+#: mintcare/checks.py:499
+msgid "System snapshots"
+msgstr ""
+
+#: mintcare/checks.py:500 mintcare/checks.py:501 mintcare/tweaks.py:263
+#: mintcare/tweaks.py:280 mintcare/tweaks.py:286
+msgid "Memory"
+msgstr ""
+
+#: mintcare/checks.py:500
+msgid "Swap / zram"
+msgstr ""
+
+#: mintcare/checks.py:501
+msgid "Memory usage"
+msgstr ""
+
+#: mintcare/checks.py:502
+msgid "CPU microcode"
+msgstr ""
+
+#: mintcare/checks.py:502 mintcare/checks.py:503 mintcare/checks.py:504
+#: mintcare/checks.py:505 mintcare/checks.py:506 mintcare/gui.py:41
+msgid "Hardware"
+msgstr ""
+
+#: mintcare/checks.py:503
+msgid "Graphics driver"
+msgstr ""
+
+#: mintcare/checks.py:504
+msgid "Laptop power management"
+msgstr ""
+
+#: mintcare/checks.py:505
+msgid "Disk health (SMART)"
+msgstr ""
+
+#: mintcare/checks.py:506
+msgid "Temperatures & throttling"
+msgstr ""
+
+#: mintcare/checks.py:507
+msgid "Firewall"
+msgstr ""
+
+#: mintcare/checks.py:507 mintcare/checks.py:508 mintcare/tweaks.py:348
+#: mintcare/tweaks.py:358 mintcare/tweaks.py:366
+msgid "Security"
+msgstr ""
+
+#: mintcare/checks.py:508
+msgid "Home folder privacy"
+msgstr ""
+
+#: mintcare/checks.py:509
+msgid "Clock sync"
+msgstr ""
+
+#: mintcare/checks.py:509 mintcare/checks.py:510 mintcare/checks.py:511
+#: mintcare/checks.py:512 mintcare/checks.py:513 mintcare/checks.py:514
+#: mintcare/checks.py:515 mintcare/checks.py:516 mintcare/checks.py:517
+#: mintcare/checks.py:518
+msgid "System"
+msgstr ""
+
+#: mintcare/checks.py:510
+msgid "Failed services"
+msgstr ""
+
+#: mintcare/checks.py:511
+msgid "Failed user services"
+msgstr ""
+
+#: mintcare/checks.py:512
+msgid "Boot time"
+msgstr ""
+
+#: mintcare/checks.py:513
+msgid "Boot menu timeout"
+msgstr ""
+
+#: mintcare/checks.py:514
+msgid "GameMode permissions"
+msgstr ""
+
+#: mintcare/checks.py:515
+msgid "Errors since boot"
+msgstr ""
+
+#: mintcare/checks.py:516
+msgid "Bluetooth plugin errors"
+msgstr ""
+
+#: mintcare/checks.py:517
+msgid "Unused ecryptfs login module"
+msgstr ""
+
+#: mintcare/checks.py:518
+msgid "File watcher limit"
+msgstr ""
+
+#: mintcare/cleaner.py:195
+msgid "Downloaded .deb files that are already installed."
+msgstr ""
+
+#: mintcare/cleaner.py:195
+msgid "Package download cache"
+msgstr ""
+
+#: mintcare/cleaner.py:197
+msgid "Old kernels & orphaned packages"
+msgstr ""
+
+#: mintcare/cleaner.py:198
+msgid ""
+"Dependencies no longer needed and kernels older than the current fallback."
+msgstr ""
+
+#: mintcare/cleaner.py:200
+msgid "Config files of packages you already removed."
+msgstr ""
+
+#: mintcare/cleaner.py:200
+msgid "Leftover package configs"
+msgstr ""
+
+#: mintcare/cleaner.py:202
+msgid "Old systemd log entries."
+msgstr ""
+
+#: mintcare/cleaner.py:202
+msgid "System journal older than 7 days"
+msgstr ""
+
+#: mintcare/cleaner.py:204
+msgid "Compressed and rotated logs in /var/log."
+msgstr ""
+
+#: mintcare/cleaner.py:204
+msgid "Rotated log files"
+msgstr ""
+
+#: mintcare/cleaner.py:208
+msgid "Crash reports"
+msgstr ""
+
+#: mintcare/cleaner.py:208
+msgid "Saved crash dumps in /var/crash."
+msgstr ""
+
+#: mintcare/cleaner.py:210
+msgid "Runtimes left behind after apps were removed."
+msgstr ""
+
+#: mintcare/cleaner.py:210
+msgid "Unused Flatpak runtimes"
+msgstr ""
+
+#: mintcare/cleaner.py:215
+msgid "Cached file previews."
+msgstr ""
+
+#: mintcare/cleaner.py:215
+msgid "Thumbnail cache"
+msgstr ""
+
+#: mintcare/cleaner.py:217
+msgid "Cache files no app has touched in 30 days."
+msgstr ""
+
+#: mintcare/cleaner.py:217
+msgid "Stale application cache"
+msgstr ""
+
+#: mintcare/cleaner.py:222
+msgid "Developer caches"
+msgstr ""
+
+#: mintcare/cleaner.py:222
+msgid "pip, npm, yarn, Go and Cargo download caches."
+msgstr ""
+
+#: mintcare/cleaner.py:225
+msgid "Empty Trash"
+msgstr ""
+
+#: mintcare/cleaner.py:225
+msgid "Permanently deletes everything in your Trash."
+msgstr ""
+
+#: mintcare/gui.py:35
+msgid "Dashboard"
+msgstr ""
+
+#: mintcare/gui.py:36 mintcare/gui.py:1269
+msgid "Diagnose & Fix"
+msgstr ""
+
+#: mintcare/gui.py:37 mintcare/gui.py:1393
+msgid "Optimise"
+msgstr ""
+
+#: mintcare/gui.py:38 mintcare/gui.py:1601
+msgid "Clean"
+msgstr ""
+
+#: mintcare/gui.py:40 mintcare/gui.py:2237
+msgid "Flatpak apps"
+msgstr ""
+
+#: mintcare/gui.py:42 mintcare/gui.py:2616
+msgid "Boot & Startup"
+msgstr ""
+
+#: mintcare/gui.py:43 mintcare/gui.py:2814
+msgid "Maintenance"
+msgstr ""
+
+#: mintcare/gui.py:44 mintcare/gui.py:3144
+msgid "Activity log"
+msgstr ""
+
+#: mintcare/gui.py:49
+msgid "Beginner"
+msgstr ""
+
+#: mintcare/gui.py:49
+msgid "Essentials only: health check, recommended tweaks, cleaning."
+msgstr ""
+
+#: mintcare/gui.py:50
+msgid "Everything except the most technical tweaks."
+msgstr ""
+
+#: mintcare/gui.py:50
+msgid "Intermediate"
+msgstr ""
+
+#: mintcare/gui.py:51
+msgid "Advanced"
+msgstr ""
+
+#: mintcare/gui.py:51
+msgid "Every page and every tweak."
+msgstr ""
+
+#: mintcare/gui.py:230
+msgid "MintCare"
+msgstr ""
+
+#: mintcare/gui.py:231
+msgid "LINUX MINT CLEAN · OPTIMISE · REPAIR"
+msgstr ""
+
+#: mintcare/gui.py:234
+msgid "Search  (Ctrl+F)"
+msgstr ""
+
+#: mintcare/gui.py:283
+msgid "Appearance, experience level, tray and report"
+msgstr ""
+
+#: mintcare/gui.py:294
+msgid "APPEARANCE"
+msgstr ""
+
+#: mintcare/gui.py:303
+msgid "EXPERIENCE LEVEL"
+msgstr ""
+
+#: mintcare/gui.py:316
+msgid "SYSTEM TRAY"
+msgstr ""
+
+#: mintcare/gui.py:317
+msgid "Show MintCare in the system tray"
+msgstr ""
+
+#: mintcare/gui.py:320
+msgid "Start in the tray when I log in"
+msgstr ""
+
+#: mintcare/gui.py:324
+msgid "Export health report…"
+msgstr ""
+
+#: mintcare/gui.py:327
+msgid "About MintCare"
+msgstr ""
+
+#: mintcare/gui.py:567
+msgid "NAVIGATION"
+msgstr ""
+
+#: mintcare/gui.py:592
+msgid "SYSTEM HEALTH"
+msgstr ""
+
+#: mintcare/gui.py:596 mintcare/gui.py:1089
+msgid "scanning"
+msgstr ""
+
+#: mintcare/gui.py:603
+msgid "Live monitoring"
+msgstr ""
+
+#: mintcare/gui.py:605
+msgid "intermediate mode"
+msgstr ""
+
+#: mintcare/gui.py:618
+msgid "Ready"
+msgstr ""
+
+#: mintcare/gui.py:759
+msgid "Take a Timeshift snapshot first?"
+msgstr ""
+
+#: mintcare/gui.py:763
+msgid "Remember my choice"
+msgstr ""
+
+#: mintcare/gui.py:767 mintcare/gui.py:907 mintcare/gui.py:1766
+#: mintcare/gui.py:1923 mintcare/gui.py:1973 mintcare/gui.py:3075
+msgid "Cancel"
+msgstr ""
+
+#: mintcare/gui.py:767
+msgid "Continue without"
+msgstr ""
+
+#: mintcare/gui.py:768
+msgid "Snapshot first"
+msgstr ""
+
+#: mintcare/gui.py:826
+msgid "Tray icon not available on this desktop"
+msgstr ""
+
+#: mintcare/gui.py:856
+msgid "MintCare — scanning…"
+msgstr ""
+
+#: mintcare/gui.py:897
+msgid "MintCare will start in the tray when you log in"
+msgstr ""
+
+#: mintcare/gui.py:900
+msgid "MintCare won't start at login"
+msgstr ""
+
+#: mintcare/gui.py:904
+msgid "Export health report"
+msgstr ""
+
+#: mintcare/gui.py:907
+msgid "Export"
+msgstr ""
+
+#: mintcare/gui.py:914
+msgid "Format:"
+msgstr ""
+
+#: mintcare/gui.py:915
+msgid "PDF"
+msgstr ""
+
+#: mintcare/gui.py:916
+msgid "Web page (HTML)"
+msgstr ""
+
+#: mintcare/gui.py:926
+msgid ""
+"Leave out personal details (computer name, user name, drive serial numbers)"
+msgstr ""
+
+#: mintcare/gui.py:947
+msgid "Could not build the report"
+msgstr ""
+
+#: mintcare/gui.py:982
+msgid "PDF export failed"
+msgstr ""
+
+#: mintcare/gui.py:1013
+msgid "Clean, optimise and repair Linux Mint."
+msgstr ""
+
+#: mintcare/gui.py:1034 mintcare/gui.py:2240 mintcare/gui.py:2443
+#: mintcare/gui.py:2618
+msgid "Refresh"
+msgstr ""
+
+#: mintcare/gui.py:1036
+msgid "Health scan"
+msgstr ""
+
+#: mintcare/gui.py:1040
+msgid "SYSTEM UPTIME"
+msgstr ""
+
+#: mintcare/gui.py:1058
+msgid "Load average"
+msgstr ""
+
+#: mintcare/gui.py:1077
+msgid "Live Performance"
+msgstr ""
+
+#: mintcare/gui.py:1088
+msgid "Health Score"
+msgstr ""
+
+#: mintcare/gui.py:1096
+msgid "0 problems"
+msgstr ""
+
+#: mintcare/gui.py:1096
+msgid "0 warnings"
+msgstr ""
+
+#: mintcare/gui.py:1097
+msgid "0 tips"
+msgstr ""
+
+#: mintcare/gui.py:1101 mintcare/gui.py:1616
+msgid "Scanning…"
+msgstr ""
+
+#: mintcare/gui.py:1105
+msgid "Fix all issues"
+msgstr ""
+
+#: mintcare/gui.py:1108
+msgid "Recommended tweaks"
+msgstr ""
+
+#: mintcare/gui.py:1109
+msgid "Quick clean"
+msgstr ""
+
+#: mintcare/gui.py:1116
+msgid "Network Throughput"
+msgstr ""
+
+#: mintcare/gui.py:1127
+msgid "System Details"
+msgstr ""
+
+#: mintcare/gui.py:1140
+msgid ""
+"MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and "
+"records what it changed in <tt>/var/lib/mintcare</tt>, so every optimisation "
+"can be switched off again from the Optimise page."
+msgstr ""
+
+#: mintcare/gui.py:1270
+msgid ""
+"Checks networking (incl. TCP BBR), packages, disks, memory, drivers, "
+"security and services."
+msgstr ""
+
+#: mintcare/gui.py:1271 mintcare/gui.py:1603
+msgid "Rescan"
+msgstr ""
+
+#: mintcare/gui.py:1272
+msgid "Fix all"
+msgstr ""
+
+#: mintcare/gui.py:1381
+msgid "Nothing to fix automatically"
+msgstr ""
+
+#: mintcare/gui.py:1394
+msgid "Toggle tweaks, then press Apply. Switching a tweak off reverts it."
+msgstr ""
+
+#: mintcare/gui.py:1395
+msgid "Undo all…"
+msgstr ""
+
+#: mintcare/gui.py:1396
+msgid "Select recommended"
+msgstr ""
+
+#: mintcare/gui.py:1397
+msgid "Apply changes"
+msgstr ""
+
+#: mintcare/gui.py:1402
+msgid "PROFILES"
+msgstr ""
+
+#: mintcare/gui.py:1420
+msgid "Select"
+msgstr ""
+
+#: mintcare/gui.py:1452
+msgid "recommended"
+msgstr ""
+
+#: mintcare/gui.py:1570
+msgid "No changes to apply"
+msgstr ""
+
+#: mintcare/gui.py:1588
+msgid "All recommended tweaks are already active"
+msgstr ""
+
+#: mintcare/gui.py:1602
+msgid "Measures junk first, then removes only what you select."
+msgstr ""
+
+#: mintcare/gui.py:1604
+msgid "Clean selected"
+msgstr ""
+
+#: mintcare/gui.py:1610
+msgid "RECLAIMABLE"
+msgstr ""
+
+#: mintcare/gui.py:1639
+msgid "admin"
+msgstr ""
+
+#: mintcare/gui.py:1685
+msgid "Empty the Trash?"
+msgstr ""
+
+#: mintcare/gui.py:1685
+msgid "Files in the Trash will be permanently deleted."
+msgstr ""
+
+#: mintcare/gui.py:1711
+msgid ""
+"Find what's using your space: big folders and files, duplicate copies and "
+"old system snapshots. Files go to the Trash, so nothing is lost until you "
+"empty it."
+msgstr ""
+
+#: mintcare/gui.py:1727
+msgid "Home folder"
+msgstr ""
+
+#: mintcare/gui.py:1729
+msgid "Whole system"
+msgstr ""
+
+#: mintcare/gui.py:1731
+msgid "Choose folder…"
+msgstr ""
+
+#: mintcare/gui.py:1741
+msgid "Up"
+msgstr ""
+
+#: mintcare/gui.py:1751
+msgid "Click a folder to look inside it. Hover for details."
+msgstr ""
+
+#: mintcare/gui.py:1754
+msgid "LARGEST FILES"
+msgstr ""
+
+#: mintcare/gui.py:1763
+msgid "Choose a folder to analyse"
+msgstr ""
+
+#: mintcare/gui.py:1766
+msgid "Analyse"
+msgstr ""
+
+#: mintcare/gui.py:1837
+msgid "No files over 50 MB here."
+msgstr ""
+
+#: mintcare/gui.py:1853
+msgid "Trash"
+msgstr ""
+
+#: mintcare/gui.py:1855
+msgid "Show"
+msgstr ""
+
+#: mintcare/gui.py:1873
+msgid "Could not move to Trash"
+msgstr ""
+
+#: mintcare/gui.py:1904
+msgid "Search in:"
+msgstr ""
+
+#: mintcare/gui.py:1908
+msgid "Reset"
+msgstr ""
+
+#: mintcare/gui.py:1909
+msgid "Add folder…"
+msgstr ""
+
+#: mintcare/gui.py:1913
+msgid "Ignore files smaller than"
+msgstr ""
+
+#: mintcare/gui.py:1919
+msgid "Include hidden files and folders"
+msgstr ""
+
+#: mintcare/gui.py:1932
+msgid "Find duplicates"
+msgstr ""
+
+#: mintcare/gui.py:1942
+msgid ""
+"Duplicates are compared by content (BLAKE2 hash), not by name. The oldest "
+"copy in each group is kept by default."
+msgstr ""
+
+#: mintcare/gui.py:1950
+msgid "Move selected to Trash"
+msgstr ""
+
+#: mintcare/gui.py:1970
+msgid "Add a folder to search"
+msgstr ""
+
+#: mintcare/gui.py:1973
+msgid "Add"
+msgstr ""
+
+#: mintcare/gui.py:2047
+msgid "oldest"
+msgstr ""
+
+#: mintcare/gui.py:2133
+msgid "SNAPSHOTS"
+msgstr ""
+
+#: mintcare/gui.py:2140
+msgid "Delete selected"
+msgstr ""
+
+#: mintcare/gui.py:2147
+msgid ""
+"Snapshots share unchanged files, so deleting one frees only what changed "
+"around it. The newest snapshot is always kept, and snapshots you gave a "
+"comment are never pre-selected."
+msgstr ""
+
+#: mintcare/gui.py:2196
+msgid "newest · kept"
+msgstr ""
+
+#: mintcare/gui.py:2209
+msgid "Tick the snapshots you want to delete first"
+msgstr ""
+
+#: mintcare/gui.py:2238
+msgid ""
+"Installed apps, how tightly each one is sandboxed, and switches to tighten "
+"or loosen permissions (your account only — like Flatseal)."
+msgstr ""
+
+#: mintcare/gui.py:2243
+msgid "Update all"
+msgstr ""
+
+#: mintcare/gui.py:2258
+msgid ""
+"Sandbox ratings: STRONG = no broad file or device access; MODERATE = home "
+"folder, all devices or X11; LOOSE = several of those or the whole "
+"filesystem. Changes apply the next time the app starts."
+msgstr ""
+
+#: mintcare/gui.py:2327 mintcare/gui.py:2756
+msgid "customised"
+msgstr ""
+
+#: mintcare/gui.py:2335
+msgid "Permissions"
+msgstr ""
+
+#: mintcare/gui.py:2347
+msgid "broad"
+msgstr ""
+
+#: mintcare/gui.py:2356
+msgid "Reset to app defaults"
+msgstr ""
+
+#: mintcare/gui.py:2357
+msgid "Uninstall…"
+msgstr ""
+
+#: mintcare/gui.py:2379
+msgid "Could not change permission"
+msgstr ""
+
+#: mintcare/gui.py:2397
+msgid "Reset failed"
+msgstr ""
+
+#: mintcare/gui.py:2440
+msgid "Hardware Health"
+msgstr ""
+
+#: mintcare/gui.py:2441
+msgid ""
+"SMART disk health and live temperatures, read through UDisks2 and kernel "
+"sensors — no password needed."
+msgstr ""
+
+#: mintcare/gui.py:2445
+msgid "Full SMART report"
+msgstr ""
+
+#: mintcare/gui.py:2451
+msgid "Temperatures & Throttling"
+msgstr ""
+
+#: mintcare/gui.py:2452
+msgid "updates every 2 s"
+msgstr ""
+
+#: mintcare/gui.py:2463
+msgid "DRIVES"
+msgstr ""
+
+#: mintcare/gui.py:2466
+msgid "Reading SMART data…"
+msgstr ""
+
+#: mintcare/gui.py:2480
+msgid "No drives found, or UDisks2 is not running."
+msgstr ""
+
+#: mintcare/gui.py:2522
+msgid "No warning signs in SMART data"
+msgstr ""
+
+#: mintcare/gui.py:2601
+msgid "No drives loaded yet"
+msgstr ""
+
+#: mintcare/gui.py:2617
+msgid ""
+"How long boot takes, what slows it down, and which apps start when you log "
+"in."
+msgstr ""
+
+#: mintcare/gui.py:2623
+msgid "LAST BOOT"
+msgstr ""
+
+#: mintcare/gui.py:2639
+msgid "SLOWEST TO START"
+msgstr ""
+
+#: mintcare/gui.py:2640
+msgid ""
+"Services start in parallel, so times overlap. Only those marked BLOCKS BOOT "
+"actually delay reaching the desktop."
+msgstr ""
+
+#: mintcare/gui.py:2646
+msgid "STARTUP APPLICATIONS"
+msgstr ""
+
+#: mintcare/gui.py:2648
+msgid ""
+"Switching an app off only affects your account and takes effect at next "
+"login. This is the same setting as Cinnamon's Startup Applications."
+msgstr ""
+
+#: mintcare/gui.py:2653
+msgid "Desktop components (locked)"
+msgstr ""
+
+#: mintcare/gui.py:2699
+msgid "blocks boot"
+msgstr ""
+
+#: mintcare/gui.py:2701
+msgid "disabled"
+msgstr ""
+
+#: mintcare/gui.py:2754
+msgid "added by you"
+msgstr ""
+
+#: mintcare/gui.py:2766
+msgid ""
+"Part of the desktop; switching it off can break shortcuts, keyrings or logins"
+msgstr ""
+
+#: mintcare/gui.py:2815
+msgid ""
+"Automatic check-ups, safety snapshots, one-click undo and a record of every "
+"change MintCare makes."
+msgstr ""
+
+#: mintcare/gui.py:2825
+msgid "Scheduled check-up"
+msgstr ""
+
+#: mintcare/gui.py:2830
+msgid ""
+"Runs every check in the background and tells you only when something needs "
+"attention. Uses a systemd user timer — no password needed."
+msgstr ""
+
+#: mintcare/gui.py:2834
+msgid "How often"
+msgstr ""
+
+#: mintcare/gui.py:2840
+msgid "Notify me"
+msgstr ""
+
+#: mintcare/gui.py:2842
+msgid "Only when something needs attention"
+msgstr ""
+
+#: mintcare/gui.py:2843
+msgid "After every check-up"
+msgstr ""
+
+#: mintcare/gui.py:2846
+msgid "Also clean"
+msgstr ""
+
+#: mintcare/gui.py:2862
+msgid "Run check-up now"
+msgstr ""
+
+#: mintcare/gui.py:2870
+msgid "Safety snapshots"
+msgstr ""
+
+#: mintcare/gui.py:2872
+msgid ""
+"Before fixes, optimisations, boot-service changes and Undo, MintCare can "
+"take a Timeshift snapshot so the whole system can be rolled back."
+msgstr ""
+
+#: mintcare/gui.py:2876
+msgid "Before big changes"
+msgstr ""
+
+#: mintcare/gui.py:2886
+msgid "Take snapshot now"
+msgstr ""
+
+#: mintcare/gui.py:2895 mintcare/gui.py:3072
+msgid "Undo MintCare changes"
+msgstr ""
+
+#: mintcare/gui.py:2899
+msgid "Undo…"
+msgstr ""
+
+#: mintcare/gui.py:2907
+msgid "HISTORY"
+msgstr ""
+
+#: mintcare/gui.py:2909
+msgid "Clear history"
+msgstr ""
+
+#: mintcare/gui.py:2971
+msgid ""
+"Nothing recorded yet. Every fix, tweak, clean-up and undo will appear here."
+msgstr ""
+
+#: mintcare/gui.py:2999
+msgid "failed"
+msgstr ""
+
+#: mintcare/gui.py:3019
+msgid "Maintenance settings saved"
+msgstr ""
+
+#: mintcare/gui.py:3029
+msgid "Scheduled check-up turned on"
+msgstr ""
+
+#: mintcare/gui.py:3033
+msgid "Scheduled check-up turned off"
+msgstr ""
+
+#: mintcare/gui.py:3036
+msgid "Could not change the schedule"
+msgstr ""
+
+#: mintcare/gui.py:3063
+msgid "Clear the change history?"
+msgstr ""
+
+#: mintcare/gui.py:3063
+msgid "This only clears the list; it doesn't undo anything."
+msgstr ""
+
+#: mintcare/gui.py:3070
+msgid "Nothing to undo"
+msgstr ""
+
+#: mintcare/gui.py:3075
+msgid "Undo selected"
+msgstr ""
+
+#: mintcare/gui.py:3080
+msgid ""
+"Untick anything you want to keep. Optimisations and boot services need your "
+"password; startup apps and Flatpak permissions don't."
+msgstr ""
+
+#: mintcare/gui.py:3145
+msgid "Full output of every command MintCare runs."
+msgstr ""
+
+#: mintcare/theme.py:32
+msgid "Dark"
+msgstr ""
+
+#: mintcare/theme.py:32
+msgid "Follow system"
+msgstr ""
+
+#: mintcare/theme.py:32
+msgid "High contrast"
+msgstr ""
+
+#: mintcare/theme.py:32
+msgid "Light"
+msgstr ""
+
+#: mintcare/tweaks.py:225
+msgid ""
+"Google's BBR algorithm with the fq qdisc. Higher throughput and lower "
+"latency on most connections, especially lossy Wi-Fi."
+msgstr ""
+
+#: mintcare/tweaks.py:234
+msgid "Network stack tuning"
+msgstr ""
+
+#: mintcare/tweaks.py:235
+msgid ""
+"TCP Fast Open, MTU probing and larger socket buffers (16 MB) for fast links."
+msgstr ""
+
+#: mintcare/tweaks.py:245
+msgid "Encrypted DNS (Cloudflare + Quad9)"
+msgstr ""
+
+#: mintcare/tweaks.py:246
+msgid ""
+"Use 1.1.1.1 and 9.9.9.9 with opportunistic DNS-over-TLS through systemd-"
+"resolved. Faster lookups and more privacy than many ISP resolvers."
+msgstr ""
+
+#: mintcare/tweaks.py:263
+msgid "Compressed RAM swap (zram)"
+msgstr ""
+
+#: mintcare/tweaks.py:264
+#, python-format
+msgid ""
+"Adds a zstd-compressed swap device in RAM (50% of memory). Keeps the desktop "
+"responsive under memory pressure and reduces SSD writes."
+msgstr ""
+
+#: mintcare/tweaks.py:280
+msgid "Low swappiness (disk swap only)"
+msgstr ""
+
+#: mintcare/tweaks.py:281
+msgid ""
+"Prefer RAM over a swap file/partition (swappiness 10, cache pressure 50). "
+"Use this instead of zram if you keep plain disk swap."
+msgstr ""
+
+#: mintcare/tweaks.py:286
+msgid "Smoother disk writeback"
+msgstr ""
+
+#: mintcare/tweaks.py:287
+msgid ""
+"Flush dirty pages earlier (64 MB background / 256 MB max) so large copies to "
+"USB sticks don't stall the desktop."
+msgstr ""
+
+#: mintcare/tweaks.py:294
+msgid "Weekly SSD TRIM"
+msgstr ""
+
+#: mintcare/tweaks.py:295
+msgid ""
+"Enable fstrim.timer so SSDs are trimmed weekly, keeping write speeds up."
+msgstr ""
+
+#: mintcare/tweaks.py:301
+msgid "Cap system logs at 200 MB"
+msgstr ""
+
+#: mintcare/tweaks.py:302
+msgid ""
+"Limit the systemd journal to 200 MB and 1 month so logs never fill the disk."
+msgstr ""
+
+#: mintcare/tweaks.py:316
+msgid "Automatic old-kernel/orphan removal"
+msgstr ""
+
+#: mintcare/tweaks.py:317
+msgid ""
+"Turn on Mint Update's weekly automation that removes obsolete kernels and "
+"orphaned packages."
+msgstr ""
+
+#: mintcare/tweaks.py:326 mintcare/tweaks.py:339 mintcare/tweaks.py:397
+msgid "Boot & Services"
+msgstr ""
+
+#: mintcare/tweaks.py:326
+msgid "Faster shutdown"
+msgstr ""
+
+#: mintcare/tweaks.py:327
+msgid ""
+"Wait at most 10 s (instead of 90 s) for hung services when shutting down."
+msgstr ""
+
+#: mintcare/tweaks.py:339
+msgid "Skip 'wait for network' at boot"
+msgstr ""
+
+#: mintcare/tweaks.py:340
+msgid ""
+"Disable NetworkManager-wait-online, which can add several seconds to boot. "
+"Leave this off if you mount network shares (NFS/SMB) in /etc/fstab."
+msgstr ""
+
+#: mintcare/tweaks.py:348
+msgid "Firewall (UFW)"
+msgstr ""
+
+#: mintcare/tweaks.py:349
+msgid "Enable the firewall: block all incoming connections, allow outgoing."
+msgstr ""
+
+#: mintcare/tweaks.py:358
+msgid "Automatic updates"
+msgstr ""
+
+#: mintcare/tweaks.py:359
+msgid ""
+"Let Mint Update install updates automatically in the background (Timeshift "
+"snapshot recommended)."
+msgstr ""
+
+#: mintcare/tweaks.py:366
+msgid "CPU microcode updates"
+msgstr ""
+
+#: mintcare/tweaks.py:367
+msgid ""
+"Install the vendor microcode package: fixes CPU bugs and security issues."
+msgstr ""
+
+#: mintcare/tweaks.py:374
+msgid "Best I/O scheduler per drive"
+msgstr ""
+
+#: mintcare/tweaks.py:375
+msgid ""
+"NVMe: none · SATA SSD: mq-deadline · hard drives: BFQ. BFQ keeps the desktop "
+"responsive while a hard drive is busy copying or indexing."
+msgstr ""
+
+#: mintcare/tweaks.py:397
+msgid "Faster boot menu (GRUB)"
+msgstr ""
+
+#: mintcare/tweaks.py:398
+msgid ""
+"After a crash or power cut Ubuntu-based systems show the GRUB menu for 30 s. "
+"This cuts that to 5 s and keeps the normal menu short (2 s, or 3 s when dual-"
+"booting). Uses a drop-in file; /etc/default/grub is not edited and grub.cfg "
+"is backed up first."
+msgstr ""
+
+#: mintcare/tweaks.py:409 mintcare/tweaks.py:414 mintcare/tweaks.py:424
+#: mintcare/tweaks.py:440 mintcare/tweaks.py:447 mintcare/tweaks.py:457
+#: mintcare/tweaks.py:559
+msgid "Gaming"
+msgstr ""
+
+#: mintcare/tweaks.py:409
+msgid "Raise vm.max_map_count"
+msgstr ""
+
+#: mintcare/tweaks.py:410
+msgid ""
+"Raise the memory-map limit to SteamOS's value. Prevents crashes in some "
+"Proton/Steam games (e.g. CS2, Hogwarts Legacy)."
+msgstr ""
+
+#: mintcare/tweaks.py:414
+msgid "Feral GameMode"
+msgstr ""
+
+#: mintcare/tweaks.py:415
+msgid ""
+"Temporarily boosts CPU/GPU performance while a game runs. Also adds you to "
+"the 'gamemode' group, which GameMode needs to switch CPU governors (log out "
+"and back in afterwards). Launch games with: gamemoderun %command%"
+msgstr ""
+
+#: mintcare/tweaks.py:424
+msgid "GameMode performance profile"
+msgstr ""
+
+#: mintcare/tweaks.py:440
+msgid "MangoHud + GOverlay"
+msgstr ""
+
+#: mintcare/tweaks.py:441
+msgid ""
+"In-game overlay for FPS, frame times, temperatures and load, plus GOverlay "
+"to configure it. Launch games with: mangohud %command%"
+msgstr ""
+
+#: mintcare/tweaks.py:447
+msgid "Steam (with Proton)"
+msgstr ""
+
+#: mintcare/tweaks.py:448
+msgid ""
+"Installs Steam from Flathub plus controller udev rules (steam-devices). "
+"Proton lets Steam run most Windows games; Steam asks you to accept its "
+"licence on first launch."
+msgstr ""
+
+#: mintcare/tweaks.py:457
+msgid "ProtonUp-Qt (Proton-GE manager)"
+msgstr ""
+
+#: mintcare/tweaks.py:458
+msgid ""
+"Installs and updates community Proton builds such as Proton-GE, which fix "
+"videos and compatibility in many games."
+msgstr ""
+
+#: mintcare/tweaks.py:467 mintcare/tweaks.py:472 mintcare/tweaks.py:479
+#: mintcare/tweaks.py:566
+msgid "Developer"
+msgstr ""
+
+#: mintcare/tweaks.py:467
+msgid "More file watchers"
+msgstr ""
+
+#: mintcare/tweaks.py:468
+msgid ""
+"Raise inotify limits so VS Code, IDEs and dev servers can watch large "
+"projects."
+msgstr ""
+
+#: mintcare/tweaks.py:472
+msgid "Install Nala (faster apt front-end)"
+msgstr ""
+
+#: mintcare/tweaks.py:473
+msgid ""
+"Nala downloads packages in parallel and shows clearer output. Use 'nala' "
+"anywhere you would type 'apt'."
+msgstr ""
+
+#: mintcare/tweaks.py:479
+msgid "Install essential tools"
+msgstr ""
+
+#: mintcare/tweaks.py:480
+msgid ""
+"build-essential, curl, git, htop, btop, unzip and fastfetch (where "
+"available)."
+msgstr ""
+
+#: mintcare/tweaks.py:488 mintcare/tweaks.py:496 mintcare/tweaks.py:512
+#: mintcare/tweaks.py:525
+msgid "Laptop"
+msgstr ""
+
+#: mintcare/tweaks.py:488
+msgid "Remove TLP / power-profiles conflict"
+msgstr ""
+
+#: mintcare/tweaks.py:489
+msgid ""
+"Having both TLP and power-profiles-daemon running causes erratic power "
+"management. This removes TLP and keeps Mint's power-profiles-daemon."
+msgstr ""
+
+#: mintcare/tweaks.py:496
+msgid "Battery charge limit (80%)"
+msgstr ""
+
+#: mintcare/tweaks.py:497
+msgid ""
+"Stop charging at 80% to roughly double battery lifespan when the laptop "
+"lives on the charger. Only shown when the battery firmware supports it."
+msgstr ""
+
+#: mintcare/tweaks.py:512
+msgid "Power saver on battery"
+msgstr ""
+
+#: mintcare/tweaks.py:513
+msgid ""
+"Switch to the power-saver profile when you unplug and back to balanced when "
+"you plug in (power-profiles-daemon)."
+msgstr ""
+
+#: mintcare/tweaks.py:525
+msgid "PCIe power saving (ASPM)"
+msgstr ""
+
+#: mintcare/tweaks.py:526
+msgid ""
+"Let PCIe devices (Wi-Fi, NVMe, GPU links) drop into low-power states when "
+"idle. Typically saves 0.5–2 W. If a device misbehaves, switch this off."
+msgstr ""
+
+#: mintcare/tweaks.py:557
+msgid "Everyday desktop"
+msgstr ""
+
+#: mintcare/tweaks.py:558
+msgid ""
+"Faster networking, zram, SSD care, firewall, tidy logs and a quick boot menu."
+msgstr ""
+
+#: mintcare/tweaks.py:560
+msgid ""
+"Everyday tweaks plus GameMode, MangoHud, Steam with Proton and the SteamOS "
+"memory-map limit."
+msgstr ""
+
+#: mintcare/tweaks.py:563
+msgid "Laptop battery"
+msgstr ""
+
+#: mintcare/tweaks.py:564
+msgid ""
+"Everyday tweaks plus charge limiting, power saver on battery and PCIe power "
+"saving."
+msgstr ""
+
+#: mintcare/tweaks.py:567
+msgid "Everyday tweaks plus large file-watcher limits, Nala and build tools."
+msgstr ""

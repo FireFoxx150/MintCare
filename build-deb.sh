@@ -15,6 +15,7 @@ install -Dm644 packaging/mintcare.svg      "$PKG/usr/share/icons/hicolor/scalabl
 sed -e 's|@EXEC@|mintcare|' -e 's|^Icon=.*|Icon=mintcare|' mintcare.desktop.in \
   | install -Dm644 /dev/stdin "$PKG/usr/share/applications/mintcare.desktop"
 install -Dm644 README.md                   "$PKG/usr/share/doc/mintcare/README.md"
+po/compile.sh "$PKG/usr/share/locale" >/dev/null
 
 SIZE=$(du -sk "$PKG/usr" | cut -f1)
 cat > "$PKG/DEBIAN/control" <<CTRL

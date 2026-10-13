@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
+from .i18n import _
 from .util import dir_size, has_cmd, out, q
 
 HOME = Path.home()
@@ -191,37 +192,37 @@ def _browser_items():
 
 
 ITEMS = [
-    CleanItem("apt", "Package download cache", "Downloaded .deb files that are already installed.",
+    CleanItem("apt", _("Package download cache"), _("Downloaded .deb files that are already installed."),
               s_apt, root_script="apt-get clean"),
-    CleanItem("autoremove", "Old kernels & orphaned packages",
-              "Dependencies no longer needed and kernels older than the current fallback.",
+    CleanItem("autoremove", _("Old kernels & orphaned packages"),
+              _("Dependencies no longer needed and kernels older than the current fallback."),
               s_autoremove, root_script="DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y"),
-    CleanItem("residual", "Leftover package configs", "Config files of packages you already removed.",
+    CleanItem("residual", _("Leftover package configs"), _("Config files of packages you already removed."),
               s_residual, root_script="dpkg -l | awk '/^rc/{print $2}' | xargs -r dpkg --purge"),
-    CleanItem("journal", "System journal older than 7 days", "Old systemd log entries.",
+    CleanItem("journal", _("System journal older than 7 days"), _("Old systemd log entries."),
               s_journal, root_script="journalctl --vacuum-time=7d"),
-    CleanItem("oldlogs", "Rotated log files", "Compressed and rotated logs in /var/log.",
+    CleanItem("oldlogs", _("Rotated log files"), _("Compressed and rotated logs in /var/log."),
               s_oldlogs,
               root_script="find /var/log -type f \\( " +
                           " -o ".join(f"-name {q(p)}" for p in LOG_PATTERNS) + " \\) -delete"),
-    CleanItem("crash", "Crash reports", "Saved crash dumps in /var/crash.",
+    CleanItem("crash", _("Crash reports"), _("Saved crash dumps in /var/crash."),
               s_crash, root_script="rm -f /var/crash/*"),
-    CleanItem("flatpak", "Unused Flatpak runtimes", "Runtimes left behind after apps were removed.",
+    CleanItem("flatpak", _("Unused Flatpak runtimes"), _("Runtimes left behind after apps were removed."),
               s_flatpak,
               root_script="flatpak uninstall --system --unused -y --noninteractive || true",
               user_script="flatpak uninstall --user --unused -y --noninteractive || true",
               available=lambda: has_cmd("flatpak")),
-    CleanItem("thumbs", "Thumbnail cache", "Cached file previews.", s_thumbs,
+    CleanItem("thumbs", _("Thumbnail cache"), _("Cached file previews."), s_thumbs,
               user_script=f"rm -rf {q(HOME / '.cache/thumbnails')}/*"),
-    CleanItem("usercache", "Stale application cache", "Cache files no app has touched in 30 days.",
+    CleanItem("usercache", _("Stale application cache"), _("Cache files no app has touched in 30 days."),
               s_usercache,
               user_script=f"find {q(HOME / '.cache')} -type f -atime +30 -mtime +30 -delete; "
                           f"find {q(HOME / '.cache')} -mindepth 1 -type d -empty -delete"),
     *_browser_items(),
-    CleanItem("devcache", "Developer caches", "pip, npm, yarn, Go and Cargo download caches.",
+    CleanItem("devcache", _("Developer caches"), _("pip, npm, yarn, Go and Cargo download caches."),
               s_devcache, default=False,
               user_script="\n".join(f"rm -rf {q(p)}" for p in DEV_CACHES)),
-    CleanItem("trash", "Empty Trash", "Permanently deletes everything in your Trash.",
+    CleanItem("trash", _("Empty Trash"), _("Permanently deletes everything in your Trash."),
               s_trash, default=False, user_script="gio trash --empty"),
 ]
 
