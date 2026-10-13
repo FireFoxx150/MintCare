@@ -97,10 +97,10 @@ class RingGauge(Gtk.DrawingArea):
 class LineChart(Gtk.DrawingArea):
     """Scrolling multi-series area chart. Series values are 0..max."""
 
-    def __init__(self, series, points=60, height=150, fixed_max=None, fmt=lambda v: f"{v:.0f}%"):
+    def __init__(self, series, points=60, height=150, fixed_max=None, fmt=lambda v: f"{v:.0f}%", log=False):
         super().__init__()
         self.series = [(name, color, deque([0.0] * points, maxlen=points)) for name, color in series]
-        self.fixed_max, self.fmt = fixed_max, fmt
+        self.fixed_max, self.fmt, self.log = fixed_max, fmt, log
         self._started = False
         self.set_size_request(-1, height)
         self.connect("draw", self._draw)
@@ -113,12 +113,22 @@ class LineChart(Gtk.DrawingArea):
         self._started = True
         self.queue_draw()
 
+    def _y(self, v, top):
+        """Fraction 0..1 of the plot height for value v (log scale keeps small values visible)."""
+        v = max(0.0, min(v, top))
+        if self.log:
+            return math.log10(1 + v) / math.log10(1 + top) if top > 0 else 0
+        return v / top if top else 0
+
+    def _label_value(self, frac, top):
+        return (10 ** (frac * math.log10(1 + top)) - 1) if self.log else top * frac
+
     def _draw(self, w, cr):
+        import cairo
         a = w.get_allocation()
-        pad_l, pad_r, pad_t, pad_b = 44, 8, 8, 18
+        pad_l, pad_r, pad_t, pad_b = 52 if self.log else 44, 8, 8, 18
         W, H = a.width - pad_l - pad_r, a.height - pad_t - pad_b
         top = self.fixed_max or max([max(b) for _, _, b in self.series] + [1.0]) * 1.15
-        # grid
         cr.set_line_width(1)
         for i in range(5):
             y = pad_t + H * i / 4
@@ -128,18 +138,20 @@ class LineChart(Gtk.DrawingArea):
             cr.stroke()
             layout = PangoCairo.create_layout(cr)
             layout.set_font_description(Pango.FontDescription.from_string(f"{MONO} 8px"))
-            layout.set_text(self.fmt(top * (4 - i) / 4), -1)
+            layout.set_text(self.fmt(self._label_value((4 - i) / 4, top)), -1)
             tw, th = layout.get_pixel_size()
             cr.set_source_rgba(*rgb("#64748b"))
             cr.move_to(pad_l - tw - 6, y - th / 2)
             PangoCairo.show_layout(cr, layout)
+        paths = []
         for name, color, buf in self.series:
             n = len(buf)
-            pts = [(pad_l + W * i / (n - 1), pad_t + H * (1 - min(v, top) / top)) for i, v in enumerate(buf)]
-            # area fill with vertical fade
-            import cairo
+            pts = [(pad_l + W * i / (n - 1), pad_t + H * (1 - self._y(v, top))) for i, v in enumerate(buf)]
+            paths.append((color, pts, sum(buf) / n))
+        # all fills first, then lines, smallest series last so it is never hidden behind a bigger one
+        for color, pts, _avg in paths:
             grad = cairo.LinearGradient(0, pad_t, 0, pad_t + H)
-            grad.add_color_stop_rgba(0, *rgb(color, 0.28))
+            grad.add_color_stop_rgba(0, *rgb(color, 0.22))
             grad.add_color_stop_rgba(1, *rgb(color, 0.0))
             cr.move_to(pts[0][0], pad_t + H)
             for x, y in pts:
@@ -148,6 +160,7 @@ class LineChart(Gtk.DrawingArea):
             cr.close_path()
             cr.set_source(grad)
             cr.fill()
+        for color, pts, _avg in sorted(paths, key=lambda p: -p[2]):
             cr.set_line_width(2)
             cr.set_line_join(1)
             cr.set_source_rgba(*rgb(color))

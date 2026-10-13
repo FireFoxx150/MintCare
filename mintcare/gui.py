@@ -743,7 +743,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.net_lbl = label("", ("faint", "mono"))
         nh.pack_end(self.net_lbl, False, False, 0)
         net.pack_start(nh, False, False, 0)
-        self.net_chart = LineChart([("Down", VIOLET), ("Up", ORANGE)], points=90, height=100, fmt=rate)
+        self.net_chart = LineChart([("Down", VIOLET), ("Up", ORANGE)], points=90, height=100, fmt=rate, log=True)
         net.pack_start(self.net_chart, True, True, 10)
         grid.attach(net, 0, 2, 1, 1)
 
@@ -820,7 +820,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             ("TCP congestion", f"{sysctl('net.ipv4.tcp_congestion_control')} / {sysctl('net.core.default_qdisc')}"),
             ("Swap", f"{swap_kind} (swappiness {sysctl('vm.swappiness')})"),
             ("Firewall", "enabled" if tweaks.BY_ID["ufw"].probe() else "disabled"),
-            ("Tweaks active", str(sum(1 for t in tweaks.TWEAKS if t.available() and t.state() != "off"))),
+            ("Tweaks active", str(sum(1 for v in self._tweak_initial.values() if v)) if self._tweak_initial
+             else "…"),
         ]
         for i, (k, v) in enumerate(rows):
             self.kv_grid.attach(label(k, ("kv-key",)), 0, i, 1, 1)
@@ -1071,11 +1072,30 @@ class MintCareWindow(Gtk.ApplicationWindow):
         return row
 
     def _refresh_tweaks(self):
+        """Probe tweak states off the UI thread (they shell out to dpkg/systemctl)."""
+        if getattr(self, "_tweaks_refreshing", False):
+            self._tweaks_again = True
+            return False
+        self._tweaks_refreshing = True
+
+        def work():
+            return {t.id: (t.available(), t.state() if t.available() else "off") for t in tweaks.TWEAKS}
+
+        def done(states):
+            self._tweaks_refreshing = False
+            if states:
+                self._apply_tweak_states(states)
+            if getattr(self, "_tweaks_again", False):
+                self._tweaks_again = False
+                self._refresh_tweaks()
+        self.bg(work, done)
+        return False
+
+    def _apply_tweak_states(self, states):
         self._tweak_initial = {}
         for t in tweaks.TWEAKS:
             sw, lbl = self.switches[t.id], self.tweak_state_lbls[t.id]
-            avail = t.available()
-            st = t.state() if avail else "off"
+            avail, st = states[t.id]
             self._tweak_initial[t.id] = st != "off"
             sw.handler_block_by_func(self._on_switch)
             sw.set_active(st != "off")
@@ -1095,7 +1115,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 lbl.hide()
         self._update_pending()
         self._update_profiles()
-        return False
+        if hasattr(self, "kv_grid"):
+            self._fill_details()
 
     def _update_profiles(self):
         for pr in tweaks.PROFILES:
@@ -2501,6 +2522,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
         return False
 
     def refresh_maintenance(self):
+        def work():
+            return (maintenance.timer_status(), maintenance.last_run(), maintenance.timeshift_ready(),
+                    maintenance.undo_inventory(), maintenance.history(300))
+        self.bg(work, self._render_maintenance)
+
+    def _render_maintenance(self, res):
+        if not res:
+            return
+        ts, lr, (ready, why), inv, events = res
         self._maint_loading = True
         st = maintenance.load_settings()
         m = st["maintenance"]
@@ -2509,12 +2539,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         for k, cb in self.sched_clean.items():
             cb.set_active(k in m.get("clean", []))
         self.snap_pref.set_active_id(st.get("snapshot_before", "ask"))
-        ts = maintenance.timer_status()
         self.sched_switch.set_active(ts["enabled"])
         self.sched_status.set_markup(
             f"<b>On.</b> Next check-up: {GLib.markup_escape_text(ts['next'] or 'soon')}" if ts["enabled"]
             else "Off. Turn it on to get a notification when your system needs attention.")
-        lr = maintenance.last_run()
         if lr:
             when = time.strftime("%a %d %b %H:%M", time.localtime(lr["ts"]))
             issues = lr.get("issues", [])
@@ -2524,11 +2552,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                      (f"; freed {human(lr['freed'])}" if lr.get("freed", 0) > 1 << 20 else ""))
         else:
             self.sched_last.set_text("No check-up has run yet.")
-        ready, why = maintenance.timeshift_ready()
         self.snap_ready.set_text("Timeshift is ready." if ready else why + " Snapshots will be skipped.")
         self._maint_loading = False
 
-        inv = maintenance.undo_inventory()
         counts = {}
         for kind, _k, _t in inv:
             counts[kind] = counts.get(kind, 0) + 1
@@ -2542,7 +2568,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         for ch in self.hist_list.get_children():
             ch.destroy()
-        events = maintenance.history(300)
         self.hist_head.set_text(f"HISTORY ({len(events)})")
         if not events:
             r = Gtk.ListBoxRow(activatable=False)
