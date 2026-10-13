@@ -141,6 +141,14 @@ def cmd_report(args):
     return 0
 
 
+def cmd_backup(args):
+    from . import backup
+    r = backup.run_backup(progress=lambda pct, text: print(f"\r{text}", end="", flush=True))
+    print()
+    print(f"Backup: {r['files']} changed file(s) -> {r['snapshot']}" if r["ok"] else f"Backup failed: {r['error']}")
+    return 0 if r["ok"] else 1
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="mintcare", description="Clean, optimise and repair Linux Mint.")
     ap.add_argument("--version", action="version", version=f"MintCare {__version__}")
@@ -152,6 +160,7 @@ def main(argv):
     g.add_argument("--apply", nargs="+", metavar="ID")
     g.add_argument("--revert", nargs="+", metavar="ID")
     sub.add_parser("hardware", help="disk SMART health, temperatures and boot time")
+    sub.add_parser("backup", help="back up your personal folders now (used by the backup timer)")
     rp = sub.add_parser("report", help="export an HTML health report")
     rp.add_argument("-o", "--output", help="file to write (default: MintCare-report-DATE.html)")
     rp.add_argument("--personal", action="store_true", help="keep hostname, user name and serial numbers")
@@ -166,4 +175,4 @@ def main(argv):
     if a.cmd == "clean" and a.run == []:
         a.run = ["default"]
     return {"scan": cmd_scan, "tweaks": cmd_tweaks, "clean": cmd_clean, "hardware": cmd_hardware, "space": cmd_space,
-            "maintain": cmd_maintain, "report": cmd_report}[a.cmd](a)
+            "maintain": cmd_maintain, "report": cmd_report, "backup": cmd_backup}[a.cmd](a)

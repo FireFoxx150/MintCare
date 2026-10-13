@@ -5,6 +5,7 @@ import platform
 import shutil
 import socket
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -16,8 +17,9 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from .i18n import _
-from . import (__version__, autostart, boot, checks, cleaner, firmware, flatpaks, hardware,  # noqa: E402
-               maintenance, ports, selfupdate, sources, space, theme, tweaks, widgets)
+from . import (__version__, assistant, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
+               flatpaks, hardware, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
+               space, theme, troubleshoot, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
 from .util import human, q, read, sysctl  # noqa: E402
@@ -38,11 +40,16 @@ NAV = [
     ("clean", _("Clean"), "user-trash-symbolic"),
     ("space", _("Disk space"), "drive-multidisk-symbolic"),
     ("software", _("Software & updates"), "software-update-available-symbolic"),
+    ("packages", _("Packages"), "package-x-generic-symbolic"),
     ("flatpak", _("Flatpak apps"), "system-software-install-symbolic"),
+    ("processes", _("Processes"), "utilities-system-monitor-symbolic"),
     ("hardware", _("Hardware"), "drive-harddisk-symbolic"),
     ("security", _("Security"), "security-high-symbolic"),
+    ("troubleshoot", _("Troubleshoot"), "dialog-question-symbolic"),
     ("startup", _("Boot & Startup"), "system-run-symbolic"),
+    ("backup", _("Backup"), "document-save-symbolic"),
     ("maintenance", _("Maintenance"), "alarm-symbolic"),
+    ("assistant", _("Assistant"), "user-available-symbolic"),
     ("log", _("Activity log"), "utilities-terminal-symbolic"),
 ]
 
@@ -52,7 +59,8 @@ LEVELS = [
     ("intermediate", _("Intermediate"), _("Everything except the most technical tweaks.")),
     ("advanced", _("Advanced"), _("Every page and every tweak.")),
 ]
-BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "security", "maintenance", "log"}
+BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "security", "troubleshoot", "backup",
+                  "maintenance", "assistant", "log"}
 ADVANCED_TWEAKS = {"dns", "swappiness", "dirty", "waitonline", "iosched", "aspm"}
 
 
@@ -189,11 +197,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.stack.add_named(self._build_clean(), "clean")
         self.stack.add_named(self._build_space(), "space")
         self.stack.add_named(self._build_software(), "software")
+        self.stack.add_named(self._build_packages(), "packages")
         self.stack.add_named(self._build_flatpak(), "flatpak")
+        self.stack.add_named(self._build_processes(), "processes")
         self.stack.add_named(self._build_hardware(), "hardware")
         self.stack.add_named(self._build_security(), "security")
+        self.stack.add_named(self._build_troubleshoot(), "troubleshoot")
         self.stack.add_named(self._build_startup(), "startup")
+        self.stack.add_named(self._build_backup(), "backup")
         self.stack.add_named(self._build_maintenance(), "maintenance")
+        self.stack.add_named(self._build_assistant(), "assistant")
         self.stack.add_named(self._build_log(), "log")
 
         body = hbox(0)
@@ -602,7 +615,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.nav.add(row)
             self.nav_rows[key] = row
         self.nav.connect("row-selected", lambda _lb, row: row and self.stack.set_visible_child_name(row.page))
-        side.pack_start(self.nav, False, False, 0)
+        nav_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        nav_scroll.add(self.nav)                      # 17 pages don't fit a short window
+        side.pack_start(nav_scroll, True, True, 0)
 
         foot = vbox(6, "side-foot")
         foot.pack_start(label(_("SYSTEM HEALTH"), ("kicker",)), False, False, 0)
@@ -722,6 +737,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
         elif name == "security" and not self._sec_loaded:
             self._sec_loaded = True
             self.load_security()
+        elif name == "packages" and getattr(self, "pkg_data", None) is None and not getattr(self, "_pkg_loading", False):
+            self._pkg_loading = True
+            self.load_packages()
+        elif name == "backup":
+            self.load_backup()
+        elif name == "assistant":
+            self.load_assistant()
+        elif name == "processes":
+            self._poll_procs(True)
+        elif name == "troubleshoot":
+            self.load_troubleshoot()
         elif name == "flatpak" and not self._fp_loaded:
             self._fp_loaded = True
             self.load_flatpaks(check_updates=True)
@@ -1593,11 +1619,108 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(hh, False, False, 0)
         self.port_card, self.port_list = list_card()
         page.pack_start(self.port_card, False, False, 0)
+
+        page.pack_start(label(_("LOGIN SECURITY"), ("kicker",)), False, False, 0)
+        self.login_card, self.login_list = list_card()
+        page.pack_start(self.login_card, False, False, 0)
+
+        page.pack_start(label(_("MALWARE SCAN"), ("kicker",)), False, False, 0)
+        mc = card()
+        mh = hbox(8)
+        self.mal_status = label("", ("muted",), wrap=True)
+        mh.pack_start(self.mal_status, True, True, 0)
+        self.mal_btns = hbox(8)
+        mh.pack_end(self.mal_btns, False, False, 0)
+        mc.pack_start(mh, False, False, 0)
+        self.mal_progress = label("", ("faint", "mono"), ellipsize=True)
+        self.mal_progress.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+        mc.pack_start(self.mal_progress, False, False, 4)
+        self.mal_results = vbox(4)
+        mc.pack_start(self.mal_results, False, False, 0)
+        page.pack_start(mc, False, False, 0)
+        self._mal_cancel = threading.Event()
         return scrolled(page)
 
     def load_security(self):
         self.bg(lambda: (ports.firewall_enabled(), ports.services(root_names=self.root_port_names)),
                 self._render_security)
+        self.bg(secaudit.audit, self._render_login)
+        self._render_malware()
+
+    def _render_login(self, items):
+        self._clear(self.login_list, "login_row")
+        for lvl, title, text, action in items or []:
+            btns = []
+            if action == "ssh-harden":
+                btns.append(self._btn(_("Harden SSH"), lambda: self.confirm(
+                    _("Harden the SSH server?"), _("Turns off root login, limits password attempts to 3 and shortens "
+                                                   "the login window. Your own logins keep working.")) and
+                    self._root_job(_("Hardening SSH…"), [("ssh", "Harden SSH", secaudit.SSH_HARDEN)], "Security",
+                                   lambda r: self.load_security()), primary=True, tag="login_row"))
+            elif action == "lock-on":
+                btns.append(self._btn(_("Turn on screen lock"), lambda: (secaudit.lock_screen_on(),
+                                      maintenance.record("other", "Screen lock turned on"), self.load_security()),
+                                      primary=True, tag="login_row"))
+            self.login_list.add(self._row(title, text, "", STATUS_ICON[lvl][0], [], btns))
+        self.login_list.show_all()
+
+    def _render_malware(self):
+        sc = secaudit.scanners()
+        self._clear(self.mal_btns, "mal_row")
+        if sc["clamav"]:
+            self.mal_status.set_text(_("ClamAV is installed. Scanning your home folder takes a while (minutes to "
+                                       "hours, depending on how many files you have)."))
+            self.mal_btns.pack_start(self._btn(_("Scan home folder"), self.scan_malware, primary=True,
+                                               tag="mal_row"), False, False, 0)
+        else:
+            self.mal_status.set_text(_("Linux malware is rare, but a scan can catch Windows malware in downloads "
+                                       "you might pass on. ClamAV isn't installed."))
+            self.mal_btns.pack_start(self._btn(_("Install ClamAV"), lambda: self._root_job(
+                _("Installing ClamAV…"), [secaudit.install_step("clamav")], "Security", lambda r: self._render_malware()),
+                tag="mal_row"), False, False, 0)
+        if sc["rkhunter"]:
+            self.mal_btns.pack_start(self._btn(_("Rootkit check"), lambda: self._root_job(
+                _("Checking for rootkits…"), [secaudit.rkhunter_step()], "Security",
+                lambda r: (self.set_status(_("Rootkit check done — warnings (if any) are in the Activity log")),
+                           self.goto("log"))), tag="mal_row"), False, False, 0)
+        else:
+            self.mal_btns.pack_start(self._btn(_("Install rkhunter"), lambda: self._root_job(
+                _("Installing rkhunter…"), [secaudit.install_step("rkhunter")], "Security",
+                lambda r: self._render_malware()), tag="mal_row"), False, False, 0)
+        self.mal_btns.show_all()
+
+    def scan_malware(self):
+        if getattr(self, "_mal_running", False):
+            self._mal_cancel.set()
+            return
+        self._mal_running = True
+        self._mal_cancel.clear()
+        self._clear(self.mal_results, "mal_res")
+        counter = {"n": 0}
+
+        def line(text):
+            counter["n"] += 1
+            if counter["n"] % 25 == 0 or "FOUND" in text:
+                GLib.idle_add(self.mal_progress.set_text, text[-160:])
+
+        def done(res):
+            self._mal_running = False
+            res = res or {"infected": [], "rc": 2}
+            found = res["infected"]
+            self.mal_progress.set_text(_("Cancelled.") if res.get("cancelled") else
+                                       (f"Scan finished: {len(found)} infected file(s)." if res["rc"] in (0, 1)
+                                        else _("The scanner reported an error — see the Activity log.")))
+            for path, virus in found:
+                self.mal_results.pack_start(self._row(os.path.basename(path), virus, path, "dialog-error-symbolic"),
+                                            False, False, 0)
+            if found:
+                self.mal_results.pack_start(self._btn(_("Quarantine these files"), lambda: self._root_job(
+                    _("Quarantining…"), [secaudit.quarantine_step([p for p, _v in found])], "Security"),
+                    primary=True, tag="mal_res"), False, False, 0)
+            maintenance.record("other", f"Malware scan: {len(found)} infected file(s)", not found)
+            self.mal_results.show_all()
+        self.mal_progress.set_text(_("Scanning… press the button again to cancel"))
+        self.bg(lambda: secaudit.clam_scan([str(Path.home())], line, self._mal_cancel.is_set), done)
 
     def _render_security(self, res):
         if not res:
@@ -1820,7 +1943,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
             def done(res):
                 spin.stop()
-                text = (res or ("", _("(could not run the command)")))[1]
+                text = (res or ("", _("(could not run the command)"), []))[1]
+                for ch in acts.get_children():
+                    ch.destroy()
+                for lbl, kind, payload in (res[2] if res and len(res) > 2 else []):
+                    b = Gtk.Button(label=lbl)
+                    css(b, "primary" if kind in ("check", "tweak") else "ghost")
+                    b.connect("clicked", lambda *_x, k=kind, p=payload: self.run_action(k, p))
+                    acts.pack_start(b, False, False, 0)
+                acts.show_all()
                 out.get_buffer().set_text(text)
                 fit(text)
             self.bg(lambda: checks.details(check.id), done)
@@ -1840,8 +1971,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
         top.pack_end(small(_("Open in terminal"), lambda: self.run_in_terminal(cmd), "utilities-terminal-symbolic"),
                      False, False, 0)
         top.pack_end(small(_("Copy"), lambda: self._copy(cmd), "edit-copy-symbolic"), False, False, 0)
+        top.pack_end(small(_("Ask the assistant"), lambda: self.ask_assistant(
+            f"MintCare's check “{check.title}” says: {self.check_results[check.id].summary if check.id in self.check_results else ''}"
+            f". What does this mean on my PC, and what should I do?"), "user-available-symbolic"), False, False, 0)
         panel.pack_start(top, False, False, 0)
         panel.pack_start(sw, False, False, 0)
+        acts = hbox(8)
+        panel.pack_start(acts, False, False, 2)
         panel.refresh = refresh
         refresh()
         return panel
@@ -2760,6 +2896,1137 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.load_snapshots()
         self.in_thread("Deleting snapshots…", lambda: self.execute(steps, [], "Timeshift"), done)
 
+    # ------------------------------------------------------------ generic actions
+
+    def run_action(self, kind, payload):
+        """Buttons from details panels: launch a program, open a page, apply a check's fix or a tweak."""
+        if kind == "launch":
+            self._launch(payload)
+        elif kind == "page":
+            self.goto(payload)
+        elif kind == "check":
+            chk = next((c for c in checks.CHECKS if c.id == payload), None)
+            res = self.check_results.get(payload)
+            if chk and res and res.fix:
+                self.apply_fixes([(chk, res)])
+            else:
+                self.set_status(_("Nothing to fix there right now"))
+        elif kind == "tweak":
+            t = tweaks.BY_ID.get(payload)
+            if t and t.state() == "off":
+                steps = [("on-" + t.id, "Apply: " + t.title, t.apply_script())]
+                self.in_thread(_("Applying…"), lambda: self.execute(steps, [], "Optimise"),
+                               lambda r: (self.notify_done(r or {}, t.title), self._refresh_tweaks(),
+                                          self.run_diagnose()))
+
+    def _tabs(self, page, tabs):
+        """Add a StackSwitcher + Stack to page. tabs: [(name, title, widget)]. Returns the stack."""
+        st = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vhomogeneous=False)
+        for name, title, w in tabs:
+            st.add_titled(w, name, title)
+        page.pack_start(Gtk.StackSwitcher(stack=st, halign=Gtk.Align.START), False, False, 0)
+        page.pack_start(st, False, False, 0)
+        return st
+
+    def _row(self, title, sub="", meta="", ico=None, pills=(), buttons=(), right=None):
+        """A standard list row: icon, title + pills, subtitle, mono meta line, right value, buttons."""
+        row = Gtk.ListBoxRow(activatable=False)
+        box = hbox(12)
+        if ico:
+            box.pack_start(icon(ico, Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
+        t = vbox(2)
+        th = hbox(8)
+        th.pack_start(label(title, ("h3",), ellipsize=True), False, False, 0)
+        for text, kind in pills:
+            th.pack_start(pill(text, kind), False, False, 0)
+        t.pack_start(th, False, False, 0)
+        if sub:
+            t.pack_start(label(sub, ("muted",), wrap=True), False, False, 0)
+        if meta:
+            ml = label(meta, ("faint", "mono"), ellipsize=True)
+            ml.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+            t.pack_start(ml, False, False, 0)
+        box.pack_start(t, True, True, 0)
+        for b in reversed(list(buttons)):
+            box.pack_end(b, False, False, 0)
+        if right:
+            box.pack_end(label(right, ("stat-val",)), False, False, 6)
+        body = vbox(0)
+        body.pack_start(box, False, False, 0)
+        row.add(body)
+        row.body, row.text_box = body, t       # for details added under the row / inside its text column
+        return row
+
+    def _btn(self, text, cb, primary=False, icon_name=None, tag=None):
+        b = self.action_button(text, cb, primary=primary, icon_name=icon_name)
+        if tag:
+            setattr(b, tag, True)
+        return b
+
+    def _clear(self, container, tag=None):
+        if tag:
+            self._action_buttons = [b for b in self._action_buttons if not getattr(b, tag, False)]
+        for ch in container.get_children():
+            ch.destroy()
+
+    def _root_job(self, status, steps, heading, done_cb=None, user_steps=(), snapshot_reason=None):
+        snap = self.ask_snapshot(snapshot_reason) if snapshot_reason else []
+        if snap is None:
+            return
+
+        def done(results):
+            self.notify_done(results or {}, heading)
+            if done_cb:
+                done_cb(results or {})
+        self.in_thread(status, lambda: self.execute(steps, list(user_steps), heading, snap), done)
+
+    # ------------------------------------------------------------ packages
+
+    def _build_packages(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "package-x-generic-symbolic", _("Packages"),
+            _("What's installed and how much space it takes, what you changed and when (with undo), "
+              "kernels, the fastest download mirrors and Mint upgrades.")), False, False, 0)
+        # installed
+        inst = vbox(10)
+        bar = hbox(8)
+        self.pkg_mode = Gtk.ComboBoxText()
+        for k, t in (("largest", _("Largest packages")), ("mine", _("Installed by you")), ("held", _("Held back"))):
+            self.pkg_mode.append(k, t)
+        self.pkg_mode.set_active_id("largest")
+        self.pkg_mode.connect("changed", lambda *_x: self._render_packages())
+        bar.pack_start(self.pkg_mode, False, False, 0)
+        self.pkg_filter = Gtk.SearchEntry(placeholder_text=_("Filter…"))
+        self.pkg_filter.connect("search-changed", lambda *_x: self._render_packages())
+        bar.pack_start(self.pkg_filter, True, True, 0)
+        self.pkg_summary = label("", ("faint", "mono"), xalign=1.0, ellipsize=True)
+        bar.pack_end(self.pkg_summary, False, False, 0)
+        inst.pack_start(bar, False, False, 0)
+        self.pkg_card, self.pkg_list = list_card()
+        inst.pack_start(self.pkg_card, False, False, 0)
+        # history
+        hist = vbox(10)
+        hist.pack_start(label(_("Undo removes the packages that change installed (dependencies that are no longer "
+                                "needed go too). You'll see exactly what will be removed before anything happens."),
+                              ("faint",), wrap=True), False, False, 0)
+        self.hist_pkg_card, self.hist_pkg_list = list_card()
+        hist.pack_start(self.hist_pkg_card, False, False, 0)
+        # kernels
+        kern = vbox(10)
+        kern.pack_start(label(_("Keep the running kernel and the newest one; older kernels are only a fallback. "
+                                "Removing one frees space in /boot."), ("faint",), wrap=True), False, False, 0)
+        self.kern_card, self.kern_list = list_card()
+        kern.pack_start(self.kern_card, False, False, 0)
+        # mirrors
+        mir = vbox(10)
+        mc = card("ecard")
+        mh = hbox(8)
+        self.mir_status = label(_("Find the fastest Linux Mint and Ubuntu mirrors near you."), ("muted",), wrap=True)
+        mh.pack_start(self.mir_status, True, True, 0)
+        self.mir_restore_btn = self._btn(_("Restore original"), self.restore_mirrors)
+        self.mir_restore_btn.set_no_show_all(True)
+        mh.pack_end(self.mir_restore_btn, False, False, 0)
+        self.mir_use_btn = self._btn(_("Use the fastest"), self.use_fastest_mirrors, primary=True)
+        self.mir_use_btn.set_no_show_all(True)
+        mh.pack_end(self.mir_use_btn, False, False, 0)
+        mh.pack_end(self._btn(_("Test mirrors"), self.test_mirrors, icon_name="network-transmit-receive-symbolic"),
+                    False, False, 0)
+        mc.pack_start(mh, False, False, 0)
+        self.mir_progress = Gtk.ProgressBar()
+        self.mir_progress.set_no_show_all(True)
+        mc.pack_start(self.mir_progress, False, False, 6)
+        mir.pack_start(mc, False, False, 0)
+        self.mir_card, self.mir_list = list_card()
+        mir.pack_start(self.mir_card, False, False, 0)
+        # upgrade
+        up = vbox(10)
+        uc = card("ecard")
+        uh = hbox(8)
+        rel, code = packages.mint_release()
+        self.upg_lbl = label(f"You're on Linux Mint {rel} “{code.capitalize()}”.", ("h2",), wrap=True)
+        uh.pack_start(self.upg_lbl, True, True, 0)
+        uh.pack_end(self._btn(_("Check for a new release"), self.check_mint_upgrade,
+                              icon_name="software-update-available-symbolic"), False, False, 0)
+        uc.pack_start(uh, False, False, 0)
+        self.upg_sub = label(_("Point releases (22.x) arrive through Update Manager › Edit › Upgrade; a new major "
+                               "version uses Mint's upgrade tool."), ("muted",), wrap=True)
+        uc.pack_start(self.upg_sub, False, False, 6)
+        self.upg_box = vbox(4)
+        uc.pack_start(self.upg_box, False, False, 0)
+        up.pack_start(uc, False, False, 0)
+        self.pkg_tabs = self._tabs(page, [("installed", _("Installed"), inst), ("history", _("History"), hist),
+                                          ("kernels", _("Kernels"), kern), ("mirrors", _("Mirrors"), mir),
+                                          ("upgrade", _("Mint upgrade"), up)])
+        self.pkg_data = None
+        return scrolled(page)
+
+    def load_packages(self):
+        def work():
+            pk = packages.installed()
+            h = packages.history()
+            return {"pk": pk, "hist": h, "mine": packages.user_installed(pk, h), "held": packages.held(),
+                    "kernels": packages.kernels(pk)}
+
+        def done(d):
+            if not d:
+                return
+            self.pkg_data = d
+            self._render_packages()
+            self._render_pkg_history()
+            self._render_kernels()
+        self.bg(work, done)
+
+    def _render_packages(self):
+        d = self.pkg_data
+        if not d:
+            return
+        self._clear(self.pkg_list, "pkg_row")
+        mode = self.pkg_mode.get_active_id()
+        flt = self.pkg_filter.get_text().strip().lower()
+        pk = d["pk"]
+        if mode == "largest":
+            names = [n for _s, n, _v in packages.largest(pk, 400)]
+        elif mode == "mine":
+            names = sorted(d["mine"], key=lambda n: -pk[n]["size"])
+        else:
+            names = [n for n in d["held"] if n in pk]
+        if flt:
+            names = [n for n in names if flt in n.lower() or flt in pk[n]["desc"].lower()]
+        total = sum(pk[n]["size"] for n in names)
+        self.pkg_summary.set_text(f"{len(names)} packages · {human(total)}  (of {len(pk):,} installed)")
+        for n in names[:80]:
+            v = pk[n]
+            prot = packages.protected(n, v)
+            btns = []
+            if mode == "held":
+                btns.append(self._btn(_("Release hold"), lambda n=n: self._root_job(
+                    _("Releasing hold…"), [packages.unhold_step(n)], "Packages", lambda r: self.load_packages()),
+                    tag="pkg_row"))
+            elif not prot:
+                btns.append(self._btn(_("Remove…"), lambda n=n: self.remove_packages([n]), tag="pkg_row"))
+            pills = [("system", "dim")] if prot else []
+            self.pkg_list.add(self._row(n, v["desc"], f"{v['version']} · {v['section']}", None, pills, btns,
+                                        human(v["size"])))
+        if not names:
+            self.pkg_list.add(self._row(_("Nothing to show"), _("No packages match.")))
+        self.pkg_list.show_all()
+
+    def remove_packages(self, names, heading="Remove packages"):
+        removed, ok = packages.simulate_remove(names)
+        if not ok or not removed:
+            self.set_status(_("apt can't remove that cleanly — see the Activity log"), bad=True)
+            self.log(f"apt-get -s remove {' '.join(names)} failed or would remove nothing")
+            return
+        extra = [r for r in removed if r not in names]
+        body = ("This removes:\n<tt>" + GLib.markup_escape_text(", ".join(removed[:40])) +
+                ("…" if len(removed) > 40 else "") + "</tt>")
+        if extra:
+            body += f"\n\n<b>{len(extra)} other package(s) depend on it and go too.</b>"
+        if not self.confirm(f"Remove {len(removed)} package(s)?", body):
+            return
+        self._root_job(_("Removing packages…"), [packages.remove_step(names)], "Packages",
+                       lambda r: (self.load_packages(), self.run_clean_scan()), snapshot_reason="removing packages")
+
+    def _render_pkg_history(self):
+        d = self.pkg_data
+        self._clear(self.hist_pkg_list, "hist_row")
+        for e in d["hist"][:80]:
+            parts = [f"{len(e[k])} {k}" for k in ("install", "upgrade", "remove", "purge") if e[k]]
+            who = "Software Manager" if "aptkit" in e["cmd"] or "packagekit" in e["cmd"] else \
+                  ("Update Manager" if "mintupdate" in e["cmd"] or "unattended" in e["cmd"] else "apt")
+            cand = packages.undo_candidates(e, d["pk"])
+            btns = [self._btn(_("Undo…"), lambda c=cand: self.remove_packages(c), tag="hist_row")] if cand else []
+            names = ", ".join(p["pkg"] for p in (e["install"] or e["remove"] or e["upgrade"])[:6])
+            self.hist_pkg_list.add(self._row(f"{e['date']} — {', '.join(parts) or 'no changes'}", names,
+                                             e["cmd"][:200], None, [(who, "dim")], btns))
+        self.hist_pkg_list.show_all()
+
+    def _render_kernels(self):
+        self._clear(self.kern_list, "kern_row")
+        for k in self.pkg_data["kernels"]:
+            pills = [("running", "ok")] if k["running"] else []
+            if k["newest"]:
+                pills.append(("newest", "info"))
+            btns = [] if k["running"] or k["newest"] else [
+                self._btn(_("Remove"), lambda k=k: self._remove_kernel(k), tag="kern_row")]
+            self.kern_list.add(self._row(f"Linux {k['version']}", ", ".join(k["packages"][:4]), "", None, pills,
+                                         btns, human(k["size"])))
+        self.kern_list.show_all()
+
+    def _remove_kernel(self, k):
+        if self.confirm(f"Remove kernel {k['version']}?",
+                        "You keep the running and newest kernels to boot from. The boot menu is updated."):
+            self._root_job(_("Removing kernel…"), [packages.kernel_remove_step(k)], "Packages",
+                           lambda r: self.load_packages())
+
+    def test_mirrors(self):
+        self.mir_progress.show()
+        self.mir_status.set_text(_("Testing mirrors…"))
+
+        def prog(done, total):
+            GLib.idle_add(lambda: self.mir_progress.set_fraction(done / max(total, 1)) or False)
+
+        def done(r):
+            self.mir_progress.hide()
+            self.mirror_results = r
+            self._clear(self.mir_list)
+            if not r:
+                return
+            cur_m, cur_u = packages.current_mirrors()
+            for kind, title in (("mint", "Linux Mint"), ("ubuntu", "Ubuntu")):
+                self.mir_list.add(self._row(f"{title} mirrors", "", "", None))
+                for m in r[kind][:6]:
+                    sp = f"{m['speed'] / 1e6:.1f} MB/s" if m["speed"] else "no answer"
+                    pills = []
+                    if m["url"] in (cur_m, cur_u):
+                        pills.append(("current", "info"))
+                    if m["stale"]:
+                        pills.append(("out of date", "warn"))
+                    self.mir_list.add(self._row(m["url"], "", "", None, pills, (), sp))
+            best = [next((m for m in r[k] if m["speed"] and not m["stale"]), None) for k in ("mint", "ubuntu")]
+            gain = [b for b, cur in zip(best, (cur_m, cur_u)) if b and b["url"] != cur]
+            self.mir_status.set_text(f"Tested mirrors in {r['country'] or 'your area'}. " +
+                                     ("A faster mirror is available." if gain else "You're already on the fastest."))
+            self.mir_use_btn.set_visible(bool(gain))
+            self.mir_list.show_all()
+        self.bg(lambda: packages.test_mirrors(prog), done)
+        self.mir_restore_btn.set_visible(Path("/var/lib/mintcare/official-package-repositories.list.orig").exists())
+
+    def use_fastest_mirrors(self):
+        r = getattr(self, "mirror_results", None)
+        if not r:
+            return
+        pick = [next((m["url"] for m in r[k] if m["speed"] and not m["stale"]), None) for k in ("mint", "ubuntu")]
+        if not self.confirm(_("Switch to the fastest mirrors?"),
+                            f"Linux Mint: <tt>{GLib.markup_escape_text(pick[0] or '-')}</tt>\nUbuntu: "
+                            f"<tt>{GLib.markup_escape_text(pick[1] or '-')}</tt>\n\nThe original list is backed up "
+                            "and can be restored here."):
+            return
+        self._root_job(_("Switching mirrors…"), [packages.switch_mirrors_step(*pick)], "Sources",
+                       lambda res: (self.test_mirrors(), self.load_software() if self._sw_loaded else None))
+
+    def restore_mirrors(self):
+        self._root_job(_("Restoring mirrors…"), [packages.restore_mirrors_step()], "Sources",
+                       lambda res: self.test_mirrors())
+
+    def check_mint_upgrade(self):
+        self.upg_sub.set_text(_("Checking…"))
+
+        def done(res):
+            new, ready = res or (None, [])
+            self._clear(self.upg_box, "upg_row")
+            if new:
+                self.upg_sub.set_markup(f"<b>Linux Mint {GLib.markup_escape_text(new[1])} "
+                                        f"“{GLib.markup_escape_text(new[0].capitalize())}” is available.</b> "
+                                        "Check the list below, then start the upgrade tool.")
+            else:
+                self.upg_sub.set_text(_("No newer Linux Mint release yet. Point releases also appear in Update "
+                                        "Manager › Edit › Upgrade."))
+            for lvl, text in ready:
+                r = hbox(6)
+                r.pack_start(icon(STATUS_ICON[lvl][0], Gtk.IconSize.MENU, STATUS_ICON[lvl][1]), False, False, 0)
+                r.pack_start(label(text, ("muted",), wrap=True), True, True, 0)
+                self.upg_box.pack_start(r, False, False, 0)
+            if new:
+                b = self._btn(_("Start the upgrade tool"), self._start_mintupgrade, primary=True, tag="upg_row")
+                self.upg_box.pack_start(b, False, False, 6)
+            self.upg_box.show_all()
+        self.bg(lambda: (packages.upgrade_available(), packages.upgrade_readiness()), done)
+
+    def _start_mintupgrade(self):
+        if shutil.which("mintupgrade"):
+            self._launch("mintupgrade")
+            return
+        self._root_job(_("Installing Mint's upgrade tool…"),
+                       [("mintupgrade", "Install mintupgrade", "DEBIAN_FRONTEND=noninteractive apt-get install -y mintupgrade")],
+                       "Packages", lambda r: self._launch("mintupgrade") if r.get("mintupgrade") == 0 else None)
+
+    # ------------------------------------------------------------ processes
+
+    def _build_processes(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "utilities-system-monitor-symbolic", _("Processes"),
+            _("What's using your processor and memory right now, what each program is, and a way to close one "
+              "that's stuck.")), False, False, 0)
+        bar = hbox(8)
+        self.proc_sort = Gtk.ComboBoxText()
+        self.proc_sort.append("cpu", _("Sort by CPU"))
+        self.proc_sort.append("rss", _("Sort by memory"))
+        self.proc_sort.set_active_id("cpu")
+        bar.pack_start(self.proc_sort, False, False, 0)
+        self.proc_filter = Gtk.SearchEntry(placeholder_text=_("Filter by name…"))
+        bar.pack_start(self.proc_filter, True, True, 0)
+        self.proc_all = Gtk.CheckButton(label=_("Include system processes"))
+        bar.pack_start(self.proc_all, False, False, 0)
+        self.proc_pause = Gtk.CheckButton(label=_("Pause"))
+        bar.pack_end(self.proc_pause, False, False, 0)
+        page.pack_start(bar, False, False, 0)
+        self.proc_head = label("", ("faint", "mono"))
+        page.pack_start(self.proc_head, False, False, 0)
+        self.proc_card, self.proc_list = list_card()
+        page.pack_start(self.proc_card, False, False, 0)
+        self._proc_prev = None
+        self._proc_open = set()
+        for w in (self.proc_sort, self.proc_all):
+            w.connect("changed" if isinstance(w, Gtk.ComboBoxText) else "toggled", lambda *_x: self._poll_procs(True))
+        self.proc_filter.connect("search-changed", lambda *_x: self._poll_procs(True))
+        GLib.timeout_add(2500, self._poll_procs)
+        return scrolled(page)
+
+    def _poll_procs(self, force=False):
+        if self.stack.get_visible_child_name() != "processes" or (self.proc_pause.get_active() and not force):
+            return True
+        if getattr(self, "_proc_busy", False):
+            return True
+        self._proc_busy = True
+
+        def done(res):
+            self._proc_busy = False
+            if res:
+                rows, self._proc_prev = res
+                self._render_procs(rows)
+        self.bg(lambda: processes.processes(self._proc_prev), done)
+        return True
+
+    def _render_procs(self, rows):
+        self._clear(self.proc_list, "proc_row")
+        key = self.proc_sort.get_active_id()
+        flt = self.proc_filter.get_text().strip().lower()
+        shown = [r for r in rows if (self.proc_all.get_active() or r["mine"]) and not r["kernel"]
+                 and (not flt or flt in r["name"].lower() or flt in r["cmd"].lower())]
+        shown.sort(key=lambda r: -r[key])
+        tot_cpu = sum(r["cpu"] for r in rows)
+        self.proc_head.set_text(f"{len(rows)} processes · {tot_cpu / (os.cpu_count() or 1):.0f}% of all CPU · "
+                                f"showing {min(len(shown), 40)}")
+        for r in shown[:40]:
+            pills = [] if r["mine"] else [(r["user"], "dim")]
+            btns = [self._btn(_("What is this?"), lambda r=r: self._proc_info(r), tag="proc_row"),
+                    self._btn(_("End"), lambda r=r: self._end_proc(r), tag="proc_row")]
+            row = self._row(r["name"], "", r["cmd"][:300], None, pills, btns,
+                            f"{r['cpu']:4.0f}% · {human(r['rss'])}")
+            if r["pid"] in self._proc_open:
+                info = processes.describe(r)
+                txt = info["text"] or _("No description for this one.")
+                if info["package"]:
+                    txt += f"\nPackage: {info['package']} — {info['summary']}"
+                row.text_box.pack_start(label(txt, ("muted",), wrap=True), False, False, 0)
+            self.proc_list.add(row)
+        self.proc_list.show_all()
+
+    def _proc_info(self, r):
+        (self._proc_open.discard if r["pid"] in self._proc_open else self._proc_open.add)(r["pid"])
+        self._poll_procs(True)
+
+    def _end_proc(self, r):
+        d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                              text=f"End {r['name']} ({r['pid']})?")
+        css(d, "mintcare")
+        d.format_secondary_text(_("Unsaved work in that program will be lost. 'Force' stops a program that "
+                                  "doesn't respond."))
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Force"), 2, _("End"), Gtk.ResponseType.OK)
+        resp = d.run()
+        d.destroy()
+        if resp not in (Gtk.ResponseType.OK, 2):
+            return
+        force = resp == 2
+        if r["mine"]:
+            try:
+                processes.end(r["pid"], force)
+                maintenance.record("other", f"Ended {r['name']} ({r['pid']})")
+                self.set_status(f"Ended {r['name']}")
+            except ProcessLookupError:
+                self.set_status(_("It had already closed"))
+            except PermissionError:
+                self.set_status(_("Not allowed to end that process"), bad=True)
+            GLib.timeout_add(600, lambda: self._poll_procs(True) and False)
+        else:
+            self._root_job(f"Ending {r['name']}…", [processes.end_step(r["pid"], r["name"], force)], "Processes",
+                           lambda res: self._poll_procs(True))
+
+    # ------------------------------------------------------------ troubleshoot
+
+    def _build_troubleshoot(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "dialog-question-symbolic", _("Troubleshoot"),
+            _("Step-by-step checks and one-click fixes for sound, network, printers, Bluetooth and crashing "
+              "programs.")), False, False, 0)
+        self.ts_boxes = {}
+        tabs = []
+        for key, title in (("sound", _("Sound")), ("network", _("Network")), ("devices", _("Printers & Bluetooth")),
+                           ("crashes", _("Crash reports"))):
+            b = vbox(10)
+            self.ts_boxes[key] = b
+            tabs.append((key, title, b))
+        self.ts_tabs = self._tabs(page, tabs)
+        self.ts_tabs.connect("notify::visible-child-name", lambda *_x: self.load_troubleshoot())
+        return scrolled(page)
+
+    def load_troubleshoot(self):
+        key = self.ts_tabs.get_visible_child_name()
+        box = self.ts_boxes[key]
+        self._clear(box, "ts_" + key)
+        box.pack_start(label(_("Checking…"), ("muted",)), False, False, 0)
+        box.show_all()
+        work = {"sound": troubleshoot.audio, "network": troubleshoot.network,
+                "devices": lambda: (troubleshoot.printers(), troubleshoot.bluetooth()),
+                "crashes": troubleshoot.crashes}[key]
+        render = {"sound": self._render_sound, "network": self._render_network, "devices": self._render_devices,
+                  "crashes": self._render_crashes}[key]
+        self.bg(work, lambda res: render(res) if res is not None else None)
+
+    def _issues_card(self, box, issues, handler, tag):
+        c = card("ecard")
+        if not issues:
+            r = hbox(8)
+            r.pack_start(icon("emblem-ok-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "ok"), False, False, 0)
+            r.pack_start(label(_("No problems found."), ("h3",)), True, True, 0)
+            c.pack_start(r, False, False, 0)
+        for lvl, text, action in issues:
+            r = hbox(8)
+            r.pack_start(icon(STATUS_ICON[lvl][0], Gtk.IconSize.LARGE_TOOLBAR, STATUS_ICON[lvl][1]), False, False, 0)
+            r.pack_start(label(text, ("h3",), wrap=True), True, True, 0)
+            if action:
+                r.pack_end(self._btn(_("Fix"), lambda a=action: handler(a), primary=True, tag=tag), False, False, 0)
+            c.pack_start(r, False, False, 4)
+        box.pack_start(c, False, False, 0)
+
+    def _render_sound(self, a):
+        box = self.ts_boxes["sound"]
+        self._clear(box, "ts_sound")
+        self._issues_card(box, a["issues"], self._sound_fix, "ts_sound")
+        bar = hbox(8)
+        bar.pack_start(label(f"Sound server: {a['server'] or 'not running'}", ("faint", "mono")), True, True, 0)
+        for text, cb in ((_("Play test sound"), troubleshoot.test_sound),
+                         (_("Restart sound system"), lambda: self._user_fix(troubleshoot.AUDIO_RESTART, "sound")),
+                         (_("Reset sound settings"), self._reset_sound)):
+            bar.pack_end(self._btn(text, cb, tag="ts_sound"), False, False, 0)
+        box.pack_start(bar, False, False, 0)
+        c, lb = list_card()
+        for sname in a["sinks"]:
+            is_def = sname["name"] == a["default"]
+            pills = [("default", "ok")] if is_def else []
+            if sname["mute"]:
+                pills.append(("muted", "warn"))
+            btns = [] if is_def else [self._btn(_("Use this"), lambda n=sname["name"]: (
+                troubleshoot.set_default(n), self.load_troubleshoot()), tag="ts_sound")]
+            btns.append(self._btn(_("Set to 70%"), lambda n=sname["name"]: (
+                troubleshoot.set_volume(n, 70), self.load_troubleshoot()), tag="ts_sound"))
+            lb.add(self._row(sname["desc"], ", ".join(p for p in sname["ports"] if p), sname["name"],
+                             "audio-speakers-symbolic", pills, btns, f"{sname['volume']}%"))
+        box.pack_start(label(_("OUTPUTS"), ("kicker",)), False, False, 0)
+        box.pack_start(c, False, False, 0)
+        box.show_all()
+
+    def _sound_fix(self, action):
+        a = troubleshoot.audio()
+        sink = a["default"] or (a["sinks"][0]["name"] if a["sinks"] else "")
+        if action == "restart":
+            self._user_fix(troubleshoot.AUDIO_RESTART, "sound")
+            return
+        if action == "default" and sink:
+            troubleshoot.set_default(sink)
+        elif action in ("unmute", "normal") and sink:
+            troubleshoot.set_volume(sink, 70 if action == "unmute" or a["sinks"] else 70)
+        maintenance.record("other", "Sound: fixed volume/default output")
+        troubleshoot.test_sound()
+        self.load_troubleshoot()
+
+    def _reset_sound(self):
+        if self.confirm(_("Reset sound settings?"), _("Forgets saved volumes and device choices (a copy is kept in "
+                                                      "~/.local/state/wireplumber.mintcare-bak), then restarts the "
+                                                      "sound system.")):
+            self._user_fix(troubleshoot.AUDIO_RESET, "sound")
+
+    def _user_fix(self, script, tab):
+        def done(res):
+            self.notify_done(res or {}, "Fix")
+            GLib.timeout_add(1500, lambda: self.load_troubleshoot() and False)
+        self.in_thread(_("Working…"), lambda: self.execute([], [("fix", script.split(";")[0][:60], script)],
+                                                           "Troubleshoot"), done)
+
+    def _render_network(self, n):
+        box = self.ts_boxes["network"]
+        self._clear(box, "ts_network")
+        self._issues_card(box, n["issues"], self._net_fix, "ts_network")
+        c = card()
+        g = Gtk.Grid(column_spacing=16, row_spacing=6)
+        rows = []
+        for d in n["devices"]:
+            sp = f" · {d['speed']} Mb/s" if d.get("speed") else ""
+            rows.append((d["name"], f"{d['type']} · {d['state']} · {d['connection']}{sp}"))
+        if n["wifi"]:
+            w = n["wifi"]
+            rows.append(("Wi-Fi", f"{w['ssid']} · signal {w['signal']}% · channel {w['chan']} ({w['freq']}) · "
+                                  f"{w['crowd']} networks nearby on the same channel"))
+        for name, (loss, avg) in n["latency"].items():
+            rows.append((f"Ping {name}", f"{avg:.1f} ms, {loss}% loss" if avg is not None else f"{loss}% loss"))
+        rows.append(("DNS lookup", f"{n['dns_ms']:.0f} ms" if n["dns_ms"] is not None else "?"))
+        rows.append(("Router", n["gateway"] or "none"))
+        for i, (k, v) in enumerate(rows):
+            g.attach(label(k, ("kv-key",)), 0, i, 1, 1)
+            g.attach(label(v, ("kv-val",), wrap=True), 1, i, 1, 1)
+        c.pack_start(g, False, False, 0)
+        bar = hbox(8)
+        bar.pack_end(self._btn(_("Flush DNS cache"), lambda: self._net_fix("flushdns"), tag="ts_network"), False, False, 0)
+        bar.pack_end(self._btn(_("Reset networking"), lambda: self._net_fix("reset"), tag="ts_network"), False, False, 0)
+        bar.pack_end(self._btn(_("Test again"), self.load_troubleshoot, icon_name="view-refresh-symbolic",
+                               tag="ts_network"), False, False, 0)
+        c.pack_start(bar, False, False, 10)
+        box.pack_start(c, False, False, 0)
+        if n["nearby"]:
+            box.pack_start(label(_("NEARBY WI-FI"), ("kicker",)), False, False, 0)
+            nc, nl = list_card()
+            for w in sorted(n["nearby"], key=lambda w: -w["signal"])[:12]:
+                nl.add(self._row(w["ssid"] or _("(hidden)"), "", f"channel {w['chan']} · {w['freq']} · {w['security']}",
+                                 None, [("connected", "ok")] if w["active"] else [], (), f"{w['signal']}%"))
+            box.pack_start(nc, False, False, 0)
+        box.show_all()
+
+    def _net_fix(self, action):
+        if action == "reset":
+            if self.confirm(_("Reset networking?"), _("Disconnects for a few seconds, then reconnects.")):
+                self._user_fix(troubleshoot.NET_RESET, "network")
+        elif action == "flushdns":
+            self._root_job(_("Flushing DNS…"), [("dns", "Flush DNS cache", troubleshoot.DNS_FLUSH)], "Troubleshoot",
+                           lambda r: self.load_troubleshoot())
+
+    def _render_devices(self, res):
+        pr, bt = res
+        box = self.ts_boxes["devices"]
+        self._clear(box, "ts_devices")
+        box.pack_start(label(_("PRINTERS"), ("kicker",)), False, False, 0)
+        self._issues_card(box, pr["issues"], self._printer_fix, "ts_devices")
+        c, lb = list_card()
+        for p_ in pr["printers"]:
+            is_def = p_["name"] == pr["default"]
+            pills = [("default", "ok")] if is_def else []
+            if p_["disabled"]:
+                pills.append(("paused", "warn"))
+            btns = [] if is_def else [self._btn(_("Make default"), lambda n=p_["name"]: (
+                troubleshoot.set_default_printer(n), maintenance.record("other", f"Default printer: {n}"),
+                self.load_troubleshoot()), tag="ts_devices")]
+            lb.add(self._row(p_["name"].replace("_", " "), p_["state"], "", "printer-symbolic", pills, btns))
+        for j in pr["jobs"]:
+            lb.add(self._row(f"Job {j['id']}", j["line"], "", "document-print-symbolic", [("waiting", "warn")]))
+        if not pr["printers"]:
+            lb.add(self._row(_("No printers set up"), _("Add one in Menu › Printers.")))
+        box.pack_start(c, False, False, 0)
+        bar = hbox(8)
+        bar.pack_end(self._btn(_("Restart printing service"), lambda: self._printer_fix("restart-cups"),
+                               tag="ts_devices"), False, False, 0)
+        if pr["jobs"]:
+            bar.pack_end(self._btn(_("Cancel all jobs"), lambda: self._printer_fix("cancel"), tag="ts_devices"),
+                         False, False, 0)
+        bar.pack_end(self._btn(_("Printer settings"), lambda: self._launch("system-config-printer"), tag="ts_devices"),
+                     False, False, 0)
+        box.pack_start(bar, False, False, 0)
+
+        box.pack_start(label(_("BLUETOOTH"), ("kicker",)), False, False, 8)
+        if not bt["available"]:
+            box.pack_start(label(_("No Bluetooth adapter found."), ("muted",)), False, False, 0)
+        else:
+            self._issues_card(box, bt["issues"], lambda a: (troubleshoot.bt_power(True), self.load_troubleshoot()),
+                              "ts_devices")
+            c2, lb2 = list_card()
+            for d in bt["devices"]:
+                pills = [("connected", "ok")] if d["connected"] else []
+                if d["battery"] is not None:
+                    pills.append((f"battery {d['battery']}%", "warn" if d["battery"] < 20 else "dim"))
+                btns = [self._btn(_("Forget"), lambda m=d["mac"], n=d["name"]: self._bt_forget(m, n), tag="ts_devices")]
+                if not d["connected"]:
+                    btns.insert(0, self._btn(_("Connect"), lambda m=d["mac"]: self.bg(
+                        lambda: troubleshoot.bt_connect(m), lambda r: self.load_troubleshoot()), tag="ts_devices"))
+                lb2.add(self._row(d["name"], "", d["mac"], "bluetooth-active-symbolic", pills, btns))
+            if not bt["devices"]:
+                lb2.add(self._row(_("No paired devices"), ""))
+            box.pack_start(c2, False, False, 0)
+            bar2 = hbox(8)
+            bar2.pack_end(self._btn(_("Restart Bluetooth"), lambda: self._root_job(
+                _("Restarting Bluetooth…"), [("bt", "Restart Bluetooth", troubleshoot.BT_RESTART)], "Troubleshoot",
+                lambda r: self.load_troubleshoot()), tag="ts_devices"), False, False, 0)
+            bar2.pack_end(self._btn(_("Pair a device"), lambda: self._launch("blueman-manager"), tag="ts_devices"),
+                          False, False, 0)
+            box.pack_start(bar2, False, False, 0)
+        box.show_all()
+
+    def _printer_fix(self, action):
+        if action == "default":
+            pr = troubleshoot.printers()
+            names = [p_["name"] for p_ in pr["printers"]]
+            best = next((n for n in names if not n.endswith("_USB")), names[0] if names else None)
+            if best:
+                troubleshoot.set_default_printer(best)
+                self.set_status(f"{best} is now your default printer")
+                maintenance.record("other", f"Default printer: {best}")
+            self.load_troubleshoot()
+        elif action == "cancel":
+            if self.confirm(_("Cancel all print jobs?"), _("Everything waiting to print is removed.")):
+                self._root_job(_("Cancelling jobs…"), [("cancel", "Cancel all print jobs", troubleshoot.CANCEL_ALL)],
+                               "Troubleshoot", lambda r: self.load_troubleshoot())
+        elif action == "restart-cups":
+            self._root_job(_("Restarting printing…"), [("cups", "Restart CUPS", troubleshoot.CUPS_RESTART)],
+                           "Troubleshoot", lambda r: self.load_troubleshoot())
+        elif action.startswith("enable:"):
+            self._root_job(_("Resuming printer…"), [troubleshoot.enable_printer_step(action[7:])], "Troubleshoot",
+                           lambda r: self.load_troubleshoot())
+
+    def _bt_forget(self, mac, name):
+        if self.confirm(f"Forget {name}?", _("You'll need to pair it again to use it.")):
+            troubleshoot.bt_remove(mac)
+            self.load_troubleshoot()
+
+    def _render_crashes(self, items):
+        box = self.ts_boxes["crashes"]
+        self._clear(box, "ts_crashes")
+        box.pack_start(label(_("Programs that crashed recently. The same program crashing again and again usually "
+                               "means it needs updating or reinstalling."), ("faint",), wrap=True), False, False, 0)
+        c, lb = list_card()
+        lb.connect("row-activated", lambda _l, row: getattr(row, "toggle_details", lambda: None)())
+        for it in items[:40]:
+            when = time.strftime("%a %d %b %H:%M", time.localtime(it["time"]))
+            row = self._row(it["name"], f"{it['signal']} · {when}", it["exe"], "dialog-error-symbolic",
+                            [("dump kept", "dim")] if it["present"] else [], (), human(it["size"]) if it["size"] else "")
+            row.set_activatable(True)
+            row.set_tooltip_text(_("Click for the full crash report"))
+            holder = vbox(0)
+            row.body.pack_start(holder, False, False, 0)
+
+            def toggle(h=holder, pid=it["pid"]):
+                if h.get_children():
+                    for ch in h.get_children():
+                        ch.destroy()
+                    return
+                tv = Gtk.TextView(editable=False, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR)
+                css(tv, "log")
+                sw = Gtk.ScrolledWindow(min_content_height=260)
+                sw.add(tv)
+                h.pack_start(sw, True, True, 0)
+                h.show_all()
+                self.bg(lambda: troubleshoot.crash_info(pid), lambda t: tv.get_buffer().set_text(t or ""))
+            row.toggle_details = toggle
+            lb.add(row)
+        if not items:
+            lb.add(self._row(_("No crash reports"), _("Nothing has crashed recently.")))
+        box.pack_start(c, False, False, 0)
+        if items:
+            bar = hbox(8)
+            bar.pack_end(self._btn(_("Delete stored crash dumps"), lambda: self.confirm(
+                _("Delete stored crash dumps?"), _("Frees the space they use; the list of crashes stays in the log."))
+                and self._root_job(_("Deleting…"), [("dumps", "Delete crash dumps", troubleshoot.CLEAR_DUMPS)],
+                                   "Troubleshoot", lambda r: self.load_troubleshoot()), tag="ts_crashes"), False, False, 0)
+            box.pack_start(bar, False, False, 0)
+        box.show_all()
+
+    # ------------------------------------------------------------ backup
+
+    def _build_backup(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "document-save-symbolic", _("Backup"),
+            _("Copies your personal folders to another drive. Each backup is a dated snapshot; files that didn't "
+              "change are hard-linked, so extra snapshots cost almost no space. Timeshift covers the system; this "
+              "covers your files.")), False, False, 0)
+        dc = card("ecard")
+        h = hbox(8)
+        h.pack_start(label(_("Destination"), ("h2",)), False, False, 0)
+        self.bk_dest = label("", ("crumb",), ellipsize=True)
+        h.pack_start(self.bk_dest, True, True, 0)
+        h.pack_end(self._btn(_("Choose drive…"), self._bk_choose_dest, icon_name="drive-harddisk-symbolic"),
+                   False, False, 0)
+        dc.pack_start(h, False, False, 0)
+        self.bk_dest_issues = vbox(2)
+        dc.pack_start(self.bk_dest_issues, False, False, 6)
+        dc.pack_start(Gtk.Separator(), False, False, 6)
+        fh = hbox(8)
+        fh.pack_start(label(_("Folders"), ("h2",)), False, False, 0)
+        self.bk_size = label("", ("faint", "mono"))
+        fh.pack_start(self.bk_size, True, True, 0)
+        fh.pack_end(self._btn(_("Add folder…"), self._bk_add_folder, icon_name="list-add-symbolic"), False, False, 0)
+        dc.pack_start(fh, False, False, 0)
+        self.bk_folders = vbox(2)
+        dc.pack_start(self.bk_folders, False, False, 4)
+        dc.pack_start(Gtk.Separator(), False, False, 6)
+        sh = hbox(10)
+        sh.pack_start(label(_("Automatic backup"), ("h2",)), False, False, 0)
+        self.bk_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.bk_switch.connect("notify::active", self._bk_toggle)
+        sh.pack_start(self.bk_switch, False, False, 0)
+        self.bk_freq = Gtk.ComboBoxText()
+        for k, t in (("daily", _("Every day")), ("weekly", _("Every Sunday")), ("monthly", _("Monthly"))):
+            self.bk_freq.append(k, t)
+        self.bk_freq.connect("changed", lambda *_x: self._bk_save())
+        sh.pack_start(self.bk_freq, False, False, 0)
+        sh.pack_start(label(_("Keep"), ("muted",)), False, False, 0)
+        self.bk_keep = Gtk.SpinButton.new_with_range(2, 60, 1)
+        self.bk_keep.connect("value-changed", lambda *_x: self._bk_save())
+        sh.pack_start(self.bk_keep, False, False, 0)
+        sh.pack_start(label(_("snapshots"), ("muted",)), False, False, 0)
+        dc.pack_start(sh, False, False, 0)
+        self.bk_status = label("", ("muted",), wrap=True)
+        dc.pack_start(self.bk_status, False, False, 6)
+        rh = hbox(8)
+        self.bk_progress = Gtk.ProgressBar(valign=Gtk.Align.CENTER)
+        self.bk_progress.set_no_show_all(True)
+        rh.pack_start(self.bk_progress, True, True, 0)
+        self.bk_cancel = Gtk.Button(label=_("Cancel"))
+        css(self.bk_cancel, "ghost")
+        self.bk_cancel.set_no_show_all(True)
+        self.bk_cancel.connect("clicked", lambda *_x: self._bk_cancel_ev.set())
+        rh.pack_end(self.bk_cancel, False, False, 0)
+        self.bk_run = Gtk.Button()
+        inner = hbox(6)
+        inner.pack_start(icon("document-save-symbolic"), False, False, 0)
+        inner.pack_start(Gtk.Label(label=_("Back up now")), False, False, 0)
+        self.bk_run.add(inner)
+        css(self.bk_run, "primary")
+        self.bk_run.connect("clicked", lambda *_x: self.run_backup())
+        rh.pack_end(self.bk_run, False, False, 0)
+        dc.pack_start(rh, False, False, 4)
+        page.pack_start(dc, False, False, 0)
+        self.bk_snap_head = label(_("SNAPSHOTS"), ("kicker",))
+        page.pack_start(self.bk_snap_head, False, False, 0)
+        self.bk_snap_card, self.bk_snap_list = list_card()
+        page.pack_start(self.bk_snap_card, False, False, 0)
+
+        ec = card()
+        eh = hbox(8)
+        eh.pack_start(icon("document-send-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
+        et = vbox(2)
+        et.pack_start(label(_("Move MintCare to another PC"), ("h2",)), False, False, 0)
+        et.pack_start(label(_("Save your MintCare settings, the optimisations it applied and your startup-app "
+                              "choices to a file, then import them on another computer."), ("muted",), wrap=True),
+                      False, False, 0)
+        eh.pack_start(et, True, True, 0)
+        eh.pack_end(self._btn(_("Import…"), self._import_settings), False, False, 0)
+        eh.pack_end(self._btn(_("Export…"), self._export_settings), False, False, 0)
+        ec.pack_start(eh, False, False, 0)
+        page.pack_start(ec, False, False, 0)
+        self._bk_cancel_ev = threading.Event()
+        self._bk_loading = False
+        return scrolled(page)
+
+    def load_backup(self):
+        self._bk_loading = True
+        b = backup.config()
+        self.bk_cfg = b
+        self.bk_dest.set_text(b["dest"] or _("(not chosen)"))
+        self.bk_freq.set_active_id(b["frequency"])
+        self.bk_keep.set_value(b["keep"])
+        self.bk_switch.set_active(backup.timer_next() is not None)
+        self._bk_loading = False
+        self._clear(self.bk_dest_issues)
+        for lvl, text in backup.check_destination(b["dest"]):
+            r = hbox(6)
+            r.pack_start(icon(STATUS_ICON[lvl][0], Gtk.IconSize.MENU, STATUS_ICON[lvl][1]), False, False, 0)
+            r.pack_start(label(text, ("muted",), wrap=True), True, True, 0)
+            self.bk_dest_issues.pack_start(r, False, False, 0)
+        self._clear(self.bk_folders, "bk_row")
+        for f in b["folders"]:
+            r = hbox(8)
+            r.pack_start(icon("folder-symbolic", Gtk.IconSize.MENU, "ok"), False, False, 0)
+            r.pack_start(label(f.replace(str(Path.home()), "~"), ("mono", "muted"), ellipsize=True), True, True, 0)
+            r.pack_end(self._btn(_("Remove"), lambda f=f: self._bk_remove_folder(f), tag="bk_row"), False, False, 0)
+            self.bk_folders.pack_start(r, False, False, 0)
+        self.bk_dest_issues.show_all()
+        self.bk_folders.show_all()
+        self.bk_size.set_text(_("measuring…"))
+        self.bg(lambda: backup.estimate(b["folders"]), lambda n: self.bk_size.set_text(
+            f"{human(n or 0)} to back up (first time)"))
+        last = backup.last_backup()
+        nxt = backup.timer_next()
+        self.bk_status.set_text(
+            (f"Last backup {time.strftime('%a %d %b %H:%M', time.localtime(last['ts']))}: "
+             f"{last['files']} changed file(s). " if last else _("No backup yet. ")) +
+            (f"Next automatic backup: {nxt}." if nxt else _("Automatic backup is off.")))
+        self._clear(self.bk_snap_list, "bk_snap")
+        snaps = backup.snapshots(b["dest"]) if b["dest"] else []
+        self.bk_snap_head.set_text(f"SNAPSHOTS ({len(snaps)})")
+        for sp in snaps:
+            self.bk_snap_list.add(self._row(sp.name.replace("_", " "), "", str(sp), "folder-symbolic", (),
+                                            [self._btn(_("Open"), lambda sp=sp: self._open_uri(sp.as_uri()),
+                                                       tag="bk_snap")]))
+        if not snaps:
+            self.bk_snap_list.add(self._row(_("No snapshots yet"), _("Press Back up now to make the first one.")))
+        self.bk_snap_list.show_all()
+
+    def _bk_save(self):
+        if self._bk_loading:
+            return
+        b = backup.config()
+        b["frequency"] = self.bk_freq.get_active_id() or "weekly"
+        b["keep"] = int(self.bk_keep.get_value())
+        backup.save_config(b)
+        if self.bk_switch.get_active():
+            try:
+                backup.install_timer(b["frequency"])
+            except Exception as e:
+                self.log(f"Backup timer: {e}")
+
+    def _bk_toggle(self, sw, _p):
+        if self._bk_loading:
+            return
+        b = backup.config()
+        if sw.get_active():
+            if not b["dest"]:
+                self.set_status(_("Choose a destination first"), bad=True)
+                self._bk_loading = True
+                sw.set_active(False)
+                self._bk_loading = False
+                return
+            backup.install_timer(b["frequency"])
+            maintenance.record("backup", "Automatic backup turned on")
+        else:
+            backup.remove_timer()
+            maintenance.record("backup", "Automatic backup turned off")
+        self.load_backup()
+
+    def _pick_folder(self, title, start=None):
+        d = Gtk.FileChooserDialog(title=title, transient_for=self, action=Gtk.FileChooserAction.SELECT_FOLDER)
+        css(d, "mintcare")
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Choose"), Gtk.ResponseType.OK)
+        d.set_current_folder(start or "/mnt" if os.path.isdir("/mnt") else str(Path.home()))
+        resp, path = d.run(), d.get_filename()
+        d.destroy()
+        return path if resp == Gtk.ResponseType.OK else None
+
+    def _bk_choose_dest(self):
+        path = self._pick_folder(_("Choose where to keep backups"), "/mnt")
+        if path:
+            b = backup.config()
+            b["dest"] = path
+            backup.save_config(b)
+            self.load_backup()
+
+    def _bk_add_folder(self):
+        path = self._pick_folder(_("Add a folder to back up"), str(Path.home()))
+        if path:
+            b = backup.config()
+            if path not in b["folders"]:
+                b["folders"].append(path)
+            backup.save_config(b)
+            self.load_backup()
+
+    def _bk_remove_folder(self, f):
+        b = backup.config()
+        b["folders"] = [x for x in b["folders"] if x != f]
+        backup.save_config(b)
+        self.load_backup()
+
+    def run_backup(self):
+        if getattr(self, "_bk_running", False):
+            return
+        self._bk_running = True
+        self._bk_cancel_ev.clear()
+        self.bk_run.set_sensitive(False)
+        self.bk_progress.show()
+        self.bk_cancel.show()
+
+        def prog(pct, text):
+            GLib.idle_add(lambda: (self.bk_progress.set_fraction(pct / 100), self.bk_progress.set_text(text),
+                                   self.bk_progress.set_show_text(True), False)[-1])
+
+        def done(r):
+            self._bk_running = False
+            self.bk_run.set_sensitive(True)
+            self.bk_progress.hide()
+            self.bk_cancel.hide()
+            r = r or {"ok": False, "error": "failed"}
+            self.set_status(f"Backup done: {r['files']} changed file(s)" if r["ok"] else f"Backup: {r['error']}",
+                            bad=not r["ok"])
+            self.load_backup()
+        self.bg(lambda: backup.run_backup(None, prog, self._bk_cancel_ev.is_set), done)
+
+    def _export_settings(self):
+        d = Gtk.FileChooserDialog(title=_("Export MintCare settings"), transient_for=self,
+                                  action=Gtk.FileChooserAction.SAVE)
+        css(d, "mintcare")
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Export"), Gtk.ResponseType.OK)
+        d.set_do_overwrite_confirmation(True)
+        d.set_current_name("mintcare-settings.json")
+        resp, path = d.run(), d.get_filename()
+        d.destroy()
+        if resp == Gtk.ResponseType.OK and path:
+            data = backup.export_settings(path)
+            self.set_status(f"Exported settings and {len(data['tweaks'])} optimisation(s)")
+
+    def _import_settings(self):
+        d = Gtk.FileChooserDialog(title=_("Import MintCare settings"), transient_for=self,
+                                  action=Gtk.FileChooserAction.OPEN)
+        css(d, "mintcare")
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Import"), Gtk.ResponseType.OK)
+        resp, path = d.run(), d.get_filename()
+        d.destroy()
+        if resp != Gtk.ResponseType.OK or not path:
+            return
+        try:
+            ids = backup.import_settings(path)
+        except (OSError, ValueError) as e:
+            self.set_status(f"Import failed: {e}", bad=True)
+            return
+        self.prefs = maintenance.load_settings()
+        self.apply_theme(self.prefs.get("theme", "dark"))
+        self.apply_level(self.prefs.get("level", "intermediate"))
+        for i in ids:
+            sw = self.switches.get(i)
+            if sw and sw.get_sensitive() and not sw.get_active():
+                sw.set_active(True)
+        self.goto("optimise")
+        self.set_status(f"Imported settings; {len(ids)} optimisation(s) selected — press Apply changes")
+
+    # ------------------------------------------------------------ assistant
+
+    def _build_assistant(self):
+        page = vbox(14, "page")
+        page.pack_start(self.page_header(
+            "user-available-symbolic", _("Assistant"),
+            _("Ask about your computer in plain English. Uses Claude by Anthropic — optional, off until you set "
+              "it up, and nothing is sent unless you ask.")), False, False, 0)
+        self.ai_setup = card("ecard")
+        page.pack_start(self.ai_setup, False, False, 0)
+        chat = card()
+        ch = hbox(8)
+        ch.pack_start(label(f"Model: {assistant.MODEL}", ("faint", "mono")), True, True, 0)
+        self.ai_include = Gtk.CheckButton(label=_("Include my system summary (no names or serial numbers)"))
+        ch.pack_end(self.ai_include, False, False, 0)
+        chat.pack_start(ch, False, False, 0)
+        self.ai_view = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD_CHAR, cursor_visible=False,
+                                    left_margin=12, right_margin=12, top_margin=10, bottom_margin=10)
+        css(self.ai_view, "log")
+        sw = Gtk.ScrolledWindow(min_content_height=360)
+        sw.add(self.ai_view)
+        chat.pack_start(sw, True, True, 8)
+        ih = hbox(8)
+        self.ai_entry = Gtk.Entry(placeholder_text=_("Ask anything about your PC…"))
+        self.ai_entry.connect("activate", lambda *_x: self.ai_send())
+        ih.pack_start(self.ai_entry, True, True, 0)
+        self.ai_send_btn = Gtk.Button(label=_("Send"))
+        css(self.ai_send_btn, "primary")
+        self.ai_send_btn.connect("clicked", lambda *_x: self.ai_send())
+        ih.pack_end(self.ai_send_btn, False, False, 0)
+        b = Gtk.Button(label=_("Clear"))
+        css(b, "ghost")
+        b.connect("clicked", lambda *_x: self._ai_clear())
+        ih.pack_end(b, False, False, 0)
+        chat.pack_start(ih, False, False, 0)
+        self.ai_chat = chat
+        page.pack_start(chat, True, True, 0)
+        self.ai_history = []
+        self._ai_stop = threading.Event()
+        return scrolled(page)
+
+    def load_assistant(self):
+        c = self.ai_setup
+        self._clear(c, "ai_row")
+        ready_sdk = assistant.sdk_available()
+        has_key = assistant.has_credentials()
+        h = hbox(10)
+        h.pack_start(icon("emblem-ok-symbolic" if ready_sdk and has_key else "dialog-information-symbolic",
+                          Gtk.IconSize.LARGE_TOOLBAR, "ok" if ready_sdk and has_key else "info"), False, False, 0)
+        t = vbox(2)
+        if not ready_sdk:
+            t.pack_start(label(_("AI support isn't installed"), ("h2",)), False, False, 0)
+            t.pack_start(label(_("Installs Python's venv module (admin) and the official Anthropic SDK into "
+                                 "MintCare's own folder (~/.local/share/mintcare/ai-venv). About 30 MB."), ("muted",),
+                               wrap=True), False, False, 0)
+            h.pack_end(self._btn(_("Install AI support"), self._ai_install, primary=True, tag="ai_row"), False, False, 0)
+        elif not has_key:
+            t.pack_start(label(_("Add your Anthropic API key"), ("h2",)), False, False, 0)
+            t.pack_start(label(_("Create one at console.anthropic.com (usage is billed to your account). It's "
+                                 "stored in ~/.config/mintcare/anthropic-key, readable only by you."), ("muted",),
+                               wrap=True), False, False, 0)
+        else:
+            t.pack_start(label(_("Assistant ready"), ("h2",)), False, False, 0)
+            t.pack_start(label(_("Requests go to Anthropic's API using your key. If Claude declines a request, "
+                                 "it's retried automatically on Anthropic's recommended fallback model."), ("muted",),
+                               wrap=True), False, False, 0)
+            h.pack_end(self._btn(_("Remove key"), lambda: (assistant.clear_key(), self.load_assistant()), tag="ai_row"),
+                       False, False, 0)
+        h.pack_start(t, True, True, 0)
+        c.pack_start(h, False, False, 0)
+        if ready_sdk and not has_key:
+            kh = hbox(8)
+            self.ai_key = Gtk.Entry(visibility=False, placeholder_text="sk-ant-…")
+            self.ai_key.set_input_purpose(Gtk.InputPurpose.PASSWORD)
+            kh.pack_start(self.ai_key, True, True, 0)
+            kh.pack_end(self._btn(_("Save key"), self._ai_save_key, primary=True, tag="ai_row"), False, False, 0)
+            c.pack_start(kh, False, False, 8)
+        c.show_all()
+        ok = ready_sdk and has_key
+        for w in (self.ai_entry, self.ai_send_btn, self.ai_include):
+            w.set_sensitive(ok)
+
+    def _ai_install(self):
+        root, user = assistant.install_steps()
+        if Path(f"/usr/lib/python3.{sys.version_info.minor}/ensurepip").exists():
+            root = []                           # venv support already present: no admin step needed
+        self._root_job(_("Installing AI support…"), root, "Assistant", lambda r: self.load_assistant(), user_steps=user)
+
+    def _ai_save_key(self):
+        k = self.ai_key.get_text().strip()
+        if not k.startswith("sk-ant-"):
+            self.set_status(_("That doesn't look like an Anthropic API key (sk-ant-…)"), bad=True)
+            return
+        assistant.set_key(k)
+        maintenance.record("other", "Assistant: API key saved")
+        self.load_assistant()
+
+    def _ai_clear(self):
+        self.ai_history = []
+        self.ai_view.get_buffer().set_text("")
+
+    def _ai_append(self, text, bold=False):
+        buf = self.ai_view.get_buffer()
+        it = buf.get_end_iter()
+        if bold:
+            tag = buf.get_tag_table().lookup("b") or buf.create_tag("b", weight=Pango.Weight.BOLD)
+            buf.insert_with_tags(it, text, tag)
+        else:
+            buf.insert(it, text)
+        self.ai_view.scroll_to_iter(buf.get_end_iter(), 0, False, 0, 1)
+        return False
+
+    def ask_assistant(self, question):
+        """Prefill a question (e.g. from a check's details); the user still presses Send."""
+        self.goto("assistant")
+        self.ai_entry.set_text(question)
+        self.ai_entry.grab_focus()
+
+    def ai_send(self):
+        q_ = self.ai_entry.get_text().strip()
+        if not q_ or getattr(self, "_ai_busy", False):
+            return
+        self._ai_busy = True
+        self.ai_entry.set_text("")
+        self.ai_send_btn.set_sensitive(False)
+        self._ai_append(f"\nYou: {q_}\n", bold=True)
+        include = self.ai_include.get_active()
+
+        def work():
+            content = q_
+            if include and not self.ai_history:
+                content = f"My system summary:\n{assistant.system_summary()}\n\nQuestion: {q_}"
+            history = self.ai_history + [{"role": "user", "content": content}]
+            GLib.idle_add(self._ai_append, "\nMintCare assistant: ", True)
+            res = assistant.stream_reply(history, lambda t: GLib.idle_add(self._ai_append, t))
+            return content, res
+
+        def done(out):
+            self._ai_busy = False
+            self.ai_send_btn.set_sensitive(True)
+            if not out:
+                return
+            content, res = out
+            if res.get("error"):
+                self._ai_append(f"\n[{res['error']}]\n")
+            if res.get("text") and not res.get("error"):
+                self.ai_history += [{"role": "user", "content": content},
+                                    {"role": "assistant", "content": res["text"]}]
+            self._ai_append("\n")
+        self.bg(work, done)
+
     # ------------------------------------------------------------ flatpak
 
     def _build_flatpak(self):
@@ -3011,6 +4278,28 @@ class MintCareWindow(Gtk.ApplicationWindow):
         fwc.pack_start(self.fwdev_exp, False, False, 4)
         page.pack_start(fwc, False, False, 0)
 
+        self.bat_box = vbox(8)
+        page.pack_start(self.bat_box, False, False, 0)
+
+        bc = card()
+        bh = hbox(8)
+        bh.pack_start(icon("power-profile-performance-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
+        bh.pack_start(label(_("Benchmarks"), ("h2",)), True, True, 0)
+        self.bench_target = Gtk.ComboBoxText()
+        for mp, dev, fs, free in bench.targets():
+            self.bench_target.append(mp, f"{mp.replace(str(Path.home()), '~')} ({fs}, {human(free)} free)")
+        self.bench_target.set_active(0)
+        bh.pack_end(self._btn(_("Test CPU"), self.run_cpu_bench), False, False, 0)
+        bh.pack_end(self._btn(_("Test disk"), self.run_disk_bench, primary=True), False, False, 0)
+        bh.pack_end(self.bench_target, False, False, 0)
+        bc.pack_start(bh, False, False, 0)
+        bc.pack_start(label(_("Disk: writes and reads a 256 MB temporary file (deleted afterwards). CPU: hashes data "
+                              "on one core and on all cores. Results are kept so you can compare before and after "
+                              "a tweak."), ("faint",), wrap=True), False, False, 6)
+        self.bench_box = vbox(4)
+        bc.pack_start(self.bench_box, False, False, 0)
+        page.pack_start(bc, False, False, 0)
+
         self.drives_head = label(_("DRIVES"), ("kicker",))
         page.pack_start(self.drives_head, False, False, 0)
         self.drives_box = vbox(12)
@@ -3021,6 +4310,73 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def load_drives(self):
         self.bg(hardware.drives, self._render_drives)
         self.load_firmware()
+        self._render_battery()
+        self._render_bench()
+
+    def _render_battery(self):
+        self._clear(self.bat_box)
+        for b in hardware.batteries():
+            c = card()
+            h = hbox(10)
+            h.pack_start(icon("battery-good-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
+            t = vbox(2)
+            t.pack_start(label(f"{b['maker']} {b['model']}".strip() or b["name"], ("h2",)), False, False, 0)
+            hl = b["health"]
+            t.pack_start(label((f"Holds {hl}% of its original charge" if hl is not None else "Health unknown") +
+                               (f" · {b['cycles']} charge cycles" if b["cycles"] else "") +
+                               (f" · {b['full_wh']:.1f} of {b['design_wh']:.1f} Wh" if b["full_wh"] and b["design_wh"]
+                                else "") + f" · {b['status']}, {b['capacity']}%", ("muted",), wrap=True),
+                         False, False, 0)
+            h.pack_start(t, True, True, 0)
+            if hl is not None:
+                h.pack_end(pill("good" if hl >= 80 else "worn" if hl >= 60 else "replace soon",
+                                "ok" if hl >= 80 else "warn" if hl >= 60 else "fail"), False, False, 0)
+            c.pack_start(h, False, False, 0)
+            if hl is not None:
+                bar = Bar(EMERALD if hl >= 80 else "#f59e0b" if hl >= 60 else "#ef4444", 8)
+                bar.set_value(hl)
+                c.pack_start(bar, False, False, 8)
+            self.bat_box.pack_start(c, False, False, 0)
+        self.bat_box.show_all()
+
+    def _render_bench(self):
+        self._clear(self.bench_box)
+        target = self.bench_target.get_active_id()
+        for kind, rows in (("disk", bench.history("disk", target)), ("cpu", bench.history("cpu"))):
+            if not rows:
+                continue
+            last = rows[-1]
+            prev = rows[-2] if len(rows) > 1 else None
+            if kind == "disk":
+                text = f"Disk {target.replace(str(Path.home()), '~')}: write {last['write'] / 2**20:,.0f} MB/s · "                        f"read {last['read'] / 2**20:,.0f} MB/s"
+                if prev:
+                    text += f"  (before: {prev['write'] / 2**20:,.0f} / {prev['read'] / 2**20:,.0f} MB/s)"
+            else:
+                text = f"CPU: {last['single']:,.0f} MB/s on one core · {last['multi']:,.0f} MB/s on {last['cores']} threads"
+                if prev:
+                    text += f"  (before: {prev['single']:,.0f} / {prev['multi']:,.0f})"
+            when = time.strftime("%d %b %H:%M", time.localtime(last["ts"]))
+            self.bench_box.pack_start(self._row(text, f"Measured {when}", "", None), False, False, 0)
+        self.bench_box.show_all()
+
+    def run_disk_bench(self):
+        target = self.bench_target.get_active_id()
+        if not target:
+            return
+
+        def work():
+            r = bench.disk(target, 256, lambda t: GLib.idle_add(self.set_status, f"Disk test {t}"))
+            bench.save("disk", target, r)
+            return r
+        self.in_thread(_("Testing disk speed…"), work, lambda r: (self._render_bench(),
+                                                                  self.set_status(_("Disk test finished"))))
+
+    def run_cpu_bench(self):
+        def work():
+            r = bench.cpu()
+            bench.save("cpu", "cpu", r)
+            return r
+        self.in_thread(_("Testing CPU…"), work, lambda r: (self._render_bench(), self.set_status(_("CPU test finished"))))
 
     def load_firmware(self):
         if not firmware.available():
@@ -3263,6 +4619,20 @@ class MintCareWindow(Gtk.ApplicationWindow):
         bc.pack_start(self.boot_tip, False, False, 10)
         page.pack_start(bc, False, False, 0)
 
+        hc = card()
+        hh = hbox(8)
+        hh.pack_start(icon("org.gnome.SystemMonitor-symbolic", Gtk.IconSize.BUTTON, "ok"), False, False, 0)
+        hh.pack_start(label(_("Boot time history"), ("h2",)), False, False, 0)
+        for name, col in ((_("Services"), EMERALD), (_("Total"), VIOLET)):
+            hh.pack_end(self._legend(name, col), False, False, 4)
+        hc.pack_start(hh, False, False, 0)
+        self.boot_hist = LineChart([("Total", VIOLET), ("Services", EMERALD)], points=20, height=140,
+                                   fmt=lambda v: f"{v:.0f}s")
+        hc.pack_start(self.boot_hist, False, False, 8)
+        self.boot_hist_lbl = label("", ("faint",), wrap=True)
+        hc.pack_start(self.boot_hist_lbl, False, False, 0)
+        page.pack_start(hc, False, False, 0)
+
         page.pack_start(label(_("SLOWEST TO START"), ("kicker",)), False, False, 0)
         page.pack_start(label(_("Services start in parallel, so times overlap. Only those marked "
                               "BLOCKS BOOT actually delay reaching the desktop."), ("faint",), wrap=True),
@@ -3285,6 +4655,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def load_boot(self):
         self.bg(lambda: (boot.times(), boot.blame(), autostart.entries()), self._render_boot)
+        self.bg(lambda: boot.history(20), self._render_boot_history)
+
+    def _render_boot_history(self, h):
+        h = h or []
+        if len(h) < 2:
+            self.boot_hist_lbl.set_text(_("The history fills in as you restart the computer."))
+            return
+        self.boot_hist.set_values([b["total"] for b in h], [b.get("userspace", 0) for b in h])
+        avg = sum(b["total"] for b in h[:-1]) / (len(h) - 1)
+        last = h[-1]["total"]
+        worst = max(h, key=lambda b: b["total"])
+        trend = "slower" if last > avg * 1.15 else "faster" if last < avg * 0.85 else "about the same"
+        self.boot_hist_lbl.set_text(
+            f"Last {len(h)} boots: this one took {last:.1f} s, {trend} than the average of {avg:.1f} s. Slowest was "
+            f"{worst['total']:.1f} s on {time.strftime('%d %b', time.localtime(worst['ts']))}.")
 
     def _render_boot(self, res):
         if not res:
@@ -3481,6 +4866,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
             cl.pack_start(cb, False, False, 0)
         g.attach(cl, 1, 2, 1, 1)
         sc.pack_start(g, False, False, 6)
+        rh = hbox(8)
+        self.sched_report = Gtk.CheckButton(label=_("Save a health report after each check-up"))
+        self.sched_report.connect("toggled", lambda *_x: self._save_maint_settings())
+        rh.pack_start(self.sched_report, False, False, 0)
+        self.sched_report_fmt = Gtk.ComboBoxText()
+        self.sched_report_fmt.append("pdf", "PDF")
+        self.sched_report_fmt.append("html", "HTML")
+        self.sched_report_fmt.connect("changed", lambda *_x: self._save_maint_settings())
+        rh.pack_start(self.sched_report_fmt, False, False, 0)
+        rh.pack_end(self._btn(_("Open reports folder"), lambda: self._open_reports()), False, False, 0)
+        sc.pack_start(rh, False, False, 4)
         self.sched_status = label("", ("muted",), wrap=True)
         sc.pack_start(self.sched_status, False, False, 4)
         self.sched_last = label("", ("faint",), wrap=True)
@@ -3540,6 +4936,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._maint_loading = False
         return scrolled(page)
 
+    def _open_reports(self):
+        from . import report
+        folder = Path(maintenance.load_settings()["maintenance"].get("report_folder") or report.default_folder())
+        folder.mkdir(parents=True, exist_ok=True)
+        self._open_uri(folder.as_uri())
+
     def _maint_if_visible(self):
         if self.stack.get_visible_child_name() == "maintenance":
             self.refresh_maintenance()
@@ -3562,6 +4964,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.sched_notify.set_active_id(m.get("notify", "issues"))
         for k, cb in self.sched_clean.items():
             cb.set_active(k in m.get("clean", []))
+        self.sched_report.set_active(m.get("report", False))
+        self.sched_report_fmt.set_active_id(m.get("report_format", "pdf"))
         self.snap_pref.set_active_id(st.get("snapshot_before", "ask"))
         self.sched_switch.set_active(ts["enabled"])
         self.sched_status.set_markup(
@@ -3637,6 +5041,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         m["frequency"] = self.sched_freq.get_active_id() or "weekly"
         m["notify"] = self.sched_notify.get_active_id() or "issues"
         m["clean"] = [k for k, cb in self.sched_clean.items() if cb.get_active()]
+        m["report"] = self.sched_report.get_active()
+        m["report_format"] = self.sched_report_fmt.get_active_id() or "pdf"
         st["snapshot_before"] = self.snap_pref.get_active_id() or "ask"
         maintenance.save_settings(st)
         if self.sched_switch.get_active():

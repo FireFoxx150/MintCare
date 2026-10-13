@@ -36,7 +36,8 @@ DEFAULTS = {
     "tray": False, "tray_autostart": False,
     "check_updates": True,               # ask GitHub (at most every 6 h) whether a newer MintCare exists
     "snapshot_before": "ask",            # ask | always | never
-    "maintenance": {"frequency": "weekly", "clean": ["thumbs", "usercache"], "notify": "issues"},
+    "maintenance": {"frequency": "weekly", "clean": ["thumbs", "usercache"], "notify": "issues",
+                    "report": False, "report_format": "pdf", "report_folder": ""},
 }
 
 
@@ -351,6 +352,15 @@ def run_maintenance(notify=True, on_line=None):
         pass
     summary = (f"{len(issues)} issue(s)" if issues else "no issues") + \
               (f", freed {human(freed)}" if freed > 1 << 20 else "")
+    if s.get("report"):
+        log("Saving a health report…")
+        from . import report as report_mod
+        try:
+            saved = report_mod.save_scheduled(s.get("report_format", "pdf"), s.get("report_folder") or None)
+            report["report_path"] = saved
+            log(f"Report saved: {saved}")
+        except Exception as e:                       # never let the report break the check-up
+            log(f"Couldn't save the report: {e}")
     record("scheduled", f"Scheduled check-up: {summary}", True,
            "; ".join(t for t, _s in issues))
     log(f"Check-up finished: {summary}")

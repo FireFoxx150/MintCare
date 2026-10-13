@@ -124,3 +124,26 @@ def disable_script(unit):
 
 def enable_script(unit):
     return f"systemctl enable --now {unit} && rm -f {UNIT_MARKERS}/{unit}"
+
+
+STARTUP_MSG = "b07a249cd024414a82dd00cd181378ff"      # systemd's "Startup finished" message id
+
+
+def history(limit=30):
+    """Past boots from the journal: [{'ts','kernel','initrd','userspace','firmware','loader','total'}]."""
+    import json
+    rc, o = run(["journalctl", f"MESSAGE_ID={STARTUP_MSG}", "_PID=1", "-o", "json", "--no-pager", "-q"], timeout=30)
+    boots = []
+    for line in o.splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        msg = e.get("MESSAGE", "")
+        if not isinstance(msg, str) or "Startup finished" not in msg:
+            continue
+        parts = {m.group(2): _secs(m.group(1)) for m in re.finditer(r"([\d.]+\s*(?:min\s*)?[\d.]*m?s)\s+\((\w+)\)", msg)}
+        tot = re.search(r"=\s*(.+?)\s*\.?$", msg)
+        ts = int(e.get("__REALTIME_TIMESTAMP", "0")) / 1e6
+        boots.append({"ts": ts, **parts, "total": _secs(tot.group(1)) if tot else sum(parts.values())})
+    return boots[-limit:]

@@ -543,6 +543,41 @@ def c_ports():
                   if svcs else _("No services are reachable from the network"))
 
 
+def c_backup():
+    from . import backup
+    b = backup.config()
+    last = backup.last_backup()
+    if not b["dest"]:
+        return Result(INFO, _("Your personal files aren't backed up (Timeshift only covers system files)"),
+                      Fix("page", "backup", _("Set up backup")))
+    issues = [t for lvl, t in backup.check_destination(b["dest"]) if lvl == "fail"]
+    if issues:
+        return Result(WARN, issues[0], Fix("page", "backup", _("Open backup")))
+    if not last:
+        return Result(INFO, _("Backup is set up but hasn't run yet"), Fix("page", "backup", _("Back up now")))
+    import time as _t
+    days = (_t.time() - last["ts"]) / 86400
+    limit = {"daily": 2, "weekly": 9, "monthly": 35}.get(b["frequency"], 9)
+    if days > limit:
+        return Result(WARN, f"Last backup was {days:.0f} days ago", Fix("page", "backup", _("Back up now")))
+    return Result(OK, f"Personal files backed up {days:.0f} day(s) ago to {b['dest']}")
+
+
+def c_battery():
+    from . import hardware
+    bats = hardware.batteries()
+    if not bats:
+        return Result(OK, _("No battery (desktop PC)"))
+    b = min(bats, key=lambda x: x["health"] or 100)
+    if b["health"] is None:
+        return Result(OK, _("Battery health isn't reported by this laptop"))
+    if b["health"] < 60:
+        return Result(WARN, f"Battery holds only {b['health']}% of its original charge — consider replacing it",
+                      Fix("page", "hardware", _("View battery")))
+    return Result(OK, f"Battery holds {b['health']}% of its original charge"
+                  + (f" after {b['cycles']} cycles" if b["cycles"] else ""))
+
+
 CHECKS = [
     Check("internet", _("Internet connection"), _("Network"), c_internet),
     Check("dns", _("DNS resolution"), _("Network"), c_dns),
@@ -561,6 +596,7 @@ CHECKS = [
     Check("trim", _("SSD TRIM"), _("Storage"), c_trim),
     Check("journal", _("Log size"), _("Storage"), c_journal),
     Check("timeshift", _("System snapshots"), _("Storage"), c_timeshift),
+    Check("backup", _("Personal file backup"), _("Storage"), c_backup),
     Check("swap", _("Swap / zram"), _("Memory"), c_swap),
     Check("memory", _("Memory usage"), _("Memory"), c_memory),
     Check("microcode", _("CPU microcode"), _("Hardware"), c_microcode),
@@ -569,6 +605,7 @@ CHECKS = [
     Check("smart", _("Disk health (SMART)"), _("Hardware"), c_smart),
     Check("temps", _("Temperatures & throttling"), _("Hardware"), c_temps),
     Check("firmware", _("Firmware updates"), _("Hardware"), c_firmware),
+    Check("battery", _("Battery health"), _("Hardware"), c_battery),
     Check("firewall", _("Firewall"), _("Security"), c_firewall),
     Check("homeperms", _("Home folder privacy"), _("Security"), c_home_perms),
     Check("ports", _("Open network ports"), _("Security"), c_ports),
@@ -627,16 +664,41 @@ DETAIL_COMMANDS = {
     "btsap": "systemctl cat bluetooth --no-pager | grep -E 'ExecStart|^#'",
     "ecryptfs": "dpkg -l ecryptfs-utils 2>/dev/null | awk '/^ii/{print $2, $3}'; grep -l ecryptfs /etc/pam.d/* 2>/dev/null",
     "inotify": "sysctl fs.inotify.max_user_watches fs.inotify.max_user_instances",
+    "backup": "ls -la ~/.config/systemd/user/mintcare-backup.* 2>/dev/null; cat ~/.local/state/mintcare/last-backup.json 2>/dev/null || echo 'No backup has run yet'",
+    "battery": "upower -i $(upower -e | grep -m1 BAT) 2>/dev/null || echo 'No battery'",
 }
 
 
 def details(check_id):
-    """(command shown to the user, output text) for the details panel, or None."""
+    """(command shown to the user, output text, [(button label, kind, payload)]) or None."""
     cmd = DETAIL_COMMANDS.get(check_id)
     if not cmd:
         return None
     if check_id == "booterrors":
         from . import journal
-        return cmd, journal.report()
+        groups = journal.grouped()
+        return cmd, journal.report(groups), journal.actions(groups)
     rc, o = run(["bash", "-c", cmd], timeout=30)
-    return cmd, o or _("(no output)")
+    return cmd, o or _("(no output)"), DETAIL_ACTIONS.get(check_id, [])
+
+
+# extra buttons in a check's details panel
+DETAIL_ACTIONS = {
+    "updates": [("Open Update Manager", "launch", "mintupdate")],
+    "kernels": [("Manage kernels", "page", "packages")],
+    "residual": [("Open cleaner", "page", "clean")],
+    "sources": [("Open Software & updates", "page", "software"), ("Software Sources", "launch", "mintsources")],
+    "rootdisk": [("Find big files", "page", "space")],
+    "backup": [("Open Backup", "page", "backup")],
+    "timeshift": [("Open Timeshift", "launch", "timeshift-launcher")],
+    "memory": [("Open process explorer", "page", "processes")],
+    "gpu": [("Open Driver Manager", "launch", "driver-manager")],
+    "smart": [("Open drive details", "page", "hardware")],
+    "temps": [("Open sensors", "page", "hardware")],
+    "firmware": [("Open firmware", "page", "hardware")],
+    "ports": [("Open Security page", "page", "security")],
+    "failed": [("Open Boot & Startup", "page", "startup")],
+    "boottime": [("Open Boot & Startup", "page", "startup")],
+    "internet": [("Network troubleshooter", "page", "troubleshoot")],
+    "dns": [("Network troubleshooter", "page", "troubleshoot")],
+}

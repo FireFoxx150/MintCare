@@ -194,3 +194,70 @@ class Trend(TempDirTest):
             self.assertEqual([p["score"] for p in maintenance.scores()], [85, 90])
         finally:
             maintenance.STATE, maintenance.SCORES_FILE = old
+
+
+class Packages(TempDirTest):
+    HIST = """Start-Date: 2026-10-07  13:36:47
+Commandline: apt install foo
+Requested-By: matthew (1000)
+Install: foo:amd64 (1.0), libfoo1:amd64 (1.0, automatic)
+End-Date: 2026-10-07  13:36:50
+
+Start-Date: 2026-10-08  10:00:00
+Commandline: apt-get remove bar
+Remove: bar:amd64 (2.0)
+End-Date: 2026-10-08  10:00:05
+"""
+
+    def test_history_parsing_and_undo(self):
+        from mintcare import packages
+        (Path(self.tmp) / "history.log").write_text(self.HIST)
+        old = packages.HISTORY
+        packages.HISTORY = Path(self.tmp)
+        try:
+            h = packages.history()
+        finally:
+            packages.HISTORY = old
+        self.assertEqual([e["date"][:10] for e in h], ["2026-10-08", "2026-10-07"])   # newest first
+        inst = h[1]["install"]
+        self.assertEqual([(p["pkg"], p["auto"]) for p in inst], [("foo", False), ("libfoo1", True)])
+        pk = {"foo": {"size": 1, "priority": "optional", "essential": False}, "libfoo1": {"size": 1}}
+        self.assertEqual(packages.undo_candidates(h[1], pk), ["foo"])     # automatic deps aren't listed
+
+    def test_protected(self):
+        from mintcare import packages
+        self.assertTrue(packages.protected("mintupdate", {}))
+        self.assertTrue(packages.protected("whatever", {"essential": True}))
+        self.assertFalse(packages.protected("vlc", {"priority": "optional"}))
+
+
+class Backup(TempDirTest):
+    def test_snapshots_hardlink_unchanged_files(self):
+        from mintcare import backup
+        src = Path(self.tmp) / "home" / "Docs"
+        (src / "sub").mkdir(parents=True)
+        (src / "a.txt").write_text("one")
+        (src / "sub" / "b.txt").write_text("two")
+        (src / ".cache").mkdir()
+        (src / ".cache" / "junk").write_text("x")
+        dest = Path(self.tmp) / "dest"
+        dest.mkdir()
+        old_home, old_state = backup.HOME, maintenance.STATE
+        backup.HOME, maintenance.STATE = Path(self.tmp) / "home", Path(self.tmp) / "state"
+        maintenance.STATE.mkdir()
+        cfg = {"dest": str(dest), "folders": [str(src)], "keep": 2, "excludes": backup.DEFAULT_EXCLUDES}
+        try:
+            r1 = backup.run_backup(cfg)
+            self.assertTrue(r1["ok"], r1)
+            s1 = backup.snapshots(str(dest))[0]
+            self.assertTrue((s1 / "Docs" / "a.txt").exists())
+            self.assertFalse((s1 / "Docs" / ".cache").exists())          # excluded
+            s1.rename(s1.with_name("2000-01-01_00-00"))
+            (src / "a.txt").write_text("changed")
+            self.assertTrue(backup.run_backup(cfg)["ok"])
+            new, old = backup.snapshots(str(dest))
+            self.assertEqual(os.stat(new / "Docs/sub/b.txt").st_ino, os.stat(old / "Docs/sub/b.txt").st_ino)
+            self.assertEqual((new / "Docs/a.txt").read_text(), "changed")
+            self.assertEqual((old / "Docs/a.txt").read_text(), "one")
+        finally:
+            backup.HOME, maintenance.STATE = old_home, old_state

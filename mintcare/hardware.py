@@ -343,3 +343,23 @@ def temp_level(s):
     if not high and not crit:
         return WARN if t >= 85 else OK
     return OK
+
+
+# ------------------------------------------------------------------ battery
+
+def batteries():
+    """[{'name','model','health','cycles','status','capacity','design_wh','full_wh'}] for laptops."""
+    out_ = []
+    for bat in sorted(glob("/sys/class/power_supply/BAT*")):
+        def val(n):
+            v = read(f"{bat}/{n}")
+            return int(v) if v.lstrip("-").isdigit() else None
+        full, design = val("energy_full") or val("charge_full"), val("energy_full_design") or val("charge_full_design")
+        unit_wh = 1e6 if val("energy_full") else None
+        health = round(100 * full / design) if full and design else None
+        out_.append({"name": Path(bat).name, "model": read(f"{bat}/model_name"),
+                     "maker": read(f"{bat}/manufacturer"), "health": health, "cycles": val("cycle_count"),
+                     "status": read(f"{bat}/status"), "capacity": val("capacity"),
+                     "design_wh": design / unit_wh if unit_wh and design else None,
+                     "full_wh": full / unit_wh if unit_wh and full else None})
+    return out_

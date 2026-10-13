@@ -8,24 +8,32 @@ from .util import run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
 
-# (pattern on "identifier: message", level, explanation)
+# (pattern on "identifier: message", level, explanation[, (button label, kind, payload)])
+# kinds: "launch" (run a program), "page" (open a MintCare page), "check" (apply that check's fix),
+# "tweak" (apply a tweak)
 EXPLAIN = [
     (r"I/O error|blk_update_request|Buffer I/O error|critical medium error", FAIL,
-     "A disk reported read/write errors. Check Hardware › drives (SMART) and back up important files."),
+     "A disk reported read/write errors. Check Hardware › drives (SMART) and back up important files.",
+     ("Check drives", "page", "hardware")),
     (r"dumped core", WARN,
-     "A program crashed. If it keeps happening, update or reinstall it; the program name is shown above."),
+     "A program crashed. If it keeps happening, update or reinstall it; the program name is shown above.",
+     ("View crash reports", "page", "troubleshoot")),
     (r"Out of memory|oom-kill|Killed process", WARN,
-     "The system ran out of memory and closed a program. Consider zram (Optimise) or closing heavy apps."),
+     "The system ran out of memory and closed a program. Consider zram (Optimise) or closing heavy apps.",
+     ("Enable zram", "tweak", "zram")),
     (r"hpmud.*usb_open|usb_open: Permission denied", OK,
      "The HP printer/scanner driver probed your USB device without permission (colour-management "
      "service). Harmless — printing and scanning still work."),
     (r"gkr-pam", INFO,
      "Your keyring password doesn't match your login password, so it didn't unlock at login. Fix: open "
-     "Passwords and Keys › right-click Login › Change Password, and set it to your login password."),
+     "Passwords and Keys › right-click Login › Change Password, and set it to your login password.",
+     ("Open Passwords and Keys", "launch", "seahorse")),
     (r"pam_ecryptfs", INFO,
-     "The ecryptfs login module is installed but unused. MintCare's scan offers to remove it."),
+     "The ecryptfs login module is installed but unused. MintCare's scan offers to remove it.",
+     ("Remove ecryptfs", "check", "ecryptfs")),
     (r"Sap driver|sap-server|sap_server", OK,
-     "Bluetooth's SIM Access plugin failed to start. Harmless; MintCare's scan can switch the plugin off."),
+     "Bluetooth's SIM Access plugin failed to start. Harmless; MintCare's scan can switch the plugin off.",
+     ("Switch the plugin off", "check", "btsap")),
     (r"EVIOCSKEYCODE", OK,
      "A keyboard hot-key mapping the kernel didn't accept. Harmless."),
     (r"a password is required|incorrect password attempt|authentication failure", INFO,
@@ -33,15 +41,18 @@ EXPLAIN = [
     (r"ACPI (BIOS )?Error|ACPI Error|AE_NOT_FOUND|AE_ALREADY_EXISTS", OK,
      "Your motherboard's firmware tables contain a small bug. Usually harmless; a BIOS update can fix it."),
     (r"NVRM|nvidia", INFO,
-     "A message from the NVIDIA driver. If you see glitches, check Driver Manager for a newer driver."),
+     "A message from the NVIDIA driver. If you see glitches, check Driver Manager for a newer driver.",
+     ("Open Driver Manager", "launch", "driver-manager")),
     (r"Bluetooth: hci\d", OK, "The Bluetooth adapter reported a firmware quirk. Usually harmless."),
     (r"device descriptor read|unable to enumerate USB device|over-current", WARN,
      "A USB device failed to connect properly — try another port or cable, or an unpowered hub may be the cause."),
     (r"Failed to start|failed with result", WARN,
-     "A system service failed to start. See the Failed services check for details."),
+     "A system service failed to start. See the Failed services check for details.",
+     ("Open Boot & Startup", "page", "startup")),
     (r"firmware: failed to load|Direct firmware load .* failed", INFO,
      "A driver couldn't find an optional firmware file. Usually harmless unless that device misbehaves."),
-    (r"wireplumber|pipewire", INFO, "A message from the sound system (PipeWire)."),
+    (r"wireplumber|pipewire", INFO, "A message from the sound system (PipeWire).",
+     ("Open sound troubleshooter", "page", "troubleshoot")),
 ]
 
 
@@ -80,11 +91,13 @@ def entries(boot="-b"):
 
 
 def explain(who, msg):
+    """(level, explanation, action or None)."""
     hay = f"{who}: {msg}"
-    for pat, level, text in EXPLAIN:
+    for entry in EXPLAIN:
+        pat, level, text = entry[:3]
         if re.search(pat, hay, re.I):
-            return level, text
-    return INFO, ""
+            return level, text, (entry[3] if len(entry) > 3 else None)
+    return INFO, "", None
 
 
 def grouped(items=None):
@@ -98,7 +111,7 @@ def grouped(items=None):
         g["last"] = max(g["last"], e["ts"])
     out = []
     for g in groups.values():
-        g["level"], g["explanation"] = explain(g["who"], g["sample"])
+        g["level"], g["explanation"], g["action"] = explain(g["who"], g["sample"])
         out.append(g)
     rank = {FAIL: 0, WARN: 1, INFO: 2, OK: 3}
     out.sort(key=lambda g: (rank[g["level"]], -g["count"]))
@@ -120,3 +133,15 @@ def report(groups=None):
             lines.append(f"    → {g['explanation']}")
         lines.append("")
     return "\n".join(lines).rstrip()
+
+
+def actions(groups=None):
+    """Unique fix buttons for the details panel: [(label, kind, payload)]."""
+    groups = grouped() if groups is None else groups
+    seen, out_ = set(), []
+    for g in groups:
+        a = g.get("action")
+        if a and a not in seen:
+            seen.add(a)
+            out_.append(a)
+    return out_

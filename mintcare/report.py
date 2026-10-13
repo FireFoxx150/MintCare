@@ -202,3 +202,74 @@ def write_html(path, private=True, progress=lambda _s: None):
     data = collect(private, progress)
     Path(path).write_text(render_html(data))
     return data
+
+
+def write_pdf(page, path, timeout=60):
+    """Render HTML to PDF with WebKit (for the scheduled check-up, which has no window).
+
+    Runs its own GTK main loop, so only call it outside the GUI. Returns True on success.
+    """
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("WebKit2", "4.1")
+        from gi.repository import GLib, Gtk, WebKit2
+    except (ValueError, ImportError):
+        return False
+    if not Gtk.init_check()[0]:
+        return False
+    state = {"ok": False}
+    win = Gtk.OffscreenWindow()
+    view = WebKit2.WebView()
+    win.add(view)
+    win.set_default_size(980, 1300)
+    win.show_all()
+    loop = GLib.MainLoop()
+
+    def loaded(v, ev):
+        if ev != WebKit2.LoadEvent.FINISHED:
+            return
+        op = WebKit2.PrintOperation.new(v)
+        ps = Gtk.PrintSettings()
+        ps.set_printer("Print to File")
+        ps.set(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT, "pdf")
+        ps.set(Gtk.PRINT_SETTINGS_OUTPUT_URI, Path(path).absolute().as_uri())
+        op.set_print_settings(ps)
+        setup = Gtk.PageSetup()
+        setup.set_paper_size(Gtk.PaperSize.new(Gtk.PAPER_NAME_A4))
+        op.set_page_setup(setup)
+        op.connect("finished", lambda *_x: (state.update(ok=True), loop.quit()))
+        op.connect("failed", lambda *_x: loop.quit())
+        op.print_()
+    view.connect("load-changed", loaded)
+    view.load_html(page, "file:///")
+    GLib.timeout_add_seconds(timeout, loop.quit)
+    loop.run()
+    win.destroy()
+    return state["ok"] and Path(path).exists()
+
+
+def default_folder():
+    from gi.repository import GLib
+    docs = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS) or str(Path.home())
+    return str(Path(docs) / "MintCare reports")
+
+
+def save_scheduled(fmt="pdf", folder=None, keep=10, private=True):
+    """Write a dated report into the reports folder and prune old ones. Returns the path or None."""
+    folder = Path(folder or default_folder())
+    folder.mkdir(parents=True, exist_ok=True)
+    page = render_html(collect(private))
+    stamp = time.strftime("%Y-%m-%d_%H-%M")
+    path = None
+    if fmt == "pdf":
+        cand = folder / f"MintCare-report-{stamp}.pdf"
+        if write_pdf(page, cand):
+            path = cand
+    if path is None:
+        path = folder / f"MintCare-report-{stamp}.html"
+        path.write_text(page)
+    reports = sorted(folder.glob("MintCare-report-*"), reverse=True)
+    for old in reports[keep:]:
+        old.unlink(missing_ok=True)
+    return str(path)
