@@ -198,6 +198,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         self.show_all()
         self.connect("size-allocate", self._on_size)
+        self.connect("delete-event", self._on_delete)
+        if self.prefs.get("tray") or getattr(app, "start_in_tray", False):
+            self.set_tray(True)
         accel = Gtk.AccelGroup()
         accel.connect(Gdk.keyval_from_name("f"), Gdk.ModifierType.CONTROL_MASK, 0,
                       lambda *_: self.search.grab_focus() or True)
@@ -811,10 +814,90 @@ class MintCareWindow(Gtk.ApplicationWindow):
     # ------------------------------------------------------------ tray, report, about
 
     def set_tray(self, on):
-        pass
+        """Show/hide the XApp status icon (Cinnamon/MATE/Xfce panels)."""
+        app = self.get_application()
+        if on and getattr(self, "tray", None) is None:
+            try:
+                gi.require_version("XApp", "1.0")
+                from gi.repository import XApp
+            except (ValueError, ImportError):
+                self.log("System tray icon needs the XApp library (gir1.2-xapp-1.0).")
+                self.set_status("Tray icon not available on this desktop", bad=True)
+                return
+            self.tray = XApp.StatusIcon()
+            self.tray.set_name("mintcare")
+            theme_ = Gtk.IconTheme.get_default()
+            self.tray.set_icon_name("mintcare" if theme_.has_icon("mintcare") else "applications-system")
+            self.tray.connect("activate", lambda *_: self.toggle_visible())
+            menu = Gtk.Menu()
+            for text, cb in (("Open MintCare", self.show_from_tray), ("Run check-up now", self.run_checkup_now),
+                             ("Quick clean", lambda: (self.show_from_tray(), self.quick_clean())), (None, None),
+                             ("Quit MintCare", self.quit_app)):
+                item = Gtk.SeparatorMenuItem() if text is None else Gtk.MenuItem(label=text)
+                if cb:
+                    item.connect("activate", lambda *_a, f=cb: f())
+                menu.append(item)
+            menu.show_all()
+            self.tray.set_secondary_menu(menu)
+            self._update_tray()
+            app.hold()
+        elif not on and getattr(self, "tray", None) is not None:
+            self.tray.set_visible(False)
+            self.tray = None
+            app.release()
+            self.show_from_tray()
+
+    def _update_tray(self):
+        if getattr(self, "tray", None) is None:
+            return
+        res = self.check_results
+        if not res:
+            self.tray.set_tooltip_text("MintCare — scanning…")
+            return
+        issues = [r for r in res.values() if r.status in (checks.WARN, checks.FAIL)]
+        sc = int(self.side_score.get_text() or 0) if self.side_score.get_text().isdigit() else 0
+        self.tray.set_tooltip_text(f"MintCare — health {sc}/100" +
+                                   (f", {len(issues)} issue(s) to look at" if issues else ", all good"))
+
+    def toggle_visible(self):
+        if self.get_visible() and self.is_active():
+            self.hide()
+        else:
+            self.show_from_tray()
+
+    def show_from_tray(self):
+        self.show()
+        self.present()
+
+    def quit_app(self):
+        if getattr(self, "tray", None) is not None:
+            self.tray.set_visible(False)
+            self.tray = None
+            self.get_application().release()
+        self.get_application().quit()
+
+    def _on_delete(self, *_a):
+        if getattr(self, "tray", None) is not None:
+            self.hide()               # keep running in the tray
+            return True
+        return False
+
+    TRAY_DESKTOP = Path(GLib.get_user_config_dir()) / "autostart" / "mintcare-tray.desktop"
 
     def set_tray_autostart(self, on):
-        pass
+        f = self.TRAY_DESKTOP
+        if on:
+            f.parent.mkdir(parents=True, exist_ok=True)
+            cmd = " ".join(maintenance.launcher() + ["--tray"])
+            f.write_text("[Desktop Entry]\nType=Application\nName=MintCare (tray)\n"
+                         "Comment=Keep an eye on system health from the panel\n"
+                         f"Exec={cmd}\nIcon=mintcare\nX-GNOME-Autostart-enabled=true\n"
+                         "X-GNOME-Autostart-Delay=20\n# Managed by MintCare\n")
+            self.set_status("MintCare will start in the tray when you log in")
+        else:
+            f.unlink(missing_ok=True)
+            self.set_status("MintCare won't start at login")
+        maintenance.record("startup", f"Start in tray at login {'on' if on else 'off'}")
 
     def export_report(self):
         d = Gtk.FileChooserDialog(title="Export health report", transient_for=self,
@@ -1125,6 +1208,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.chip_vals["TCP"].set_text(sysctl("net.ipv4.tcp_congestion_control").upper())
 
     def _tick(self):
+        if not self.get_visible():
+            return True                       # hidden in the tray: no need to redraw charts
         s = self.sampler.sample()
         self.g_cpu.set_value(s["cpu"])
         self.g_mem.set_value(s["mem_pct"])
@@ -1169,6 +1254,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             (f"{fixable} issue(s) can be fixed automatically." if fixable else
              "Nothing needs fixing — tips have their own buttons on Diagnose & Fix."))
         issues = counts[checks.FAIL] + counts[checks.WARN]
+        GLib.idle_add(self._update_tray)
         badge = self.nav_badges["diagnose"]
         badge.set_text(str(issues))
         badge.set_visible(issues > 0)
@@ -3070,13 +3156,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
 
 class MintCareApp(Gtk.Application):
-    def __init__(self):
+    def __init__(self, start_in_tray=False):
         super().__init__(application_id="org.mintcare.MintCare")
+        self.start_in_tray = start_in_tray
 
     def do_activate(self):
-        win = self.get_active_window() or MintCareWindow(self)
-        win.present()
+        wins = self.get_windows()
+        if wins:
+            wins[0].show_from_tray()          # second launch: bring the existing window back
+            return
+        win = MintCareWindow(self)
+        if self.start_in_tray:
+            win.hide()
+        else:
+            win.present()
 
 
-def main():
-    return MintCareApp().run(None)
+def main(start_in_tray=False):
+    return MintCareApp(start_in_tray).run(None)
