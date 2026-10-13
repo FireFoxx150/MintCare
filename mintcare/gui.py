@@ -15,7 +15,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from . import (__version__, autostart, boot, checks, cleaner, flatpaks, hardware,  # noqa: E402
-               maintenance, space, tweaks)
+               maintenance, space, theme, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
 from .util import human, q, read, sysctl  # noqa: E402
@@ -42,168 +42,15 @@ NAV = [
     ("log", "Activity log", "utilities-terminal-symbolic"),
 ]
 
-CSS = b"""
-@define-color bg        #05070a;
-@define-color panel     #080c12;
-@define-color card      #0c121a;
-@define-color line      rgba(255,255,255,0.05);
-@define-color eline     rgba(6,78,59,0.35);
-@define-color emerald   #10b981;
-@define-color emerald4  #34d399;
-@define-color slate1    #f1f5f9;
-@define-color slate3    #cbd5e1;
-@define-color slate4    #94a3b8;
-@define-color slate5    #64748b;
+# Pages and tweaks shown at each experience level (advanced shows everything).
+LEVELS = [
+    ("beginner", "Beginner", "Essentials only: health check, recommended tweaks, cleaning."),
+    ("intermediate", "Intermediate", "Everything except the most technical tweaks."),
+    ("advanced", "Advanced", "Every page and every tweak."),
+]
+BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "maintenance", "log"}
+ADVANCED_TWEAKS = {"dns", "swappiness", "dirty", "waitonline", "iosched", "aspm"}
 
-.mintcare, .mintcare .main { background-color: @bg; color: @slate3;
-  font-family: "Inter", "Ubuntu Sans", "Ubuntu", sans-serif; }
-
-/* header */
-.mintcare headerbar { background-color: @panel; background-image: none; box-shadow: none;
-  border: none; border-bottom: 1px solid @eline; padding: 6px 14px; min-height: 46px; }
-.logo { background-color: @emerald; color: #000; font-weight: 900; font-size: 15pt;
-  border-radius: 9px; min-width: 36px; min-height: 36px;
-  box-shadow: 0 0 15px rgba(16,185,129,0.35); }
-.app-title { color: @emerald4; font-weight: bold; font-size: 12pt; }
-.app-sub, .kicker { color: @slate5; font-family: "JetBrains Mono", "Ubuntu Mono", monospace;
-  font-size: 7.5pt; font-weight: bold; }
-.chip-val { color: #d1fae5; font-family: "JetBrains Mono", "Ubuntu Mono", monospace;
-  font-weight: bold; font-size: 9pt; }
-.vsep { background-color: @eline; min-width: 1px; }
-
-/* sidebar */
-.sidebar { background-color: @panel; border: 1px solid @eline; border-radius: 12px;
-  padding: 8px; margin: 14px 0 14px 14px; }
-.sidebar list { background: transparent; }
-.sidebar row { border-radius: 8px; padding: 9px 10px; margin: 1px 0; color: @slate4;
-  border: 1px solid transparent; }
-.sidebar row:hover { background-color: rgba(255,255,255,0.03); color: @slate3; }
-.sidebar row:selected { background-color: rgba(16,185,129,0.10); color: @emerald4;
-  border-color: rgba(16,185,129,0.25); }
-.sidebar row:selected image { color: @emerald4; }
-.nav-label { font-weight: 600; font-size: 10pt; }
-.nav-badge { background-color: rgba(245,158,11,0.15); color: #fbbf24; border-radius: 99px;
-  padding: 0 7px; font-size: 7.5pt; font-weight: bold;
-  font-family: "JetBrains Mono", "Ubuntu Mono", monospace; }
-.side-foot { border-top: 1px solid @eline; padding-top: 10px; margin-top: 6px; }
-
-/* content */
-.page { padding: 12px 16px 14px 16px; }
-.card { background-color: @card; border: 1px solid @line; border-radius: 12px; padding: 14px; }
-.card.tight { padding: 4px 0; }
-.card.ecard { border-color: rgba(6,78,59,0.30); }
-.h1 { color: @slate1; font-weight: bold; font-size: 13pt; }
-.h2 { color: @slate3; font-weight: bold; font-size: 10.5pt; }
-.h3 { color: #e2e8f0; font-weight: 600; font-size: 10pt; }
-.muted { color: @slate4; font-size: 9.5pt; }
-.faint { color: @slate5; font-size: 9pt; }
-.mono { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; }
-.big { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 22pt;
-  font-weight: bold; color: @emerald4; }
-.tile-ico { background-color: rgba(16,185,129,0.10); color: @emerald4; border-radius: 9px;
-  border: 1px solid rgba(16,185,129,0.20); padding: 8px; }
-.stat-tile { background-color: rgba(255,255,255,0.04); border: 1px solid @line;
-  border-radius: 8px; padding: 6px; }
-.stat-val { color: @slate3; font-weight: 600; font-size: 9.5pt;
-  font-family: "JetBrains Mono", "Ubuntu Mono", monospace; }
-.legend-dot { border-radius: 99px; min-width: 8px; min-height: 8px; }
-.kv-key { color: @slate5; font-size: 9pt; }
-.kv-val { color: #e2e8f0; font-size: 9pt; font-family: "JetBrains Mono", "Ubuntu Mono", monospace; }
-
-/* pills */
-.pill { border-radius: 99px; padding: 1px 8px; font-size: 7.5pt; font-weight: bold;
-  font-family: "JetBrains Mono", "Ubuntu Mono", monospace; border: 1px solid transparent; }
-.pill.ok   { background-color: rgba(16,185,129,0.10); color: @emerald4; border-color: rgba(16,185,129,0.25); }
-.pill.info { background-color: rgba(59,130,246,0.10); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
-.pill.warn { background-color: rgba(245,158,11,0.10); color: #fbbf24; border-color: rgba(245,158,11,0.25); }
-.pill.fail { background-color: rgba(239,68,68,0.10);  color: #f87171; border-color: rgba(239,68,68,0.25); }
-.pill.blue { background-color: rgba(59,130,246,0.10); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
-.pill.orange { background-color: rgba(249,115,22,0.10); color: #fb923c; border-color: rgba(249,115,22,0.25); }
-.pill.dim  { background-color: rgba(148,163,184,0.08); color: @slate4; border-color: rgba(148,163,184,0.15); }
-image.ok { color: @emerald4; } image.info { color: #60a5fa; }
-image.warn { color: #fbbf24; } image.fail { color: #f87171; }
-
-/* buttons */
-.mintcare button { background-image: none; box-shadow: none; text-shadow: none;
-  border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 9pt; }
-.mintcare button.ghost { background-color: rgba(16,185,129,0.10); color: @emerald4;
-  border: 1px solid rgba(16,185,129,0.30); }
-.mintcare button.ghost:hover { background-color: rgba(16,185,129,0.20); }
-.mintcare button.primary { background-color: @emerald; color: #000; font-weight: bold;
-  border: 1px solid @emerald; box-shadow: 0 4px 14px rgba(16,185,129,0.20); }
-.mintcare button.primary:hover { background-color: @emerald4; }
-.mintcare button.primary label, .mintcare button.ghost label { color: inherit; }
-.mintcare button:disabled { opacity: 0.45; }
-.mintcare headerbar button.titlebutton { background: transparent; border: none; padding: 4px;
-  color: @slate4; }
-.mintcare headerbar button.titlebutton:hover { color: @slate1; background-color: rgba(255,255,255,0.06); }
-
-/* lists inside cards */
-.card list { background: transparent; }
-.card list row { padding: 10px 14px; background: transparent; }
-.card list row:hover { background-color: rgba(255,255,255,0.02); }
-.card list separator { background-color: @line; min-height: 1px; }
-
-/* switches & checks */
-.mintcare switch { background-color: #1e293b; background-image: none; border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 99px; color: transparent; }
-.mintcare switch:checked { background-color: @emerald; border-color: @emerald; }
-.mintcare switch slider { background-color: #e2e8f0; background-image: none; border: none;
-  border-radius: 99px; box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
-.mintcare switch:disabled { opacity: 0.55; }
-.mintcare check { border-radius: 4px; background-image: none; background-color: #0f172a;
-  border: 1px solid #334155; color: transparent; min-width: 16px; min-height: 16px; }
-.mintcare check:checked { background-color: @emerald; border-color: @emerald; color: #000;
-  -gtk-icon-source: -gtk-icontheme("object-select-symbolic"); }
-.mintcare check:hover { border-color: @emerald; }
-
-/* hardware & boot */
-.tval { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 15pt; font-weight: bold; color: @slate3; }
-.tval.ok { color: @emerald4; } .tval.warn { color: #fbbf24; } .tval.fail { color: #f87171; }
-.tval.info { color: #60a5fa; }
-.sensor-tile { background-color: rgba(255,255,255,0.03); border: 1px solid @line; border-radius: 10px;
-  padding: 10px 12px; }
-.drive-card.warn { border-color: rgba(245,158,11,0.35); }
-.drive-card.fail { border-color: rgba(239,68,68,0.45); }
-.boot-big { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 26pt; font-weight: bold;
-  color: @emerald4; }
-.time-val { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-weight: bold; color: @slate3;
-  font-size: 10pt; min-width: 64px; }
-.time-val.warn { color: #fbbf24; }
-.unit-name { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; color: #e2e8f0; font-size: 9.5pt;
-  font-weight: 600; }
-expander title { color: @slate4; }
-expander title:hover { color: @slate3; }
-
-.profile-tile { background-color: rgba(255,255,255,0.03); border: 1px solid @line; border-radius: 12px;
-  padding: 12px; }
-.profile-tile:hover { border-color: rgba(16,185,129,0.30); }
-.perm-row { padding: 6px 0; }
-.fp-perms { background-color: rgba(255,255,255,0.02); border-top: 1px solid @line; padding: 10px 14px 6px 58px; }
-
-.mintcare stackswitcher button { background-color: rgba(255,255,255,0.03); color: @slate4;
-  border: 1px solid @line; padding: 6px 16px; }
-.mintcare stackswitcher button:checked { background-color: rgba(16,185,129,0.12); color: @emerald4;
-  border-color: rgba(16,185,129,0.30); }
-.mintcare progressbar trough { background-color: rgba(255,255,255,0.05); min-height: 6px;
-  border-radius: 99px; border: none; }
-.mintcare progressbar progress { background-color: @emerald; min-height: 6px; border-radius: 99px;
-  border: none; }
-.crumb { color: @slate3; font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 9pt; }
-.dup-head { background-color: rgba(255,255,255,0.02); }
-
-/* footer, log, scrollbars */
-.footer { background-color: @panel; border-top: 1px solid @eline; padding: 5px 16px; }
-.footer label { font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 8pt; color: @slate5; }
-.footer .status { color: @emerald4; }
-.footer .status.bad { color: #f87171; }
-textview.log, textview.log text { background-color: @panel; color: #a7f3d0;
-  font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 9pt; }
-.mintcare scrollbar { background-color: transparent; border: none; }
-.mintcare scrollbar slider { background-color: rgba(16,185,129,0.30); min-width: 6px;
-  min-height: 6px; border: none; border-radius: 4px; }
-.mintcare scrollbar slider:hover { background-color: rgba(16,185,129,0.60); }
-"""
 
 
 # ---------------------------------------------------------------- helpers
@@ -314,12 +161,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._space_loaded = False
         self._space_cancel = threading.Event()
 
-        settings = Gtk.Settings.get_default()
-        settings.set_property("gtk-application-prefer-dark-theme", True)
-        provider = Gtk.CssProvider()
-        provider.load_from_data(CSS)
+        self._gtk_settings = Gtk.Settings.get_default()
+        self._system_dark = theme.system_is_dark(self._gtk_settings)
+        self.css_provider = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            Gdk.Screen.get_default(), self.css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.prefs = maintenance.load_settings()
+        self.apply_theme(self.prefs.get("theme", "dark"))
+        self._gtk_settings.connect("notify::gtk-theme-name", self._on_system_theme)
 
         self.set_titlebar(self._build_header())
 
@@ -345,6 +194,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.add(root)
 
         self.show_all()
+        self.apply_level(self.prefs.get("level", "intermediate"))
         self.goto(os.environ.get("MINTCARE_PAGE", "dashboard"))
         self._tick()
         GLib.timeout_add(1000, self._tick)
@@ -390,8 +240,124 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.chip_vals[key] = v
             c.pack_start(v, False, False, 0)
             chips.pack_start(c, False, False, 0)
+        menu_btn = Gtk.MenuButton(valign=Gtk.Align.CENTER)
+        menu_btn.add(icon("open-menu-symbolic"))
+        menu_btn.set_tooltip_text("Appearance, experience level, tray and report")
+        css(menu_btn, "ghost")
+        menu_btn.set_popover(self._build_app_menu(menu_btn))
+        hb.pack_end(menu_btn)
         hb.pack_end(chips)
         return hb
+
+    def _build_app_menu(self, relative):
+        pop = Gtk.Popover(relative_to=relative)
+        box = vbox(4)
+        box.set_border_width(14)
+        box.pack_start(label("APPEARANCE", ("kicker",)), False, False, 0)
+        first = None
+        self.theme_radios = {}
+        for key, title in theme.NAMES:
+            rb = Gtk.RadioButton.new_with_label_from_widget(first, title)
+            first = first or rb
+            rb.connect("toggled", lambda w, k=key: w.get_active() and self._set_pref("theme", k))
+            self.theme_radios[key] = rb
+            box.pack_start(rb, False, False, 0)
+        box.pack_start(label("EXPERIENCE LEVEL", ("kicker",)), False, False, 8)
+        first = None
+        self.level_radios = {}
+        for key, title, desc in LEVELS:
+            rb = Gtk.RadioButton.new_from_widget(first)
+            first = first or rb
+            t = vbox(0)
+            t.pack_start(label(title, ("h3",)), False, False, 0)
+            t.pack_start(label(desc, ("faint",)), False, False, 0)
+            rb.add(t)
+            rb.connect("toggled", lambda w, k=key: w.get_active() and self._set_pref("level", k))
+            self.level_radios[key] = rb
+            box.pack_start(rb, False, False, 0)
+        box.pack_start(label("SYSTEM TRAY", ("kicker",)), False, False, 8)
+        self.tray_check = Gtk.CheckButton(label="Show MintCare in the system tray")
+        self.tray_check.connect("toggled", lambda w: self._set_pref("tray", w.get_active()))
+        box.pack_start(self.tray_check, False, False, 0)
+        self.tray_login_check = Gtk.CheckButton(label="Start in the tray when I log in")
+        self.tray_login_check.connect("toggled", lambda w: self._set_pref("tray_autostart", w.get_active()))
+        box.pack_start(self.tray_login_check, False, False, 0)
+        box.pack_start(Gtk.Separator(), False, False, 8)
+        exp = Gtk.ModelButton(text="Export health report…")
+        exp.connect("clicked", lambda *_: self.export_report())
+        box.pack_start(exp, False, False, 0)
+        about = Gtk.ModelButton(text="About MintCare")
+        about.connect("clicked", lambda *_: self.show_about())
+        box.pack_start(about, False, False, 0)
+        box.show_all()
+        pop.add(box)
+        self._menu_loading = True
+        self.theme_radios.get(self.prefs.get("theme", "dark"), self.theme_radios["dark"]).set_active(True)
+        self.level_radios.get(self.prefs.get("level", "intermediate"),
+                              self.level_radios["intermediate"]).set_active(True)
+        self.tray_check.set_active(self.prefs.get("tray", False))
+        self.tray_login_check.set_active(self.prefs.get("tray_autostart", False))
+        self.tray_login_check.set_sensitive(self.prefs.get("tray", False))
+        self._menu_loading = False
+        return pop
+
+    def _set_pref(self, key, value):
+        if getattr(self, "_menu_loading", False):
+            return
+        st = maintenance.load_settings()
+        st[key] = value
+        maintenance.save_settings(st)
+        self.prefs = st
+        if key == "theme":
+            self.apply_theme(value)
+        elif key == "level":
+            self.apply_level(value)
+            self.set_status(f"{value.capitalize()} mode")
+        elif key == "tray":
+            self.tray_login_check.set_sensitive(value)
+            self.set_tray(value)
+        elif key == "tray_autostart":
+            self.set_tray_autostart(value)
+
+    # ------------------------------------------------------------ theme & level
+
+    def apply_theme(self, name):
+        eff = theme.resolve(name, self._system_dark)
+        self.css_provider.load_from_data(theme.css(eff))
+        self._gtk_settings.set_property("gtk-application-prefer-dark-theme", theme.DARK_BASE[eff])
+        pal = theme.PALETTES[eff]
+        widgets.set_theme(pal["ink"], pal["slate1"], pal["slate5"])
+        self._theme_name = name
+        self.queue_draw()
+
+    def _on_system_theme(self, settings, _pspec):
+        name = (settings.get_property("gtk-theme-name") or "").lower()
+        self._system_dark = "dark" in name
+        if self._theme_name == "system":
+            self.apply_theme("system")
+
+    def apply_level(self, level):
+        self.level = level
+        for key, row in self.nav_rows.items():
+            row.set_visible(level != "beginner" or key in BEGINNER_PAGES)
+
+        def shown(t):
+            if level == "beginner":
+                return t.recommended
+            if level == "intermediate":
+                return t.id not in ADVANCED_TWEAKS
+            return True
+        for cat, kicker, cardw, ids in getattr(self, "opt_sections", []):
+            vis = [i for i in ids if shown(tweaks.BY_ID[i])]
+            for i in ids:
+                self.tweak_rows[i].set_visible(i in vis)
+            kicker.set_visible(bool(vis))
+            cardw.set_visible(bool(vis))
+        if hasattr(self, "level_pill"):
+            set_pill(self.level_pill, f"{level} mode", "dim")
+        cur = self.stack.get_visible_child_name()
+        if not self.nav_rows[cur].get_visible():
+            self.goto("dashboard")
 
     def _build_sidebar(self):
         side = vbox(4, "sidebar")
@@ -429,6 +395,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         live.pack_start(label("●", ("pill", "ok")), False, False, 0)
         live.pack_start(label("Live monitoring", ("faint",)), False, False, 0)
         foot.pack_start(live, False, False, 4)
+        self.level_pill = pill("intermediate mode", "dim")
+        self.level_pill.set_halign(Gtk.Align.START)
+        css(self.level_pill, "level-pill")
+        foot.pack_start(self.level_pill, False, False, 0)
         side.pack_end(foot, False, False, 0)
         return side
 
@@ -633,6 +603,24 @@ class MintCareWindow(Gtk.ApplicationWindow):
         c.pack_start(row, False, False, 0)
         c.subtitle = sub
         return c
+
+    # ------------------------------------------------------------ tray, report, about
+
+    def set_tray(self, on):
+        pass
+
+    def set_tray_autostart(self, on):
+        pass
+
+    def export_report(self):
+        pass
+
+    def show_about(self):
+        d = Gtk.AboutDialog(transient_for=self, modal=True, program_name="MintCare", version=__version__,
+                            comments="Clean, optimise and repair Linux Mint.", logo_icon_name="mintcare")
+        css(d, "mintcare")
+        d.run()
+        d.destroy()
 
     # ------------------------------------------------------------ dashboard
 
@@ -1039,13 +1027,19 @@ class MintCareWindow(Gtk.ApplicationWindow):
             prow.pack_start(tile, True, True, 0)
         page.pack_start(prow, False, False, 0)
 
-        self.switches, self.tweak_state_lbls = {}, {}
+        self.switches, self.tweak_state_lbls, self.tweak_rows, self.opt_sections = {}, {}, {}, []
         for cat in tweaks.CATEGORIES:
-            page.pack_start(label(cat.upper(), ("kicker",)), False, False, 0)
+            kicker = label(cat.upper(), ("kicker",))
+            page.pack_start(kicker, False, False, 0)
             c, lb = list_card()
+            ids = []
             for t in (t for t in tweaks.TWEAKS if t.category == cat):
-                lb.add(self._tweak_row(t))
+                row = self._tweak_row(t)
+                self.tweak_rows[t.id] = row
+                ids.append(t.id)
+                lb.add(row)
             page.pack_start(c, False, False, 0)
+            self.opt_sections.append((cat, kicker, c, ids))
         GLib.idle_add(self._refresh_tweaks)
         return scrolled(page)
 

@@ -31,6 +31,9 @@ SAFE_CLEAN = ["thumbs", "usercache", "browser"]          # user-level items allo
 HISTORY_MAX = 3000
 
 DEFAULTS = {
+    "theme": "dark",                     # system | dark | light | contrast
+    "level": "intermediate",             # beginner | intermediate | advanced
+    "tray": False, "tray_autostart": False,
     "snapshot_before": "ask",            # ask | always | never
     "maintenance": {"frequency": "weekly", "clean": ["thumbs", "usercache"], "notify": "issues"},
 }

@@ -13,7 +13,17 @@ EMERALD = "#10b981"
 BLUE = "#3b82f6"
 ORANGE = "#f97316"
 VIOLET = "#a78bfa"
-TRACK = (1, 1, 1, 0.05)
+# Theme-dependent colours for Cairo drawing; gui.apply_theme() updates these.
+THEME = {"ink": (1.0, 1.0, 1.0), "text": "#f1f5f9", "faint": "#64748b"}
+
+
+def set_theme(ink_hex, text_hex, faint_hex):
+    THEME["ink"] = rgb(ink_hex)[:3]
+    THEME["text"], THEME["faint"] = text_hex, faint_hex
+
+
+def track(alpha=0.05):
+    return THEME["ink"] + (alpha * (1.6 if THEME["ink"][0] < 0.5 else 1.0),)
 MONO = "JetBrains Mono, Ubuntu Mono, monospace"
 
 
@@ -75,7 +85,7 @@ class RingGauge(Gtk.DrawingArea):
         end = start + 2 * math.pi * self.shown / 100
         cr.set_line_cap(1)  # round
         cr.set_line_width(lw)
-        cr.set_source_rgba(*TRACK)
+        cr.set_source_rgba(*track())
         cr.arc(cx, cy, r, 0, 2 * math.pi)
         cr.stroke()
         if self.shown > 0.2:
@@ -90,7 +100,7 @@ class RingGauge(Gtk.DrawingArea):
             cr.stroke()
         _text(cr, w, self.text, f"{MONO} Bold {max(13, int(r * 0.36))}px", rgb(self.color), cx, cy - 7)
         _text(cr, w, self.caption.upper(), "Ubuntu Sans Bold 8.5px",
-              rgb("#64748b"), cx, cy + r * 0.32)
+              rgb(THEME["faint"]), cx, cy + r * 0.32)
         return False
 
 
@@ -132,7 +142,7 @@ class LineChart(Gtk.DrawingArea):
         cr.set_line_width(1)
         for i in range(5):
             y = pad_t + H * i / 4
-            cr.set_source_rgba(1, 1, 1, 0.045)
+            cr.set_source_rgba(*track(0.045))
             cr.move_to(pad_l, int(y) + 0.5)
             cr.line_to(pad_l + W, int(y) + 0.5)
             cr.stroke()
@@ -140,7 +150,7 @@ class LineChart(Gtk.DrawingArea):
             layout.set_font_description(Pango.FontDescription.from_string(f"{MONO} 8px"))
             layout.set_text(self.fmt(self._label_value((4 - i) / 4, top)), -1)
             tw, th = layout.get_pixel_size()
-            cr.set_source_rgba(*rgb("#64748b"))
+            cr.set_source_rgba(*rgb(THEME["faint"]))
             cr.move_to(pad_l - tw - 6, y - th / 2)
             PangoCairo.show_layout(cr, layout)
         paths = []
@@ -195,7 +205,7 @@ class Bar(Gtk.DrawingArea):
             cr.arc(x + r, r, r, math.pi / 2, 3 * math.pi / 2)
             cr.arc(x + max(wd - r, r), r, r, -math.pi / 2, math.pi / 2)
             cr.close_path()
-        cr.set_source_rgba(*TRACK)
+        cr.set_source_rgba(*track())
         pill(0, a.width)
         cr.fill()
         if self.value > 0:
@@ -227,7 +237,7 @@ class StackedBar(Gtk.DrawingArea):
         cr.arc(a.width - r, r, r, -math.pi / 2, math.pi / 2)
         cr.close_path()
         cr.clip()
-        cr.set_source_rgba(*TRACK)
+        cr.set_source_rgba(*track())
         cr.paint()
         x = 0.0
         for i, (v, color) in enumerate(self.segments):
@@ -361,7 +371,7 @@ class Treemap(Gtk.DrawingArea):
                 layout = PangoCairo.create_layout(cr)
                 layout.set_font_description(Pango.FontDescription.from_string("Ubuntu Sans Bold 9"))
                 layout.set_text(item[1], -1)
-                cr.set_source_rgba(*rgb("#f1f5f9"))
+                cr.set_source_rgba(*rgb(THEME["text"]))
                 cr.move_to(x0 + 8, y0 + 6)
                 PangoCairo.show_layout(cr, layout)
                 layout2 = PangoCairo.create_layout(cr)
