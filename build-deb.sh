@@ -19,7 +19,7 @@ Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, pkexec | policykit-1
 Recommends: timeshift, ufw, udisks2, gir1.2-xapp-1.0, gir1.2-webkit2-4.1, libnotify-bin
 Suggests: smartmontools, flatpak
 Installed-Size: $SIZE
-Maintainer: Matthew <firefoxx.ms@gmail.com>
+Maintainer: Matthew Allwood <matthewallwood@protonmail.com>
 Description: Clean, optimise and repair Linux Mint
  MintCare diagnoses common problems (TCP BBR, broken packages, disk space,
  drivers, firewall, failed services...) and fixes them, applies reversible

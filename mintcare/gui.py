@@ -1010,7 +1010,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def show_about(self):
         d = Gtk.AboutDialog(transient_for=self, modal=True, program_name="MintCare", version=__version__,
-                            comments=_("Clean, optimise and repair Linux Mint."), logo_icon_name="mintcare")
+                            comments=_("Clean, optimise and repair Linux Mint."), logo_icon_name="mintcare",
+                            copyright="© 2026 Matthew Allwood", license_type=Gtk.License.GPL_3_0)
         css(d, "mintcare")
         d.run()
         d.destroy()

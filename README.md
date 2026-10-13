@@ -116,3 +116,7 @@ See `RELEASING.md` for GitHub releases and a Launchpad PPA.
 Add a `Check` to `mintcare/checks.py`, a `Tweak` (or `sysctl_tweak`) to
 `mintcare/tweaks.py`, or a `CleanItem` to `mintcare/cleaner.py`; the GUI and CLI
 pick them up automatically.
+
+## Licence
+MintCare is free software, released under the
+[GNU General Public License v3.0 or later](LICENSE). Copyright © 2026 Matthew Allwood.

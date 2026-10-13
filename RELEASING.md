@@ -3,10 +3,9 @@
 Nothing here has been published yet. Each step below needs your accounts and your go-ahead.
 
 ## Before the first public release
-- **Choose a licence** (e.g. GPL-3.0-or-later or MIT), add a `LICENSE` file and fill in
-  `debian/copyright`. Launchpad PPAs and most users expect an open-source licence.
-- Check the maintainer name/e-mail in `debian/control` and `debian/changelog` (taken from your
-  git config) — they become public.
+- Licence: GPL-3.0-or-later (`LICENSE`, `debian/copyright`).
+- Maintainer: the name/e-mail in `debian/control`, `debian/changelog` and `build-deb.sh` is public.
+- Replace `OWNER` in `debian/copyright` with the GitHub account once the repository exists.
 
 ## Every release
 1. Bump `__version__` in `mintcare/__init__.py` and add a `debian/changelog` entry

@@ -1,4 +1,8 @@
-"""MintCare - clean, optimise and repair Linux Mint."""
+"""MintCare - clean, optimise and repair Linux Mint.
+
+Copyright (C) 2026 Matthew Allwood
+SPDX-License-Identifier: GPL-3.0-or-later
+"""
 
 __version__ = "1.6.0"
 APP_ID = "org.mintcare.MintCare"

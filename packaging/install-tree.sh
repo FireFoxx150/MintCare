@@ -12,4 +12,5 @@ install -Dm644 packaging/mintcare.svg        "$DEST/usr/share/icons/hicolor/scal
 sed -e 's|@EXEC@|mintcare|' -e 's|^Icon=.*|Icon=mintcare|' mintcare.desktop.in \
   | install -Dm644 /dev/stdin "$DEST/usr/share/applications/mintcare.desktop"
 install -Dm644 README.md                     "$DEST/usr/share/doc/mintcare/README.md"
+install -Dm644 debian/copyright              "$DEST/usr/share/doc/mintcare/copyright"
 po/compile.sh "$DEST/usr/share/locale" >/dev/null
