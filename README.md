@@ -109,7 +109,7 @@ mintcare --tray            # start the GUI hidden in the tray
 
 ## Development
 ```
-./run-tests.sh                 # 64 stdlib unittest tests; never needs root or changes the system
+./run-tests.sh                 # 63 stdlib unittest tests; never needs root or changes the system
 po/update-pot.sh               # refresh the translation template (see po/README.md)
 ```
 See `RELEASING.md` for GitHub releases and a Launchpad PPA.
