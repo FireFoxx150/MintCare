@@ -8,7 +8,7 @@ jobs:
   release:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gettext xvfb fakeroot
       - name: Check the tag matches the version
