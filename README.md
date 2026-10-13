@@ -7,7 +7,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.6.0_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.6.1_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
