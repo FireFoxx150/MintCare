@@ -15,4 +15,5 @@ install -Dm644 README.md                     "$DEST/usr/share/doc/mintcare/READM
 install -Dm644 debian/copyright              "$DEST/usr/share/doc/mintcare/copyright"
 install -d "$DEST/usr/share/man/man1"
 gzip -9n < packaging/mintcare.1 > "$DEST/usr/share/man/man1/mintcare.1.gz"
+chmod 644 "$DEST/usr/share/man/man1/mintcare.1.gz"
 po/compile.sh "$DEST/usr/share/locale" >/dev/null
