@@ -16,3 +16,8 @@ def load(localedir=None, languages=None):
 _t = load()
 _ = _t.gettext
 ngettext = _t.ngettext
+
+
+def N_(s):
+    """Mark a string for translation without translating it here (it's passed to _() where it's shown)."""
+    return s

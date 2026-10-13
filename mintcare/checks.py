@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-from .i18n import _
+from .i18n import _, ngettext
 from . import tweaks
 from .util import (cpu_vendor, has_cmd, has_ssd, human, is_laptop, out, pkg_installed,
                    read, run, sysctl, unit_enabled, unit_active)
@@ -49,7 +49,7 @@ class Check:
         try:
             return self.probe()
         except Exception as e:  # a broken probe must never break the scan
-            return Result(INFO, f"Could not check: {e}")
+            return Result(INFO, _('Could not check: {0}').format(e))
 
 
 def tweak_fix(tid, label="Enable"):
@@ -63,12 +63,12 @@ def c_bbr():
     qd = sysctl("net.core.default_qdisc")
     if cc == "bbr":
         if qd in ("fq", "fq_pie", "cake"):
-            return Result(OK, f"BBR is enabled (qdisc {qd})")
-        return Result(WARN, f"BBR is on but qdisc is '{qd}'; 'fq' gives proper pacing",
+            return Result(OK, _('BBR is enabled (qdisc {0})').format(qd))
+        return Result(WARN, _("BBR is on but qdisc is '{0}'; 'fq' gives proper pacing").format(qd),
                       tweak_fix("bbr"))
     if not tweaks.BY_ID["bbr"].available():
-        return Result(INFO, f"Using '{cc}'; this kernel has no BBR module")
-    return Result(WARN, f"Using '{cc}' congestion control; BBR is faster on most links",
+        return Result(INFO, _("Using '{0}'; this kernel has no BBR module").format(cc))
+    return Result(WARN, _("Using '{0}' congestion control; BBR is faster on most links").format(cc),
                   tweak_fix("bbr"))
 
 
@@ -104,8 +104,8 @@ def c_hostname():
     for line in hosts.splitlines():
         parts = line.split("#")[0].split()
         if host in parts[1:]:
-            return Result(OK, f"Hostname '{host}' is in /etc/hosts")
-    return Result(WARN, f"Hostname '{host}' missing from /etc/hosts (sudo can be slow)",
+            return Result(OK, _("Hostname '{0}' is in /etc/hosts").format(host))
+    return Result(WARN, _("Hostname '{0}' missing from /etc/hosts (sudo can be slow)").format(host),
                   Fix("root", f"echo '127.0.1.1\t{host}' >> /etc/hosts", _("Add entry")))
 
 
@@ -135,7 +135,7 @@ def c_updates():
         return Result(OK, _("System is up to date (per the last package list refresh)"))
     upd = "mintupdate-cli -r -y upgrade" if has_cmd("mintupdate-cli") else \
           "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade"
-    return Result(WARN, f"{n} update{'s' if n != 1 else ''} available",
+    return Result(WARN, ngettext('{0} update available', '{0} updates available', n).format(n),
                   Fix("root", upd, _("Install updates")))
 
 
@@ -148,16 +148,16 @@ def c_reboot():
     newest = sorted((p.name[len("vmlinuz-"):] for p in Path("/boot").glob("vmlinuz-*")),
                     key=lambda v: [int(x) if x.isdigit() else x for x in v.replace("-", ".").split(".")])
     if newest and newest[-1] != running:
-        return Result(WARN, f"Newer kernel {newest[-1]} installed; running {running}. Restart to use it")
-    return Result(OK, f"Running the newest installed kernel ({running})")
+        return Result(WARN, _('Newer kernel {0} installed; running {1}. Restart to use it').format(newest[-1], running))
+    return Result(OK, _('Running the newest installed kernel ({0})').format(running))
 
 
 def c_kernels():
     o = out("dpkg-query -W -f='${Status} ${Package}\\n' 'linux-image-[0-9]*' 2>/dev/null")
     kernels = [l.split()[-1] for l in o.splitlines() if l.startswith("install ok installed")]
     if len(kernels) <= 3:
-        return Result(OK, f"{len(kernels)} kernel{'s' if len(kernels) != 1 else ''} installed")
-    return Result(WARN, f"{len(kernels)} kernels installed; old ones waste space in /boot",
+        return Result(OK, ngettext('{0} kernel installed', '{0} kernels installed', len(kernels)).format(len(kernels)))
+    return Result(WARN, _('{0} kernels installed; old ones waste space in /boot').format(len(kernels)),
                   Fix("page", "clean", _("Open cleaner")))
 
 
@@ -166,7 +166,7 @@ def c_residual():
     n = len(o.split())
     if n == 0:
         return Result(OK, _("No leftover config from removed packages"))
-    return Result(INFO, f"{n} removed package{'s' if n != 1 else ''} left config files behind",
+    return Result(INFO, ngettext('{0} removed package left config files behind', '{0} removed packages left config files behind', n).format(n),
                   Fix("page", "clean", _("Open cleaner")))
 
 
@@ -216,7 +216,7 @@ def c_journal():
                 except ValueError:
                     pass
     if size > 1 << 30:
-        return Result(WARN, f"System logs use {human(size)}", tweak_fix("journal", _("Cap logs")))
+        return Result(WARN, _('System logs use {0}').format(human(size)), tweak_fix("journal", _("Cap logs")))
     return Result(OK, f"System logs use {human(size)}" if size else "Journal size looks fine")
 
 
@@ -237,7 +237,7 @@ def c_timeshift():
     if not sched:
         return Result(WARN, _("Timeshift is configured but no automatic schedule is set"),
                       Fix("launch", "timeshift-launcher", _("Open Timeshift")))
-    return Result(OK, f"Timeshift snapshots scheduled ({', '.join(sched)})")
+    return Result(OK, _('Timeshift snapshots scheduled ({0})').format(', '.join(sched)))
 
 
 # ----------------------------------------------------------------- Memory
@@ -250,8 +250,8 @@ def c_swap():
     kinds = ["zram" if "zram" in l else "disk" for l in lines]
     sw = sysctl("vm.swappiness")
     if "zram" in kinds:
-        return Result(OK, f"zram compressed swap active (swappiness {sw})")
-    return Result(INFO, f"Disk swap only (swappiness {sw}); zram is faster",
+        return Result(OK, _('zram compressed swap active (swappiness {0})').format(sw))
+    return Result(INFO, _('Disk swap only (swappiness {0}); zram is faster').format(sw),
                   tweak_fix("zram", _("Enable zram")))
 
 
@@ -275,8 +275,8 @@ def c_microcode():
     if not pkg:
         return Result(OK, _("No microcode package needed for this CPU"))
     if pkg_installed(pkg):
-        return Result(OK, f"{pkg} is installed")
-    return Result(WARN, f"{pkg} is not installed (CPU security/bug fixes)", tweak_fix("microcode", _("Install")))
+        return Result(OK, _('{0} is installed').format(pkg))
+    return Result(WARN, _('{0} is not installed (CPU security/bug fixes)').format(pkg), tweak_fix("microcode", _("Install")))
 
 
 def c_gpu_driver():
@@ -292,7 +292,7 @@ def c_gpu_driver():
         return Result(WARN, _("NVIDIA GPU detected but no driver is loaded"),
                       Fix("launch", "driver-manager", _("Open Driver Manager")))
     name = gpus[0].split(": ", 1)[-1].split(" [")[0] if gpus else "unknown GPU"
-    return Result(OK, f"Graphics: {name} (open driver, no action needed)")
+    return Result(OK, _('Graphics: {0} (open driver, no action needed)').format(name))
 
 
 def c_power():
@@ -312,7 +312,7 @@ def c_failed_units():
     if not units:
         return Result(OK, _("No failed system services"))
     shown = ", ".join(units[:4]) + (" ..." if len(units) > 4 else "")
-    return Result(WARN, f"{len(units)} failed service{'s' if len(units) != 1 else ''}: {shown}",
+    return Result(WARN, ngettext('{0} failed service: {1}', '{0} failed services: {1}', len(units)).format(len(units), shown),
                   Fix("root", "\n".join(f"systemctl restart {u} || true" for u in units) +
                       "\nsystemctl reset-failed", _("Restart them")))
 
@@ -322,7 +322,7 @@ def c_user_failed_units():
     units = [l.split()[0] for l in o.splitlines() if l.strip()]
     if not units:
         return Result(OK, _("No failed user services"))
-    return Result(WARN, f"Failed user service{'s' if len(units) != 1 else ''}: {', '.join(units[:4])}",
+    return Result(WARN, ngettext('Failed user service: {0}', 'Failed user services: {0}', len(units)).format(', '.join(units[:4])),
                   Fix("user", "\n".join(f"systemctl --user restart {u} || true" for u in units) +
                       "\nsystemctl --user reset-failed", _("Restart them")))
 
@@ -398,16 +398,16 @@ def c_home_perms():
     home = Path.home()
     mode = home.stat().st_mode & 0o777
     if mode & 0o007:
-        return Result(WARN, f"Home folder is readable by other users (mode {mode:o})",
+        return Result(WARN, _('Home folder is readable by other users (mode {0:o})').format(mode),
                       Fix("user", f"chmod 750 {home}", _("Make private")))
-    return Result(OK, f"Home folder is private (mode {mode:o})")
+    return Result(OK, _('Home folder is private (mode {0:o})').format(mode))
 
 
 def c_inotify():
     w = int(sysctl("fs.inotify.max_user_watches") or 0)
     if w >= 524288:
-        return Result(OK, f"File watcher limit is {w:,}")
-    return Result(INFO, f"File watcher limit is {w:,}; IDEs may complain on big projects",
+        return Result(OK, _('File watcher limit is {0:,}').format(w))
+    return Result(INFO, _('File watcher limit is {0:,}; IDEs may complain on big projects').format(w),
                   tweak_fix("inotify", _("Raise")))
 
 
@@ -427,9 +427,9 @@ def c_smart():
     infos = [(d, t) for d in ds for lvl, t in d["notes"] if lvl == INFO and "CRC" in t]
     if infos:
         d, t = infos[0]
-        return Result(INFO, f"All {len(ds)} drives healthy; {d['model']} ({d['device']}) has {t.split(':')[0]}",
+        return Result(INFO, _('All {0} drives healthy; {1} ({2}) has {3}').format(len(ds), d['model'], d['device'], t.split(':')[0]),
                       Fix("page", "hardware", _("View drives")))
-    return Result(OK, f"All {len(ds)} drive{'s' if len(ds) != 1 else ''} report healthy SMART data")
+    return Result(OK, ngettext('{0} drive reports healthy SMART data', 'All {0} drives report healthy SMART data', len(ds)).format(len(ds)))
 
 
 def c_temps():
@@ -443,10 +443,10 @@ def c_temps():
         return Result(WARN, f"{thr[0][0]}: {thr[0][2]}", Fix("page", "hardware", _("View sensors")))
     if hot:
         s = max(hot, key=lambda x: x["temp"])
-        return Result(WARN, f"{s['label']} is running hot at {s['temp']:.0f}°C",
+        return Result(WARN, _('{0} is running hot at {1:.0f}°C').format(s['label'], s['temp']),
                       Fix("page", "hardware", _("View sensors")))
     top = max(ss, key=lambda x: x["temp"])
-    return Result(OK, f"Temperatures normal (hottest: {top['label']} {top['temp']:.0f}°C), no throttling")
+    return Result(OK, _('Temperatures normal (hottest: {0} {1:.0f}°C), no throttling').format(top['label'], top['temp']))
 
 
 def c_boot():
@@ -459,12 +459,11 @@ def c_boot():
     msg = f"Last boot took {t['total']:.1f} s"
     if slow:
         u, s = max(slow, key=lambda x: x[1])
-        return Result(INFO, f"{msg}; {u} delays it by {s:.1f} s and can be disabled",
+        return Result(INFO, _('{0}; {1} delays it by {2:.1f} s and can be disabled').format(msg, u, s),
                       Fix("page", "startup", _("Review boot")))
     if t.get("firmware", 0) >= 15:
-        return Result(INFO, f"{msg}, {t['firmware']:.1f} s of it in BIOS/UEFI firmware "
-                            "(try Fast Boot in your UEFI setup)", Fix("page", "startup", _("Review boot")))
-    return Result(OK, f"{msg} (userspace {t.get('userspace', 0):.1f} s)")
+        return Result(INFO, _('{0}, {1:.1f} s of it in BIOS/UEFI firmware (try Fast Boot in your UEFI setup)').format(msg, t['firmware']), Fix("page", "startup", _("Review boot")))
+    return Result(OK, _('{0} (userspace {1:.1f} s)').format(msg, t.get('userspace', 0)))
 
 
 def c_gamemode():
@@ -481,9 +480,9 @@ def c_grub_recordfail():
         return Result(OK, _("Not using GRUB"))
     t, rf, _style = tweaks._grub_values()
     if rf > 10:
-        return Result(INFO, f"After a crash or power cut GRUB waits {rf:.0f} s at its menu",
+        return Result(INFO, _('After a crash or power cut GRUB waits {0:.0f} s at its menu').format(rf),
                       tweak_fix("grub", _("Shorten")))
-    return Result(OK, f"GRUB menu timeout {t:.0f} s, {rf:.0f} s after a failed boot")
+    return Result(OK, _('GRUB menu timeout {0:.0f} s, {1:.0f} s after a failed boot').format(t, rf))
 
 
 # ------------------------------------------------------------ updates, firmware, sources, ports
@@ -496,9 +495,9 @@ def c_mintcare_update():
     if info is None:
         return Result(INFO, _("Couldn't reach GitHub to check for MintCare updates"))
     if selfupdate.is_newer(info["version"], __version__):
-        return Result(WARN, f"MintCare {info['version']} is available (you have {__version__})",
+        return Result(WARN, _('MintCare {0} is available (you have {1})').format(info['version'], __version__),
                       Fix("page", "software", _("Update")))
-    return Result(OK, f"MintCare {__version__} is the latest version")
+    return Result(OK, _('MintCare {0} is the latest version').format(__version__))
 
 
 def c_firmware():
@@ -508,7 +507,7 @@ def c_firmware():
     ups = firmware.updates()
     if ups:
         names = ", ".join(u["device"] for u in ups[:3])
-        return Result(WARN, f"{len(ups)} firmware update(s) available: {names}",
+        return Result(WARN, _('{0} firmware update(s) available: {1}').format(len(ups), names),
                       Fix("page", "hardware", _("View firmware")))
     age = firmware.metadata_age()
     return Result(OK, "Firmware is up to date" + (f" (catalogue checked {age} ago)" if age else ""))
@@ -519,10 +518,10 @@ def c_sources():
     srcs = [x for x in sources.analyse() if x.enabled]
     bad = [x for x in srcs if x.health in (sources.WARN, sources.FAIL)]
     if not bad:
-        return Result(OK, f"All {len(srcs)} software sources look healthy")
+        return Result(OK, _('All {0} software sources look healthy').format(len(srcs)))
     worst = max(bad, key=lambda x: sources.RANK[x.health])
     text = next(t for lvl, t in worst.problems if lvl == worst.health)
-    return Result(worst.health, f"{len(bad)} software source(s) need attention — {worst.label}: {text}",
+    return Result(worst.health, _('{0} software source(s) need attention — {1}: {2}').format(len(bad), worst.label, text),
                   Fix("page", "software", _("Review sources")))
 
 
@@ -533,11 +532,11 @@ def c_ports():
     info = [x for x in svcs if x["level"] == INFO]
     if warn:
         names = ", ".join(f"{x['name']} ({x['port']})" for x in warn[:3])
-        return Result(WARN, f"Reachable from the network with no firewall: {names}",
+        return Result(WARN, _('Reachable from the network with no firewall: {0}').format(names),
                       tweak_fix("ufw", _("Enable firewall")))
     if info:
         names = ", ".join(f"{x['name']} ({x['port']}/{x['proto']})" for x in info[:3])
-        return Result(INFO, f"Open to the network behind the firewall: {names}",
+        return Result(INFO, _('Open to the network behind the firewall: {0}').format(names),
                       Fix("page", "security", _("Review")))
     return Result(OK, f"{len(svcs)} network-facing port(s), all expected or blocked by the firewall"
                   if svcs else _("No services are reachable from the network"))
@@ -559,8 +558,8 @@ def c_backup():
     days = (_t.time() - last["ts"]) / 86400
     limit = {"daily": 2, "weekly": 9, "monthly": 35}.get(b["frequency"], 9)
     if days > limit:
-        return Result(WARN, f"Last backup was {days:.0f} days ago", Fix("page", "backup", _("Back up now")))
-    return Result(OK, f"Personal files backed up {days:.0f} day(s) ago to {b['dest']}")
+        return Result(WARN, _('Last backup was {0:.0f} days ago').format(days), Fix("page", "backup", _("Back up now")))
+    return Result(OK, _('Personal files backed up {0:.0f} day(s) ago to {1}').format(days, b['dest']))
 
 
 def c_battery():
@@ -572,7 +571,7 @@ def c_battery():
     if b["health"] is None:
         return Result(OK, _("Battery health isn't reported by this laptop"))
     if b["health"] < 60:
-        return Result(WARN, f"Battery holds only {b['health']}% of its original charge — consider replacing it",
+        return Result(WARN, _('Battery holds only {0}% of its original charge — consider replacing it').format(b['health']),
                       Fix("page", "hardware", _("View battery")))
     return Result(OK, f"Battery holds {b['health']}% of its original charge"
                   + (f" after {b['cycles']} cycles" if b["cycles"] else ""))

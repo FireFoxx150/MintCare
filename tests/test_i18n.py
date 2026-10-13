@@ -1,4 +1,6 @@
 """The gettext plumbing works: a compiled catalogue translates marked strings."""
+import gettext
+import re
 import shutil
 import subprocess
 import unittest
@@ -39,6 +41,21 @@ class Gettext(TempDirTest):
         pot = out.read_text()
         for s in ("Dashboard", "Diagnose & Fix", "TCP BBR congestion control", "Package download cache"):
             self.assertIn(f'msgid "{s}"', pot)
+
+    def test_shipped_translations_keep_placeholders(self):
+        """A translation that drops or renames a {0} would crash .format() at runtime."""
+        root = Path(__file__).resolve().parent.parent
+        for po in sorted((root / "po").glob("*.po")):
+            mo = Path(self.tmp) / (po.stem + ".mo")
+            subprocess.run(["msgfmt", "--check", "-o", str(mo), str(po)], check=True)
+            with open(mo, "rb") as f:
+                cat = gettext.GNUTranslations(f)._catalog
+            fields = lambda s: sorted(set(re.findall(r"(?<!\{)\{[^{}]*\}", s)))
+            for key, text in cat.items():
+                msgid = key[0] if isinstance(key, tuple) else key
+                if msgid:
+                    with self.subTest(lang=po.stem, msgid=msgid):
+                        self.assertEqual(fields(text), fields(msgid))
 
 
 if __name__ == "__main__":
