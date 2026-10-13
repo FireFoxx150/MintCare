@@ -10,13 +10,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gettext xvfb fakeroot
+        run: sudo apt-get update && sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gettext xvfb fakeroot lintian
       - name: Check the tag matches the version
         run: test "v$(python3 -c 'import mintcare; print(mintcare.__version__)')" = "$GITHUB_REF_NAME"
       - name: Run tests
         run: MINTCARE_SKIP_SYSTEM_TESTS=1 xvfb-run -a ./run-tests.sh
       - name: Build .deb
         run: ./build-deb.sh
+      - name: Lint .deb
+        run: lintian --fail-on error,warning dist/*.deb
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

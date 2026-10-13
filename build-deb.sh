@@ -7,6 +7,7 @@ PKG=build/mintcare_${VER}_all
 rm -rf build && mkdir -p "$PKG/DEBIAN" dist && chmod 755 "$PKG"
 
 packaging/install-tree.sh "$PKG"
+gzip -9n < debian/changelog > "$PKG/usr/share/doc/mintcare/changelog.gz"   # dh does this for PPA builds
 
 SIZE=$(du -sk "$PKG/usr" | cut -f1)
 cat > "$PKG/DEBIAN/control" <<CTRL
