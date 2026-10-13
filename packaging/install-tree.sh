@@ -13,4 +13,6 @@ sed -e 's|@EXEC@|mintcare|' -e 's|^Icon=.*|Icon=mintcare|' mintcare.desktop.in \
   | install -Dm644 /dev/stdin "$DEST/usr/share/applications/mintcare.desktop"
 install -Dm644 README.md                     "$DEST/usr/share/doc/mintcare/README.md"
 install -Dm644 debian/copyright              "$DEST/usr/share/doc/mintcare/copyright"
+install -d "$DEST/usr/share/man/man1"
+gzip -9n < packaging/mintcare.1 > "$DEST/usr/share/man/man1/mintcare.1.gz"
 po/compile.sh "$DEST/usr/share/locale" >/dev/null

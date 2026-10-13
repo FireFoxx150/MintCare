@@ -5,7 +5,7 @@
 override_dh_auto_build:
 
 override_dh_auto_test:
-	MINTCARE_SKIP_SYSTEM_TESTS=1 python3 -m unittest discover -s tests -t . || true
+	MINTCARE_SKIP_SYSTEM_TESTS=1 python3 -m unittest discover -s tests -t .
 
 override_dh_auto_install:
 	packaging/install-tree.sh debian/mintcare
