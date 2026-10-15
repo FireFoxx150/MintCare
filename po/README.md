@@ -14,5 +14,9 @@ Messages with values use numbered fields, e.g. `"{0} of {1} items selected"`: ke
 `{1:.1f}`… in your translation (you may reorder them). `run-tests.sh` checks this for every
 `.po` file. Markup such as `<b>`, `<tt>` and `&amp;` must stay intact too.
 
-Available: Spanish (`es`). Command output, check details and some technical messages from the
-helper modules stay in English.
+Available: Spanish (`es`), French (`fr`), German (`de`), Portuguese (`pt`, Brazilian wording)
+and Italian (`it`). Command output, the CLI and the exported health report stay in English.
+
+For developers: put `# xgettext:no-python-format` on the line before any `_()` string that
+contains `%` (e.g. `"{0}% full"`), otherwise xgettext flags it as a printf string and msgfmt
+rejects translations that move the `%`.

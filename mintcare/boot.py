@@ -8,7 +8,7 @@ from .util import out, run, unit_enabled
 # Services MintCare may offer to disable, with what you lose by doing so.
 SAFE_TO_DISABLE = {
     "NetworkManager-wait-online.service":
-        "Holds up boot until the network is up. Only needed for network shares mounted from /etc/fstab.",
+        _("Holds up boot until the network is up. Only needed for network shares mounted from /etc/fstab."),
     "systemd-networkd-wait-online.service":
         _("Holds up boot until the network is up. Only needed for network shares mounted at boot."),
     "ModemManager.service": _("Mobile-broadband (3G/4G/5G) modem support. Not needed without a cellular modem."),
@@ -16,7 +16,7 @@ SAFE_TO_DISABLE = {
     "smartmontools.service":
         _("smartd background disk monitor. MintCare's Hardware page and scan read SMART data on demand, "
         "but you lose smartd's continuous logging of early failure signs."),
-    "ollama.service": "Local AI model server. Start it when needed with: systemctl start ollama",
+    "ollama.service": _("Local AI model server. Start it when needed with: systemctl start ollama"),
     "docker.service": _("Docker engine. If docker.socket stays enabled it still starts on first use."),
     "containerd.service": _("Container runtime used by Docker; started on demand by Docker."),
     "kerneloops.service": _("Sends kernel crash reports to kerneloops.org."),
@@ -33,8 +33,8 @@ SAFE_TO_DISABLE = {
     "lvm2-monitor.service": _("LVM monitoring. Only needed if you use LVM volumes."),
 }
 
-MOUNT_ADVICE = ("A drive mounted from /etc/fstab. Adding the options 'nofail,x-systemd.automount' "
-                "mounts it on first access instead of during boot.")
+MOUNT_ADVICE = _("A drive mounted from /etc/fstab. Adding the options 'nofail,x-systemd.automount' "
+                  "mounts it on first access instead of during boot.")
 
 
 def _secs(tok):

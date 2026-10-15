@@ -256,5 +256,5 @@ def toggle_script(src, enable):
 
 
 def test_step():
-    return ("sources-test", "Test all software sources (apt-get update)",
+    return ("sources-test", _("Test all software sources (apt-get update)"),
             "apt-get update 2>&1 || true")

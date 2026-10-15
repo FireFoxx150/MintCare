@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 21:01+0100\n"
+"POT-Creation-Date: 2026-10-15 21:23+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -77,6 +77,12 @@ msgstr ""
 msgid "This isn't a MintCare settings file"
 msgstr ""
 
+#: mintcare/boot.py:11
+msgid ""
+"Holds up boot until the network is up. Only needed for network shares "
+"mounted from /etc/fstab."
+msgstr ""
+
 #: mintcare/boot.py:13
 msgid ""
 "Holds up boot until the network is up. Only needed for network shares "
@@ -100,6 +106,11 @@ msgid ""
 "smartd background disk monitor. MintCare's Hardware page and scan read SMART "
 "data on demand, but you lose smartd's continuous logging of early failure "
 "signs."
+msgstr ""
+
+#: mintcare/boot.py:19
+msgid ""
+"Local AI model server. Start it when needed with: systemctl start ollama"
 msgstr ""
 
 #: mintcare/boot.py:20
@@ -158,6 +169,12 @@ msgstr ""
 
 #: mintcare/boot.py:33
 msgid "LVM monitoring. Only needed if you use LVM volumes."
+msgstr ""
+
+#: mintcare/boot.py:36
+msgid ""
+"A drive mounted from /etc/fstab. Adding the options 'nofail,x-systemd."
+"automount' mounts it on first access instead of during boot."
 msgstr ""
 
 #: mintcare/boot.py:107
@@ -3208,6 +3225,10 @@ msgstr ""
 msgid "Remove…"
 msgstr ""
 
+#: mintcare/gui.py:3180
+msgid "system"
+msgstr ""
+
 #: mintcare/gui.py:3184
 msgid "No packages match."
 msgstr ""
@@ -3255,6 +3276,14 @@ msgstr ""
 msgid "Undo…"
 msgstr ""
 
+#: mintcare/gui.py:3220
+msgid "running"
+msgstr ""
+
+#: mintcare/gui.py:3222
+msgid "newest"
+msgstr ""
+
 #: mintcare/gui.py:3224 mintcare/gui.py:3804
 msgid "Remove"
 msgstr ""
@@ -3290,6 +3319,10 @@ msgstr ""
 
 #: mintcare/gui.py:3252
 msgid "no answer"
+msgstr ""
+
+#: mintcare/gui.py:3255
+msgid "current"
 msgstr ""
 
 #: mintcare/gui.py:3257
@@ -3478,6 +3511,14 @@ msgstr ""
 msgid "Reset sound settings"
 msgstr ""
 
+#: mintcare/gui.py:3478 mintcare/gui.py:3577
+msgid "default"
+msgstr ""
+
+#: mintcare/gui.py:3480
+msgid "muted"
+msgstr ""
+
 #: mintcare/gui.py:3481
 msgid "Use this"
 msgstr ""
@@ -3558,6 +3599,10 @@ msgstr ""
 msgid "(hidden)"
 msgstr ""
 
+#: mintcare/gui.py:3556 mintcare/gui.py:3607
+msgid "connected"
+msgstr ""
+
 #: mintcare/gui.py:3562
 msgid "Disconnects for a few seconds, then reconnects."
 msgstr ""
@@ -3574,6 +3619,10 @@ msgstr ""
 msgid "PRINTERS"
 msgstr ""
 
+#: mintcare/gui.py:3579
+msgid "paused"
+msgstr ""
+
 #: mintcare/gui.py:3580
 msgid "Make default"
 msgstr ""
@@ -3586,6 +3635,10 @@ msgstr ""
 #: mintcare/gui.py:3585
 #, python-brace-format
 msgid "Job {0}"
+msgstr ""
+
+#: mintcare/gui.py:3585
+msgid "waiting"
 msgstr ""
 
 #: mintcare/gui.py:3587
@@ -3614,6 +3667,11 @@ msgstr ""
 
 #: mintcare/gui.py:3601
 msgid "No Bluetooth adapter found."
+msgstr ""
+
+#: mintcare/gui.py:3609
+#, python-brace-format
+msgid "battery {0}%"
 msgstr ""
 
 #: mintcare/gui.py:3610
@@ -5674,6 +5732,10 @@ msgstr ""
 #: mintcare/sources.py:222
 msgid ""
 "Signing key is missing (NO_PUBKEY) — open Software Sources › Maintenance"
+msgstr ""
+
+#: mintcare/sources.py:259
+msgid "Test all software sources (apt-get update)"
 msgstr ""
 
 #: mintcare/space.py:251

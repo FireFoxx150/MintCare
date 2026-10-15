@@ -3177,7 +3177,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                     tag="pkg_row"))
             elif not prot:
                 btns.append(self._btn(_("Remove…"), lambda n=n: self.remove_packages([n]), tag="pkg_row"))
-            pills = [("system", "dim")] if prot else []
+            pills = [(_("system"), "dim")] if prot else []
             self.pkg_list.add(self._row(n, v["desc"], f"{v['version']} · {v['section']}", None, pills, btns,
                                         human(v["size"])))
         if not names:
@@ -3217,9 +3217,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _render_kernels(self):
         self._clear(self.kern_list, "kern_row")
         for k in self.pkg_data["kernels"]:
-            pills = [("running", "ok")] if k["running"] else []
+            pills = [(_("running"), "ok")] if k["running"] else []
             if k["newest"]:
-                pills.append(("newest", "info"))
+                pills.append((_("newest"), "info"))
             btns = [] if k["running"] or k["newest"] else [
                 self._btn(_("Remove"), lambda k=k: self._remove_kernel(k), tag="kern_row")]
             self.kern_list.add(self._row(_('Linux {0}').format(k['version']), ", ".join(k["packages"][:4]), "", None, pills,
@@ -3252,7 +3252,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                     sp = f"{m['speed'] / 1e6:.1f} MB/s" if m["speed"] else _("no answer")
                     pills = []
                     if m["url"] in (cur_m, cur_u):
-                        pills.append(("current", "info"))
+                        pills.append((_("current"), "info"))
                     if m["stale"]:
                         pills.append((_("out of date"), "warn"))
                     self.mir_list.add(self._row(m["url"], "", "", None, pills, (), sp))
@@ -3475,9 +3475,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         c, lb = list_card()
         for sname in a["sinks"]:
             is_def = sname["name"] == a["default"]
-            pills = [("default", "ok")] if is_def else []
+            pills = [(_("default"), "ok")] if is_def else []
             if sname["mute"]:
-                pills.append(("muted", "warn"))
+                pills.append((_("muted"), "warn"))
             btns = [] if is_def else [self._btn(_("Use this"), lambda n=sname["name"]: (
                 troubleshoot.set_default(n), self.load_troubleshoot()), tag="ts_sound")]
             btns.append(self._btn(_("Set to 70%"), lambda n=sname["name"]: (
@@ -3553,7 +3553,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             nc, nl = list_card()
             for w in sorted(n["nearby"], key=lambda w: -w["signal"])[:12]:
                 nl.add(self._row(w["ssid"] or _("(hidden)"), "", f"channel {w['chan']} · {w['freq']} · {w['security']}",
-                                 None, [("connected", "ok")] if w["active"] else [], (), f"{w['signal']}%"))
+                                 None, [(_("connected"), "ok")] if w["active"] else [], (), f"{w['signal']}%"))
             box.pack_start(nc, False, False, 0)
         box.show_all()
 
@@ -3574,15 +3574,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
         c, lb = list_card()
         for p_ in pr["printers"]:
             is_def = p_["name"] == pr["default"]
-            pills = [("default", "ok")] if is_def else []
+            pills = [(_("default"), "ok")] if is_def else []
             if p_["disabled"]:
-                pills.append(("paused", "warn"))
+                pills.append((_("paused"), "warn"))
             btns = [] if is_def else [self._btn(_("Make default"), lambda n=p_["name"]: (
                 troubleshoot.set_default_printer(n), maintenance.record("other", _('Default printer: {0}').format(n)),
                 self.load_troubleshoot()), tag="ts_devices")]
             lb.add(self._row(p_["name"].replace("_", " "), p_["state"], "", "printer-symbolic", pills, btns))
         for j in pr["jobs"]:
-            lb.add(self._row(_('Job {0}').format(j['id']), j["line"], "", "document-print-symbolic", [("waiting", "warn")]))
+            lb.add(self._row(_('Job {0}').format(j['id']), j["line"], "", "document-print-symbolic", [(_("waiting"), "warn")]))
         if not pr["printers"]:
             lb.add(self._row(_("No printers set up"), _("Add one in Menu › Printers.")))
         box.pack_start(c, False, False, 0)
@@ -3604,9 +3604,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
                               "ts_devices")
             c2, lb2 = list_card()
             for d in bt["devices"]:
-                pills = [("connected", "ok")] if d["connected"] else []
+                pills = [(_("connected"), "ok")] if d["connected"] else []
                 if d["battery"] is not None:
-                    pills.append((f"battery {d['battery']}%", "warn" if d["battery"] < 20 else "dim"))
+                    pills.append((_('battery {0}%').format(d['battery']), "warn" if d["battery"] < 20 else "dim"))
                 btns = [self._btn(_("Forget"), lambda m=d["mac"], n=d["name"]: self._bt_forget(m, n), tag="ts_devices")]
                 if not d["connected"]:
                     btns.insert(0, self._btn(_("Connect"), lambda m=d["mac"]: self.bg(

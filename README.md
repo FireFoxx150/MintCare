@@ -7,7 +7,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.8.0_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.9.0_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -28,7 +28,9 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 * **Responsive:** the layout reflows down to ~760 px wide; the sidebar collapses to icons.
 * **Tray icon:** optional XApp status icon with check-up / quick clean; can start in the tray at login.
 * **Health report:** export as PDF or HTML, with personal details removed by default.
-* **Languages:** English and Spanish (follows your system language); see `po/README.md` to add one.
+* **Languages:** English, Spanish, French, German, Portuguese and Italian (follows your system
+  language); see `po/README.md` to add one.
+* **Reduced motion:** gauges stop animating when animations are turned off in System Settings.
 * **Keyboard:** Ctrl+1…9 jump to sidebar pages, Ctrl+Page Up/Down step through them, F5 refreshes the
   page, Ctrl+E exports a report, Ctrl+? lists every shortcut. Switches, gauges and charts have names
   and live values for screen readers, and the disk-space map works with the arrow keys.

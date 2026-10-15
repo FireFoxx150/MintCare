@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 21:01+0100\n"
+"POT-Creation-Date: 2026-10-15 21:23+0100\n"
 "PO-Revision-Date: 2026-10-14 12:00+0000\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: Spanish\n"
@@ -77,6 +77,12 @@ msgstr "{0} archivos cambiados"
 msgid "This isn't a MintCare settings file"
 msgstr "Esto no es un archivo de configuración de MintCare"
 
+#: mintcare/boot.py:11
+msgid ""
+"Holds up boot until the network is up. Only needed for network shares "
+"mounted from /etc/fstab."
+msgstr "Retrasa el arranque hasta que haya red. Solo hace falta para recursos de red montados desde /etc/fstab."
+
 #: mintcare/boot.py:13
 msgid ""
 "Holds up boot until the network is up. Only needed for network shares "
@@ -110,6 +116,11 @@ msgstr ""
 "Vigilancia de discos en segundo plano (smartd). La página Hardware y el "
 "análisis de MintCare leen los datos SMART cuando hace falta, pero pierdes el "
 "registro continuo de smartd de las primeras señales de fallo."
+
+#: mintcare/boot.py:19
+msgid ""
+"Local AI model server. Start it when needed with: systemctl start ollama"
+msgstr "Servidor local de modelos de IA. Inícialo cuando lo necesites con: systemctl start ollama"
 
 #: mintcare/boot.py:20
 msgid ""
@@ -177,6 +188,12 @@ msgstr "Servidor de correo Postfix, rara vez necesario en un escritorio."
 #: mintcare/boot.py:33
 msgid "LVM monitoring. Only needed if you use LVM volumes."
 msgstr "Supervisión de LVM. Solo hace falta si usas volúmenes LVM."
+
+#: mintcare/boot.py:36
+msgid ""
+"A drive mounted from /etc/fstab. Adding the options 'nofail,x-systemd."
+"automount' mounts it on first access instead of during boot."
+msgstr "Un disco montado desde /etc/fstab. Añadir las opciones 'nofail,x-systemd.automount' lo monta al primer acceso en lugar de durante el arranque."
 
 #: mintcare/boot.py:107
 msgid "Already disabled, but still started because "
@@ -3351,6 +3368,10 @@ msgstr "Quitando retención…"
 msgid "Remove…"
 msgstr "Eliminar…"
 
+#: mintcare/gui.py:3180
+msgid "system"
+msgstr "sistema"
+
 #: mintcare/gui.py:3184
 msgid "No packages match."
 msgstr "Ningún paquete coincide."
@@ -3398,6 +3419,14 @@ msgstr "eliminar paquetes"
 msgid "Undo…"
 msgstr "Deshacer…"
 
+#: mintcare/gui.py:3220
+msgid "running"
+msgstr "en marcha"
+
+#: mintcare/gui.py:3222
+msgid "newest"
+msgstr "más reciente"
+
 #: mintcare/gui.py:3224 mintcare/gui.py:3804
 msgid "Remove"
 msgstr "Eliminar"
@@ -3436,6 +3465,10 @@ msgstr "Servidores de {0}"
 #: mintcare/gui.py:3252
 msgid "no answer"
 msgstr "sin respuesta"
+
+#: mintcare/gui.py:3255
+msgid "current"
+msgstr "actual"
 
 #: mintcare/gui.py:3257
 msgid "out of date"
@@ -3637,6 +3670,14 @@ msgstr "Reiniciar el sistema de sonido"
 msgid "Reset sound settings"
 msgstr "Restablecer la configuración de sonido"
 
+#: mintcare/gui.py:3478 mintcare/gui.py:3577
+msgid "default"
+msgstr "predeterminada"
+
+#: mintcare/gui.py:3480
+msgid "muted"
+msgstr "silenciada"
+
 #: mintcare/gui.py:3481
 msgid "Use this"
 msgstr "Usar este"
@@ -3720,6 +3761,10 @@ msgstr "WI-FI CERCANAS"
 msgid "(hidden)"
 msgstr "(oculta)"
 
+#: mintcare/gui.py:3556 mintcare/gui.py:3607
+msgid "connected"
+msgstr "conectado"
+
 #: mintcare/gui.py:3562
 msgid "Disconnects for a few seconds, then reconnects."
 msgstr "Se desconecta unos segundos y vuelve a conectarse."
@@ -3736,6 +3781,10 @@ msgstr "Vaciando la caché DNS…"
 msgid "PRINTERS"
 msgstr "IMPRESORAS"
 
+#: mintcare/gui.py:3579
+msgid "paused"
+msgstr "en pausa"
+
 #: mintcare/gui.py:3580
 msgid "Make default"
 msgstr "Predeterminar"
@@ -3749,6 +3798,10 @@ msgstr "Impresora predeterminada: {0}"
 #, python-brace-format
 msgid "Job {0}"
 msgstr "Trabajo {0}"
+
+#: mintcare/gui.py:3585
+msgid "waiting"
+msgstr "en espera"
 
 #: mintcare/gui.py:3587
 msgid "Add one in Menu › Printers."
@@ -3777,6 +3830,11 @@ msgstr "BLUETOOTH"
 #: mintcare/gui.py:3601
 msgid "No Bluetooth adapter found."
 msgstr "No se encontró adaptador Bluetooth."
+
+#: mintcare/gui.py:3609
+#, python-brace-format
+msgid "battery {0}%"
+msgstr "batería {0}%"
 
 #: mintcare/gui.py:3610
 msgid "Forget"
@@ -5968,6 +6026,10 @@ msgid ""
 msgstr ""
 "Falta la clave de firma (NO_PUBKEY) — abre Orígenes de software › "
 "Mantenimiento"
+
+#: mintcare/sources.py:259
+msgid "Test all software sources (apt-get update)"
+msgstr "Probar todos los orígenes de software (apt-get update)"
 
 #: mintcare/space.py:251
 msgid "Timeshift is not set up."
