@@ -139,6 +139,60 @@ def s_flatpak():
                     n).format(n)
 
 
+SPICES = HOME / ".local/share/cinnamon"
+SPICE_KEYS = ("enabled-applets", "enabled-desklets", "enabled-extensions")
+
+
+def unused_spices(enabled=None):
+    """Applets, desklets and extensions you downloaded but aren't using (never the built-in ones)."""
+    if enabled is None:
+        enabled = " ".join(out(["gsettings", "get", "org.cinnamon", k]) for k in SPICE_KEYS)
+    if not enabled.strip():
+        return []                           # couldn't read what's in use: report nothing rather than guess
+    return [d for kind in ("applets", "desklets", "extensions") for d in sorted((SPICES / kind).glob("*"))
+            if d.is_dir() and d.name not in enabled]
+
+
+def s_spices():
+    found = unused_spices()
+    return sum(dir_size(d) for d in found), (", ".join(d.name for d in found[:4]) or _("none found"))
+
+
+SPICES_SCRIPT = (
+    "en=\"$(for k in " + " ".join(SPICE_KEYS) + "; do gsettings get org.cinnamon $k; done)\"\n"
+    "[ -n \"$en\" ] || { echo 'Could not read the enabled add-ons; nothing removed'; exit 0; }\n"
+    f"for d in {q(str(SPICES))}/applets/*/ {q(str(SPICES))}/desklets/*/ {q(str(SPICES))}/extensions/*/; do\n"
+    "  [ -d \"$d\" ] || continue; u=\"$(basename \"$d\")\"\n"
+    "  case \"$en\" in *\"$u\"*) ;; *) gio trash \"$d\" && echo \"Moved $u to the Trash\";; esac\n"
+    "done")
+
+
+VAR_APP = HOME / ".var/app"
+
+
+def leftover_flatpak_data(installed=None):
+    """~/.var/app folders of Flatpak apps that are no longer installed."""
+    if installed is None:
+        installed = out(["flatpak", "list", "--app", "--columns=application"]).split()
+    if not installed:
+        return []                           # flatpak list failed or nothing installed: don't guess
+    return [d for d in sorted(VAR_APP.glob("*")) if d.is_dir() and d.name not in installed]
+
+
+def s_flatpakdata():
+    found = leftover_flatpak_data()
+    return sum(dir_size(d) for d in found), (", ".join(d.name for d in found[:3]) or _("none found"))
+
+
+FLATPAKDATA_SCRIPT = (
+    "inst=\"$(flatpak list --app --columns=application)\"\n"
+    "[ -n \"$inst\" ] || { echo 'Could not list installed Flatpaks; nothing removed'; exit 0; }\n"
+    f"for d in {q(str(VAR_APP))}/*/; do\n"
+    "  [ -d \"$d\" ] || continue; a=\"$(basename \"$d\")\"\n"
+    "  printf '%s\\n' \"$inst\" | grep -qxF \"$a\" || { gio trash \"$d\" && echo \"Moved $a data to the Trash\"; }\n"
+    "done")
+
+
 # Browser caches: (id, name, cache dirs relative to HOME, process names)
 BROWSERS = [
     ("firefox", "Firefox", [".cache/mozilla/firefox", ".var/app/org.mozilla.firefox/cache/mozilla"],
@@ -221,6 +275,14 @@ ITEMS = [
               user_script=f"find {q(HOME / '.cache')} -type f -atime +30 -mtime +30 -delete; "
                           f"find {q(HOME / '.cache')} -mindepth 1 -type d -empty -delete"),
     *_browser_items(),
+    CleanItem("flatpakdata", _("Data of removed Flatpak apps"),
+              _("Settings and files that uninstalled Flatpak apps left in ~/.var/app. Moved to the Trash."),
+              s_flatpakdata, user_script=FLATPAKDATA_SCRIPT, default=False,
+              available=lambda: has_cmd("flatpak") and VAR_APP.is_dir()),
+    CleanItem("spices", _("Unused Cinnamon add-ons"),
+              _("Applets, desklets and extensions you downloaded but don't use. Moved to the Trash."),
+              s_spices, user_script=SPICES_SCRIPT, default=False,
+              available=lambda: SPICES.is_dir() and has_cmd("gsettings")),
     CleanItem("devcache", _("Developer caches"), _("pip, npm, yarn, Go and Cargo download caches."),
               s_devcache, default=False,
               user_script="\n".join(f"rm -rf {q(p)}" for p in DEV_CACHES)),

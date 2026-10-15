@@ -168,6 +168,45 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
     return result
 
 
+def _key(folder):
+    """How a backed-up folder is stored inside a snapshot: relative to home, or its full path without
+    the leading slash for folders elsewhere."""
+    return os.path.relpath(folder, HOME) if folder.startswith(str(HOME) + os.sep) else folder.lstrip("/")
+
+
+def _origin(rel, folders):
+    """Where a path inside a snapshot came from."""
+    for f in sorted(folders, key=len, reverse=True):
+        key = _key(f)
+        if rel == key or rel.startswith(key + os.sep):
+            return str(HOME / rel) if f.startswith(str(HOME) + os.sep) else "/" + rel
+    return str(HOME / rel)
+
+
+def restore(snapshot, paths, folders=None):
+    """Copy files or folders from a snapshot back to where they came from. Files that would be
+    overwritten are kept beside them as NAME.before-restore. Returns [(path, ok, message)]."""
+    snapshot = os.path.realpath(snapshot)
+    folders = folders if folders is not None else config()["folders"]
+    results = []
+    for p in paths:
+        src = os.path.realpath(p)
+        if src == snapshot:                                  # the whole snapshot: each backed-up folder in it
+            inside = [os.path.join(snapshot, _key(f)) for f in folders]
+            results += restore(snapshot, [d for d in inside if os.path.exists(d)], folders)
+            continue
+        if not src.startswith(snapshot + os.sep):
+            results.append((p, False, "not inside this snapshot"))
+            continue
+        dest = _origin(os.path.relpath(src, snapshot), folders)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        args = ["rsync", "-a", "--backup", "--suffix=.before-restore"]
+        args += [src + "/", dest + "/"] if os.path.isdir(src) else [src, dest]
+        rc, o = run(args, timeout=3600)
+        results.append((dest, rc == 0, o.strip()[-200:]))
+    return results
+
+
 def last_backup():
     from . import maintenance
     try:

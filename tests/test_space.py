@@ -75,6 +75,36 @@ class Treemap(unittest.TestCase):
         self.assertEqual(_squarify([(0, "a")], 0, 0, 10, 10), [])
 
 
+class OldDownloads(TempDirTest):
+    def test_big_and_old_only(self):
+        now = 1_000_000_000
+        for name, size, age_days in (("old-big.iso", 20 << 20, 200), ("new-big.iso", 20 << 20, 5),
+                                     ("old-small.txt", 1000, 200), (".hidden/old-big.bin", 20 << 20, 200)):
+            p = os.path.join(self.tmp, name)
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            with open(p, "wb") as f:
+                f.truncate(size)                       # sparse: no real disk use
+            t = now - age_days * 86400
+            os.utime(p, (t, t))
+        found = space.old_downloads(self.tmp, now=now)
+        self.assertEqual([os.path.basename(p) for _s, p, _l in found], ["old-big.iso"])
+
+
+class TimeshiftRestore(TempDirTest):
+    def test_only_files_inside_the_snapshot(self):
+        root = os.path.join(self.tmp, "snap1", "localhost")
+        os.makedirs(os.path.join(root, "etc"))
+        with open(os.path.join(root, "etc", "fstab"), "w") as f:
+            f.write("x")
+        os.symlink("/etc/passwd", os.path.join(root, "etc", "escape"))
+        script = space.restore_file_script("snap1", [os.path.join(root, "etc", "fstab")], base=self.tmp)
+        self.assertIn("cp -a --backup=numbered", script)
+        self.assertIn(" /etc/fstab ", script)
+        for bad in (os.path.join(root, "etc"), os.path.join(root, "etc", "escape"), "/etc/hosts"):
+            with self.assertRaises(ValueError):
+                space.restore_file_script("snap1", [bad], base=self.tmp)
+
+
 @unittest.skipUnless(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"), "needs a display")
 class ReducedMotion(unittest.TestCase):
     def test_gauge_jumps_when_animations_are_off(self):

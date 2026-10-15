@@ -1,3 +1,19 @@
+mintcare (1.11.0) noble; urgency=medium
+
+  * Assistant: can run MintCare's read-only checks when allowed (output
+    scrubbed of names, serials and MAC addresses), adaptive thinking with a
+    "Think harder" option, and the cost of each answer.
+  * Desktop tweaks for your account: turn off Cinnamon effects; full-screen
+    games skip the compositor (added to the Gaming profile).
+  * Cleaner: data left by removed Flatpak apps, unused Cinnamon add-ons
+    (both opt-in, moved to the Trash).
+  * Disk space: Old downloads tab; restore single files from Timeshift.
+  * Startup apps can start 10 s, 30 s or 1 min after login.
+  * Backup: restore files, folders or a whole snapshot without losing what
+    they replace.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 15 Oct 2026 22:05:33 +0100
+
 mintcare (1.10.0) noble; urgency=medium
 
   * SMART trend: drive error counters are recorded and a warning appears

@@ -2086,8 +2086,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 user.append((check.id, check.title, f.payload))
             elif f.kind == "tweak":
                 t = tweaks.BY_ID[f.payload]
-                if not any(s[0] == "tweak-" + t.id for s in root):
-                    root.append(("tweak-" + t.id, t.title, t.apply_script()))
+                dest = user if t.user else root
+                if not any(s[0] == "tweak-" + t.id for s in dest):
+                    dest.append(("tweak-" + t.id, t.title, t.apply_script()))
         return root, user
 
     def apply_fixes(self, items):
@@ -2313,9 +2314,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if not (on or off):
             self.set_status(_("No changes to apply"))
             return
-        steps = [("off-" + t.id, "Revert: " + t.title, t.revert_script()) for t in off]
-        steps += [("on-" + t.id, "Apply: " + t.title, t.apply_script()) for t in on]
-        snap = self.ask_snapshot(_('{0} optimisation change(s)').format(len(steps)))
+        steps = [("off-" + t.id, "Revert: " + t.title, t.revert_script(), t.user) for t in off]
+        steps += [("on-" + t.id, "Apply: " + t.title, t.apply_script(), t.user) for t in on]
+        root = [s_[:3] for s_ in steps if not s_[3]]
+        user = [s_[:3] for s_ in steps if s_[3]]
+        snap = self.ask_snapshot(_('{0} optimisation change(s)').format(len(steps))) if root else []
         if snap is None:
             return
 
@@ -2323,7 +2326,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.notify_done(results or {}, _("Optimisation"))
             self._refresh_tweaks()
             self.run_diagnose()
-        self.in_thread(_("Applying tweaks…"), lambda: self.execute(steps, [], "Optimise", snap), done)
+        self.in_thread(_("Applying tweaks…"), lambda: self.execute(root, user, "Optimise", snap), done)
 
     def apply_recommended(self):
         self.select_recommended()
@@ -2459,6 +2462,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.space_stack.add_titled(self._build_folders_tab(), "folders", _("Folders & large files"))
         self.space_stack.add_titled(self._build_dups_tab(), "dups", _("Duplicates"))
         self.space_stack.add_titled(self._build_snaps_tab(), "snaps", _("Timeshift snapshots"))
+        self.space_stack.add_titled(self._build_olddl_tab(), "olddl", _("Old downloads"))
+        self.space_stack.connect("notify::visible-child-name",
+                                 lambda st, _p: st.get_visible_child_name() == "olddl" and self.load_old_downloads())
         page.pack_start(self.space_stack, False, False, 0)
         return scrolled(page)
 
@@ -2865,6 +2871,53 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     # -- snapshots
 
+    def _build_olddl_tab(self):
+        box = vbox(10)
+        self.olddl_head = label(_("Big files in Downloads that you haven't opened or changed for 3 months. "
+                                  "They go to the Trash, so you can still get them back."), ("muted",), wrap=True)
+        box.pack_start(self.olddl_head, False, False, 0)
+        c, self.olddl_list = list_card()
+        box.pack_start(c, False, False, 0)
+        return box
+
+    def load_old_downloads(self):
+        self.bg(space.old_downloads, self._render_old_downloads)
+
+    def _render_old_downloads(self, rows):
+        self._clear(self.olddl_list, "olddl_row")
+        rows = rows or []
+        if not rows:
+            r = Gtk.ListBoxRow(activatable=False)
+            r.add(label(_("Nothing old and big in Downloads."), ("muted",)))
+            self.olddl_list.add(r)
+        total = sum(size for size, _p, _l in rows)
+        self.olddl_head.set_text(
+            _("Big files in Downloads that you haven't opened or changed for 3 months. They go to the Trash, "
+              "so you can still get them back.") + ("  " + ngettext("{0} file, {1}.", "{0} files, {1}.",
+                                                                     len(rows)).format(len(rows), human(total))
+                                                    if rows else ""))
+        for size, path, last in rows[:60]:
+            when = time.strftime("%Y-%m-%d", time.localtime(last))
+            btns = [self._btn(_("Show"), lambda p=path: self.show_in_folder(p), tag="olddl_row"),
+                    self._btn(_("Trash"), lambda p=path, sz=size: self._trash_old(p, sz), tag="olddl_row")]
+            self.olddl_list.add(self._row(os.path.basename(path), _('Last used {0}').format(when),
+                                          os.path.dirname(path), "folder-download-symbolic", [], btns, human(size)))
+        self.olddl_list.show_all()
+
+    def _trash_old(self, path, size):
+        if not self.confirm(_('Move to Trash?'), _('<tt>{0}</tt>\n\n{1} — you can restore it from the Trash until you '
+                                                   'empty it.').format(GLib.markup_escape_text(path), human(size))):
+            return
+        try:
+            space.trash(path)
+        except GLib.Error as e:
+            self.log(_('Could not trash {0}: {1}').format(path, e.message))
+            self.set_status(_("Could not move to Trash"), bad=True)
+            return
+        maintenance.record("trash", _('Moved {0} to the Trash').format(os.path.basename(path)), True, path)
+        self.set_status(_('Moved {0} to the Trash').format(os.path.basename(path)))
+        self.load_old_downloads()
+
     def _build_snaps_tab(self):
         box = vbox(12)
         c = card("ecard")
@@ -2913,8 +2966,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if note:
             parts.append(note)
         self.snap_info.set_text(" ".join(parts))
-        for ch in self.snap_list.get_children():
-            ch.destroy()
+        self._clear(self.snap_list, "snap_row")
         self.snap_sel = {}
         if not snaps:
             r = Gtk.ListBoxRow(activatable=False)
@@ -2939,9 +2991,47 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 t.pack_start(label(f"“{sn['comment']}”", ("muted",)), False, False, 0)
             t.pack_start(label(_('{0} · {1:,} files').format(sn['name'], sn['files']), ("faint", "mono")), False, False, 0)
             b.pack_start(t, True, True, 0)
+            b.pack_end(self._btn(_("Restore a file…"), lambda n=sn["name"]: self.restore_timeshift_file(n),
+                                 tag="snap_row"), False, False, 0)
             row.add(b)
             self.snap_list.add(row)
         self.snap_list.show_all()
+
+    def _pick_from(self, folder, title, everything=None):
+        """File chooser rooted at `folder`. Returns a list of paths, [folder] for `everything`, or None."""
+        d = Gtk.FileChooserDialog(title=title, transient_for=self, action=Gtk.FileChooserAction.OPEN,
+                                  select_multiple=True)
+        d.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        if everything:
+            d.add_button(everything, 2)
+        d.add_button(_("Restore selected"), Gtk.ResponseType.OK)
+        d.set_current_folder(folder)
+        resp = d.run()
+        paths = d.get_filenames()
+        d.destroy()
+        if resp == 2:
+            return [folder]
+        return paths if resp == Gtk.ResponseType.OK and paths else None
+
+    def restore_timeshift_file(self, name):
+        root = space.snapshot_root(name)
+        paths = self._pick_from(root, _('Restore from the {0} snapshot').format(name))
+        if not paths:
+            return
+        try:
+            script = space.restore_file_script(name, paths)
+        except ValueError as e:
+            self.set_status(str(e), bad=True)
+            return
+        dests = ["/" + os.path.relpath(os.path.realpath(p), os.path.realpath(root)) for p in paths]
+        if not self.confirm(ngettext("Restore {0} file?", "Restore {0} files?", len(paths)).format(len(paths)),
+                            "<tt>" + GLib.markup_escape_text("\n".join(dests[:12])) + "</tt>\n\n" +
+                            _("Each file goes back to where it was. The current version is kept beside it "
+                              "as NAME.~1~, so you can switch back.")):
+            return
+        self._root_job(_("Restoring…"), [("ts-restore", _("Restore files from Timeshift"), script)], "Timeshift",
+                       lambda r: maintenance.record("snapshot", _('Restored {0} from snapshot {1}').format(
+                           ", ".join(dests[:3]), name), r.get("ts-restore") == 0))
 
     def delete_snapshots(self):
         names = [n for n, v in self.snap_sel.items() if v]
@@ -2988,7 +3078,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             t = tweaks.BY_ID.get(payload)
             if t and t.state() == "off":
                 steps = [("on-" + t.id, "Apply: " + t.title, t.apply_script())]
-                self.in_thread(_("Applying…"), lambda: self.execute(steps, [], "Optimise"),
+                self.in_thread(_("Applying…"), lambda: self.execute([] if t.user else steps, steps if t.user else [],
+                                                                    "Optimise"),
                                lambda r: (self.notify_done(r or {}, t.title), self._refresh_tweaks(),
                                           self.run_diagnose()))
 
@@ -3851,10 +3942,34 @@ class MintCareWindow(Gtk.ApplicationWindow):
         for sp in snaps:
             self.bk_snap_list.add(self._row(sp.name.replace("_", " "), "", str(sp), "folder-symbolic", (),
                                             [self._btn(_("Open"), lambda sp=sp: self._open_uri(sp.as_uri()),
+                                                       tag="bk_snap"),
+                                             self._btn(_("Restore…"), lambda sp=sp: self.restore_backup(sp),
                                                        tag="bk_snap")]))
         if not snaps:
             self.bk_snap_list.add(self._row(_("No snapshots yet"), _("Press Back up now to make the first one.")))
         self.bk_snap_list.show_all()
+
+    def restore_backup(self, snapshot):
+        paths = self._pick_from(str(snapshot), _('Restore from the backup of {0}').format(snapshot.name.replace("_", " ")),
+                                everything=_("Restore everything"))
+        if not paths:
+            return
+        what = _("everything in this backup") if paths == [str(snapshot)] else \
+            ngettext("{0} item", "{0} items", len(paths)).format(len(paths))
+        if not self.confirm(_('Restore {0}?').format(what),
+                            _("Files go back to where they were backed up from. Anything they would replace is "
+                              "kept beside it as NAME.before-restore, so nothing is lost.")):
+            return
+
+        def done(results):
+            results = results or []
+            bad = [p for p, ok, _m in results if not ok]
+            for p, ok, msg in results:
+                self.log((_('Restored {0}') if ok else _('Could not restore {0}: {1}')).format(p, msg))
+            maintenance.record("backup", _('Restored {0} from the backup of {1}').format(what, snapshot.name), not bad)
+            self.set_status(_('Restore finished with {0} problem(s) — see the Activity log').format(len(bad)) if bad
+                            else _("Restore finished"), bad=bool(bad))
+        self.in_thread(_("Restoring…"), lambda: backup.restore(snapshot, paths), done)
 
     def _bk_save(self):
         if self._bk_loading:
@@ -3995,6 +4110,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
         ch.pack_start(label(_('Model: {0}').format(assistant.MODEL), ("faint", "mono")), True, True, 0)
         self.ai_include = Gtk.CheckButton(label=_("Include my system summary (no names or serial numbers)"))
         ch.pack_end(self.ai_include, False, False, 0)
+        self.ai_checks = Gtk.CheckButton(label=_("Let Claude run MintCare's checks"))
+        self.ai_checks.set_tooltip_text(_("Claude can run the read-only health checks to answer from this PC's "
+                                          "real state. Names, serial numbers and MAC addresses are removed first."))
+        ch.pack_end(self.ai_checks, False, False, 0)
+        self.ai_hard = Gtk.CheckButton(label=_("Think harder"))
+        self.ai_hard.set_tooltip_text(_("More thinking for tricky problems: slower, and costs more per answer."))
+        ch.pack_end(self.ai_hard, False, False, 0)
         chat.pack_start(ch, False, False, 0)
         self.ai_view = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD_CHAR, cursor_visible=False,
                                     left_margin=12, right_margin=12, top_margin=10, bottom_margin=10)
@@ -4059,7 +4181,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             c.pack_start(kh, False, False, 8)
         c.show_all()
         ok = ready_sdk and has_key
-        for w in (self.ai_entry, self.ai_send_btn, self.ai_include):
+        for w in (self.ai_entry, self.ai_send_btn, self.ai_include, self.ai_checks, self.ai_hard):
             w.set_sensitive(ok)
 
     def _ai_install(self):
@@ -4107,6 +4229,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.ai_send_btn.set_sensitive(False)
         self._ai_append(f"\nYou: {q_}\n", bold=True)
         include = self.ai_include.get_active()
+        allow, effort = self.ai_checks.get_active(), ("high" if self.ai_hard.get_active() else "medium")
 
         def work():
             content = q_
@@ -4114,7 +4237,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 content = f"My system summary:\n{assistant.system_summary()}\n\nQuestion: {q_}"
             history = self.ai_history + [{"role": "user", "content": content}]
             GLib.idle_add(self._ai_append, "\n" + _("MintCare assistant:") + " ", True)
-            res = assistant.stream_reply(history, lambda t: GLib.idle_add(self._ai_append, t))
+            res = assistant.stream_reply(history, lambda t: GLib.idle_add(self._ai_append, t),
+                                         allow_checks=allow, effort=effort,
+                                         on_status=lambda t: GLib.idle_add(self.set_status, t))
             return content, res
 
         def done(out):
@@ -4125,9 +4250,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
             content, res = out
             if res.get("error"):
                 self._ai_append(f"\n[{res['error']}]\n")
-            if res.get("text") and not res.get("error"):
-                self.ai_history += [{"role": "user", "content": content},
-                                    {"role": "assistant", "content": res["text"]}]
+            if res.get("messages") and not res.get("error"):
+                # append-only, exactly as returned: rewriting earlier turns would invalidate their thinking
+                self.ai_history += [{"role": "user", "content": content}] + res["messages"]
+            if res.get("cost") is not None:
+                self._ai_append("\n" + (_("about ${0:.4f}") if res.get("approx") else _("${0:.4f}")).format(
+                    res["cost"]) + f" · {res.get('model') or assistant.MODEL}\n")
+                self.set_status(_("Answered"))
             self._ai_append("\n")
         self.bg(work, done)
 
@@ -4771,9 +4900,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         avg = sum(b["total"] for b in h[:-1]) / (len(h) - 1)
         last = h[-1]["total"]
         worst = max(h, key=lambda b: b["total"])
-        trend = _("slower") if last > avg * 1.15 else _("faster") if last < avg * 0.85 else _("about the same")
+        trend = (_("slower than average") if last > avg * 1.15 else _("faster than average") if last < avg * 0.85
+                 else _("about average"))
         self.boot_hist_lbl.set_text(
-            _('Last {0} boots: this one took {1:.1f} s, {2} than the average of {3:.1f} s. Slowest was {4:.1f} s on {5}.').format(len(h), last, trend, avg, worst['total'], time.strftime('%d %b', time.localtime(worst['ts']))))
+            _('Last {0} boots: this one took {1:.1f} s, {2} ({3:.1f} s). Slowest was {4:.1f} s on {5}.').format(len(h), last, trend, avg, worst['total'], time.strftime('%d %b', time.localtime(worst['ts']))))
 
     def _render_boot(self, res):
         if not res:
@@ -4884,8 +5014,31 @@ class MintCareWindow(Gtk.ApplicationWindow):
             sw.set_tooltip_text(_("Part of the desktop; switching it off can break shortcuts, keyrings or logins"))
         sw.connect("notify::active", self._on_app_toggle, a)
         box.pack_end(sw, False, False, 0)
+        if not locked:
+            delay = Gtk.ComboBoxText(valign=Gtk.Align.CENTER)
+            choices = [0, 10, 30, 60] + ([a["delay"]] if a["delay"] not in (0, 10, 30, 60) else [])
+            for secs in choices:
+                delay.append(str(secs), _("Start straight away") if not secs else _('Start {0} s after login').format(secs))
+            delay.set_active_id(str(a["delay"]))
+            describe(delay, _('When {0} starts').format(a["name"]))
+            delay.set_tooltip_text(_("Delaying apps that aren't needed straight away makes the desktop ready sooner."))
+            delay.connect("changed", self._on_app_delay, a)
+            box.pack_end(delay, False, False, 0)
         row.add(box)
         return row
+
+    def _on_app_delay(self, combo, a):
+        secs = int(combo.get_active_id() or 0)
+        try:
+            autostart.set_delay(a["file"], secs)
+        except Exception as e:
+            self.log(_('Could not change startup entry {0}: {1}').format(a['file'], e))
+            self.set_status(_('Could not change {0}').format(a['name']), bad=True)
+            return
+        a["delay"] = secs
+        maintenance.record("startup", _('Startup app {0}: starts {1} s after login').format(a['name'], secs))
+        self.set_status(_('{0} will start {1} s after login').format(a['name'], secs) if secs else
+                        _('{0} will start straight away').format(a['name']))
 
     def _on_app_toggle(self, sw, _pspec, a):
         on = sw.get_active()
@@ -5244,11 +5397,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
         d.destroy()
         if resp != Gtk.ResponseType.OK or not chosen:
             return
-        root = []
+        root, user_steps = [], []
         for kind, key, title in chosen:
             if kind == "tweak":
                 t = tweaks.BY_ID[key]
-                root.append(("undo-" + key, "Undo: " + t.title, t.revert_script()))
+                (user_steps if t.user else root).append(("undo-" + key, "Undo: " + t.title, t.revert_script()))
             elif kind == "unit":
                 root.append(("undo-" + key, f"Undo: re-enable {key}", boot.enable_script(key)))
         user_items = [(k, key, t) for k, key, t in chosen if k in ("autostart", "flatpak")]
@@ -5265,7 +5418,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 except Exception as e:
                     self.log(_('Could not undo {0}: {1}').format(title, e))
                     maintenance.record("undo", title, False, str(e))
-            return self.execute(root, [], "Undo", snap) if root else {}
+            return self.execute(root, user_steps, "Undo", snap) if root or user_steps else {}
 
         def done(results):
             self.notify_done(results or {}, _("Undo"))

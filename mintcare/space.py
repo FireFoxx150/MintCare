@@ -214,6 +214,34 @@ def default_dup_roots():
     return dirs or [HOME]
 
 
+def downloads_dir():
+    from gi.repository import GLib
+    return GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or os.path.join(HOME, "Downloads")
+
+
+def old_downloads(folder=None, min_size=10 << 20, days=90, now=None):
+    """[(size, path, last_used)] for big files in Downloads not opened or changed for `days`, biggest first.
+
+    "Last used" is the later of access and modification time; Linux updates access time at most daily
+    (relatime), which is plenty for a months-long threshold.
+    """
+    folder = folder or downloads_dir()
+    now = now or time.time()
+    found = []
+    for dirpath, dirnames, files in os.walk(folder):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for f in files:
+            p = os.path.join(dirpath, f)
+            try:
+                st = os.stat(p, follow_symlinks=False)
+            except OSError:
+                continue
+            last = max(st.st_atime, st.st_mtime)
+            if stat.S_ISREG(st.st_mode) and st.st_size >= min_size and now - last > days * 86400:
+                found.append((st.st_size, p, last))
+    return sorted(found, reverse=True)
+
+
 def trash(path):
     """Move to the Trash (reversible). Raises on failure."""
     from gi.repository import Gio
@@ -278,6 +306,28 @@ def timeshift_summary():
     sched = [k[9:] for k, v in cfg.items() if k.startswith("schedule_") and v == "true"]
     keep = {k[6:]: cfg[k] for k in cfg if k.startswith("count_") and k[6:] in sched}
     return {"schedule": sched, "keep": keep, "base_size": int(cfg.get("snapshot_size", 0) or 0)}
+
+
+def snapshot_root(name, base=None):
+    """The folder holding a Timeshift rsync snapshot's copy of the system (readable without root)."""
+    return os.path.join(base or snapshot_dir() or "", name, "localhost")
+
+
+def restore_file_script(name, paths, base=None):
+    """Root script putting files from a Timeshift snapshot back where they were. The current file is
+    kept beside it as NAME.~1~ (cp --backup=numbered). Raises ValueError for anything that isn't a
+    regular file inside the snapshot."""
+    from .util import q
+    root = os.path.realpath(snapshot_root(name, base))
+    lines = []
+    for p in paths:
+        real = os.path.realpath(p)
+        if not real.startswith(root + os.sep) or not os.path.isfile(real):
+            raise ValueError(f"{p} isn't a file inside snapshot {name}")
+        dest = "/" + os.path.relpath(real, root)
+        lines.append(f"mkdir -p {q(os.path.dirname(dest))} && cp -a --backup=numbered -- {q(real)} {q(dest)} "
+                     f"&& echo {q('Restored ' + dest)}")
+    return "\n".join(lines)
 
 
 def delete_snapshot_script(name):

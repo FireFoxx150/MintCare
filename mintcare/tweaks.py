@@ -7,6 +7,7 @@ be reverted cleanly. Scripts here run as root through pkexec.
 
 import getpass
 import grp
+import os
 from dataclasses import dataclass, field
 from glob import glob
 from pathlib import Path
@@ -18,6 +19,9 @@ from .util import (cpu_vendor, has_cmd, has_ssd, is_laptop, pkg_installed, q, re
                    sysctl, unit_enabled, unit_active, out)
 
 MARKERS = Path(STATE_DIR) / "applied"
+# Per-user tweaks (desktop settings) run as you and keep their markers in your own state folder
+USER_STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state") / "mintcare"
+USER_MARKERS = USER_STATE / "applied"
 
 
 @dataclass
@@ -32,6 +36,11 @@ class Tweak:
     recommended: bool = False
     available: Callable[[], bool] = lambda: True
     conflicts: list = field(default_factory=list)
+    user: bool = False                  # runs as you (no password), not as root
+
+    @property
+    def markers(self):
+        return USER_MARKERS if self.user else MARKERS
 
     def state(self):
         """'mintcare' (applied by us), 'system' (already active), or 'off'."""
@@ -41,16 +50,16 @@ class Tweak:
             active = False
         if not active:
             return "off"
-        return "mintcare" if (MARKERS / self.id).exists() else "system"
+        return "mintcare" if (self.markers / self.id).exists() else "system"
 
     def apply_script(self):
         # set -e is ignored inside "( ... ) && x", so test the status separately
-        return (f"mkdir -p {MARKERS}\n( set -e\n{self.apply}\n)\nrc=$?\n"
-                f"[ $rc -eq 0 ] && touch {MARKERS}/{self.id}\nexit $rc")
+        return (f"mkdir -p {q(str(self.markers))}\n( set -e\n{self.apply}\n)\nrc=$?\n"
+                f"[ $rc -eq 0 ] && touch {q(str(self.markers / self.id))}\nexit $rc")
 
     def revert_script(self):
         return (f"( set -e\n{self.revert}\n)\nrc=$?\n"
-                f"[ $rc -eq 0 ] && rm -f {MARKERS}/{self.id}\nexit $rc")
+                f"[ $rc -eq 0 ] && rm -f {q(str(self.markers / self.id))}\nexit $rc")
 
 
 # --------------------------------------------------------------------------
@@ -92,6 +101,29 @@ echo "Removed {conf}"
 """
     probe = lambda: all(_cmp(sysctl(k), v, op) for k, v, op in settings)
     return Tweak(id, title, category, description, probe, apply, revert, **kw)
+
+
+def _gsettings_available(schema, key):
+    return key in out(["gsettings", "list-keys", schema]).split()
+
+
+def gsettings_tweak(id, title, category, description, settings, **kw):
+    """Desktop-settings tweak for your account. settings: [(schema, key, value)]; revert restores the
+    values you had before."""
+    bak = q(str(USER_STATE / f"gsettings-{id}.bak"))
+    save = "\n".join(f"  echo {q(sch)} {q(k)} \"$(gsettings get {q(sch)} {q(k)})\"" for sch, k, _v in settings)
+    apply = (f"mkdir -p {q(str(USER_STATE))}\nif [ ! -f {bak} ]; then\n{{\n{save}\n}} > {bak}\nfi\n"
+             + "\n".join(f"gsettings set {q(sch)} {q(k)} {q(v)}" for sch, k, v in settings))
+    revert = (f"if [ -f {bak} ]; then\n  while read -r sch k v; do gsettings set \"$sch\" \"$k\" \"$v\"; done < {bak}\n"
+              f"  rm -f {bak}\nfi")
+    probe = lambda: all(out(["gsettings", "get", sch, k]) == v for sch, k, v in settings)
+    available = lambda: all(_gsettings_available(sch, k) for sch, k, _v in settings)
+    return Tweak(id, title, category, description, probe, apply, revert, user=True, available=available, **kw)
+
+
+EFFECT_KEYS = ["desktop-effects-workspace", "desktop-effects-change-size", "desktop-effects-close",
+               "desktop-effects-map", "desktop-effects-minimize", "desktop-effects-on-dialogs",
+               "desktop-effects-on-menus"]
 
 
 def _bbr_available():
@@ -534,6 +566,17 @@ EOF
 echo powersupersave > {ASPM_POLICY} 2>/dev/null || echo powersave > {ASPM_POLICY}""",
         revert=f"rm -f {ASPM_TMPFILE}\necho default > {ASPM_POLICY}",
         available=lambda: is_laptop() and Path(ASPM_POLICY).exists()),
+    gsettings_tweak(
+        "effects", _("Turn off desktop effects"), _("Desktop"),
+        _("Windows open, close, minimise and switch workspaces instantly instead of animating. Snappier on "
+          "older or busy PCs. Applies to your account straight away; no password needed."),
+        [("org.cinnamon", k, "false") for k in EFFECT_KEYS]
+        + [("org.cinnamon.desktop.interface", "enable-animations", "false")]),
+    gsettings_tweak(
+        "unredirect", _("Full-screen games skip the compositor"), _("Desktop"),
+        _("Lets full-screen games and videos draw straight to the screen, which raises frame rates and cuts "
+          "input lag. Some videos may tear slightly."),
+        [("org.cinnamon.muffin", "unredirect-fullscreen-windows", "true")]),
 ]
 
 BY_ID = {t.id: t for t in TWEAKS}
@@ -560,7 +603,7 @@ PROFILES = [
     Profile("gaming", _("Gaming"), "input-gaming-symbolic",
             _("Everyday tweaks plus GameMode, MangoHud, Steam with Proton and the "
             "SteamOS memory-map limit."),
-            _BASE + ["mapcount", "gamemode", "gamemodecfg", "mangohud", "steam", "protonup"]),
+            _BASE + ["mapcount", "gamemode", "gamemodecfg", "mangohud", "steam", "protonup", "unredirect"]),
     Profile("laptop", _("Laptop battery"), "battery-good-symbolic",
             _("Everyday tweaks plus charge limiting, power saver on battery and PCIe power saving."),
             _BASE + ["tlpconflict", "chargelimit", "autopower", "aspm", "dirty"]),

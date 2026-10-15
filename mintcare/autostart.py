@@ -98,6 +98,31 @@ def entries():
     return result
 
 
+def _user_copy(file):
+    """The user's override of an entry, starting from the system file if there is none yet."""
+    USER_DIR.mkdir(parents=True, exist_ok=True)
+    kf = _load(USER_DIR / file)
+    if kf is None:
+        sysf = next((d / file for d in SYSTEM_DIRS if (d / file).exists()), None)
+        if sysf is None:
+            raise FileNotFoundError(file)
+        kf = _load(sysf)
+    return kf
+
+
+def set_delay(file, seconds):
+    """Start an entry `seconds` after login (0 = straight away), for the current user only."""
+    kf = _user_copy(file)
+    if seconds:
+        kf.set_string(DE, "X-GNOME-Autostart-Delay", str(int(seconds)))
+    else:
+        try:
+            kf.remove_key(DE, "X-GNOME-Autostart-Delay")
+        except GLib.Error:
+            pass
+    kf.save_to_file(str(USER_DIR / file))
+
+
 def set_enabled(file, enabled):
     """Enable/disable an entry for the current user only."""
     USER_DIR.mkdir(parents=True, exist_ok=True)

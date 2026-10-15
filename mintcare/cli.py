@@ -28,9 +28,10 @@ def cmd_scan(args):
     if args.fix:
         fixable = [(k, r) for k, r in bad if r.fix and r.fix.kind in ("root", "user", "tweak")]
         root = [(k.id, k.title, r.fix.payload) for k, r in fixable if r.fix.kind == "root"]
-        root += [("t-" + r.fix.payload, k.title, tweaks.BY_ID[r.fix.payload].apply_script())
-                 for k, r in fixable if r.fix.kind == "tweak"]
+        tw = [(k, tweaks.BY_ID[r.fix.payload]) for k, r in fixable if r.fix.kind == "tweak"]
+        root += [("t-" + t.id, k.title, t.apply_script()) for k, t in tw if not t.user]
         user = [(k.id, k.title, r.fix.payload) for k, r in fixable if r.fix.kind == "user"]
+        user += [("t-" + t.id, k.title, t.apply_script()) for k, t in tw if t.user]
         run_steps(user, root=False)
         run_steps(root, root=True)
     return 1 if any(r.status == "fail" for _x, r in results) else 0
@@ -61,11 +62,14 @@ def cmd_tweaks(args):
     if unknown:
         sys.exit(f"Unknown tweak(s): {', '.join(unknown)}")
     if args.apply:
-        steps = [(i, tweaks.BY_ID[i].title, tweaks.BY_ID[i].apply_script()) for i in ids]
+        steps = [(tweaks.BY_ID[i], tweaks.BY_ID[i].apply_script()) for i in ids]
     else:
-        steps = [(i, tweaks.BY_ID[i].title, tweaks.BY_ID[i].revert_script())
-                 for i in ids if tweaks.BY_ID[i].revert]
-    res = run_steps(steps, root=True)
+        steps = [(tweaks.BY_ID[i], tweaks.BY_ID[i].revert_script()) for i in ids if tweaks.BY_ID[i].revert]
+    res = {}
+    for as_root in (False, True):          # desktop settings as you, system tweaks with one password prompt
+        batch = [(t.id, t.title, script) for t, script in steps if t.user != as_root]
+        if batch:
+            res.update(run_steps(batch, root=as_root))
     return 0 if all(rc == 0 for rc in res.values()) else 1
 
 

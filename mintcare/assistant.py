@@ -9,12 +9,14 @@
   your computer name, user name and serial numbers removed.
 """
 
+import json
 import os
 import sys
 from pathlib import Path
 
 from gi.repository import GLib
 
+from .i18n import _
 from .util import q
 
 DATA = Path(GLib.get_user_data_dir()) / "mintcare"
@@ -27,7 +29,9 @@ SYSTEM = ("You are MintCare's built-in helper for Linux Mint 22 (Ubuntu 24.04 'n
           "Optimise, Clean, Disk space, Software & updates, Packages, Flatpak apps, Processes, Hardware, Security, "
           "Troubleshoot, Boot & Startup, Backup and Maintenance). When a terminal command is needed, give it in a "
           "code block, say what it does, and flag anything that deletes data or needs sudo. Never suggest "
-          "disabling security features as a fix. If a system summary is attached, use it, but say when "
+          "disabling security features as a fix. You can run MintCare's read-only checks with the "
+          "list_checks and run_check tools when the answer depends on this PC's state; if the user hasn't "
+          "allowed that, answer without them. If a system summary is attached, use it, but say when "
           "something can't be known from it.")
 
 
@@ -104,42 +108,150 @@ def system_summary():
     return report._scrub("\n".join(lines), True)
 
 
-def stream_reply(history, on_text, stop=lambda: False):
-    """Send the conversation and stream the answer. history: [{'role','content'}].
+# Read-only tools. The list never changes during a conversation (a different tools array would
+# invalidate earlier thinking blocks), so when checks aren't allowed the tool says so instead.
+TOOLS = [
+    {"name": "list_checks", "eager_input_streaming": True,
+     "description": "List MintCare's health checks on this PC (id, title, area). Use it to find which check to run.",
+     "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "run_check", "eager_input_streaming": True,
+     "description": ("Run one of MintCare's read-only health checks on this PC and return its verdict, the "
+                     "diagnostic command it uses and that command's output. It never changes anything."),
+     "input_schema": {"type": "object", "additionalProperties": False, "required": ["check_id"],
+                      "properties": {"check_id": {"type": "string",
+                                                  "description": "A check id from list_checks, e.g. bbr or smart."}}}},
+]
+MAX_ROUNDS = 8
+# $ per million tokens: input, output, cache read, cache write (5-minute)
+# shortcut: only the default model is priced; a fallback model's turns are shown as approximate
+PRICES = {MODEL: (4.00, 20.00, 0.20, 5.00)}
 
-    Returns {'text', 'stop_reason', 'model', 'error'}. on_text(chunk) is called per text delta.
+
+def cost(usage, model=MODEL):
+    """Dollar cost of one response's usage, or None when the model isn't priced here."""
+    p = PRICES.get(model)
+    if p is None:
+        return None
+    n = lambda attr: getattr(usage, attr, 0) or 0
+    return (n("input_tokens") * p[0] + n("output_tokens") * p[1] + n("cache_read_input_tokens") * p[2]
+            + n("cache_creation_input_tokens") * p[3]) / 1e6
+
+
+def _private(text):
+    """Remove names, drive serials and MAC addresses from tool output before it leaves the PC."""
+    import re
+    from . import hardware, report
+    text = report._scrub(text, True)
+    for d in hardware.drives():
+        if d.get("serial"):
+            text = text.replace(d["serial"], "[serial]")
+    return re.sub(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b", "[mac]", text)
+
+
+def run_tool(name, args, allowed):
+    """(content, is_error) for one tool call. Inputs come from the model, so they are validated here."""
+    from . import checks
+    if not allowed:
+        return ("The user hasn't allowed the assistant to run checks on this PC. Answer from what you know, "
+                "or tell them they can tick 'Let Claude run MintCare's checks'."), True
+    by_id = {c.id: c for c in checks.CHECKS}
+    if name == "list_checks":
+        return "\n".join(f"{c.id}\t{c.title}\t{c.category}" for c in checks.CHECKS), False
+    if name == "run_check":
+        cid = args.get("check_id") if isinstance(args, dict) else None
+        if not isinstance(cid, str) or cid not in by_id:
+            return json.dumps({"INVALID_INPUT": args, "valid_ids": sorted(by_id)}), True
+        r = by_id[cid].run()
+        parts = [f"Check: {by_id[cid].title}", f"Result: {r.status.upper()} - {r.summary}"]
+        det = checks.details(cid)
+        if det:
+            cmd, out_, _acts = det
+            parts += [f"Command: {cmd}", "Output:", out_[:6000] + ("\n[output shortened]" if len(out_) > 6000 else "")]
+        return _private("\n".join(parts)), False
+    return f"Unknown tool {name!r}", True
+
+
+def echo_blocks(content):
+    """The blocks to send back next time. After a mid-output fallback, only text survives from the
+    declined part (before the last fallback block); everything after it is kept as returned."""
+    cut = max((i for i, b in enumerate(content) if b.type == "fallback"), default=-1)
+    return [b for i, b in enumerate(content) if i >= cut or b.type == "text"]
+
+
+def stream_reply(history, on_text, stop=lambda: False, allow_checks=False, effort="medium",
+                 on_status=lambda text: None):
+    """Send the conversation, stream the answer and run any checks Claude asks for.
+
+    history: the conversation so far, ending with the new user turn; it is never edited.
+    Returns {'messages', 'text', 'stop_reason', 'model', 'cost', 'approx', 'error'}, where
+    'messages' are the turns to append to history (assistant turns as returned, tool results).
     """
     anthropic = _load_sdk()
     if anthropic is None:
-        return {"text": "", "error": "AI support isn't installed."}
+        return {"text": "", "messages": [], "error": "AI support isn't installed."}
     key = get_key()
     client = anthropic.Anthropic(api_key=key) if key else anthropic.Anthropic()
-    params = dict(model=MODEL, max_tokens=16000, system=SYSTEM, messages=history,
+    params = dict(model=MODEL, max_tokens=64000, system=SYSTEM, tools=TOOLS,
+                  thinking={"type": "adaptive"}, output_config={"effort": effort},
                   betas=["server-side-fallback-2026-07-01"])
-    text = []
+    new, text, total, approx = [], [], 0.0, False
+    res = {"text": "", "messages": new, "stop_reason": None, "model": MODEL, "cost": 0.0, "approx": False,
+           "error": None}
+    on_status(_("Thinking…"))
     try:
-        try:
-            stream_cm = client.beta.messages.stream(fallbacks="default", **params)
-        except TypeError:                              # older SDK without the fallbacks argument
-            stream_cm = client.beta.messages.stream(extra_body={"fallbacks": "default"}, **params)
-        with stream_cm as stream:
-            for chunk in stream.text_stream:
-                if stop():
-                    break
-                text.append(chunk)
-                on_text(chunk)
-            final = stream.get_final_message()
-        if final.stop_reason == "refusal":
-            return {"text": "".join(text), "stop_reason": "refusal", "model": final.model,
-                    "error": "Claude declined to answer this one. Try rephrasing the question."}
-        return {"text": "".join(text), "stop_reason": final.stop_reason, "model": final.model, "error": None}
+        for _round in range(MAX_ROUNDS):
+            messages = history + new
+            try:
+                stream_cm = client.beta.messages.stream(fallbacks="default", messages=messages, **params)
+            except TypeError:                          # older SDK without the fallbacks argument
+                stream_cm = client.beta.messages.stream(extra_body={"fallbacks": "default"}, messages=messages,
+                                                        **params)
+            try:
+                with stream_cm as stream:
+                    for chunk in stream.text_stream:
+                        if stop():
+                            break
+                        text.append(chunk)
+                        on_text(chunk)
+                    final = stream.get_final_message()
+            except ValueError:                          # tool input the SDK couldn't parse at all
+                res["error"] = "Claude sent a malformed request to run a check. Please ask again."
+                break
+            c = cost(final.usage, final.model)
+            approx = approx or c is None
+            total += c or 0.0
+            blocks = echo_blocks(final.content)
+            new.append({"role": "assistant", "content": blocks})
+            res.update(stop_reason=final.stop_reason, model=final.model)
+            if final.stop_reason == "refusal":
+                res["error"] = "Claude declined to answer this one. Try rephrasing the question."
+                break
+            calls = [b for b in blocks if b.type == "tool_use"]
+            if final.stop_reason == "max_tokens" and calls:
+                res["error"] = "The answer was cut off before a check could run."
+                break
+            if final.stop_reason != "tool_use" or not calls or stop():
+                break
+            results = []
+            for b in calls:                             # all results go back in one user turn
+                on_status(_('Running check: {0}').format((b.input or {}).get('check_id', b.name)))
+                content, is_err = run_tool(b.name, b.input, allow_checks)
+                results.append({"type": "tool_result", "tool_use_id": b.id, "content": content,
+                                **({"is_error": True} if is_err else {})})
+            new.append({"role": "user", "content": results})
+            text.append("\n")
+            on_text("\n")
+        else:
+            res["error"] = "Stopped after several checks without a final answer."
     except anthropic.AuthenticationError:
-        return {"text": "", "error": "The API key was rejected. Check it in the Assistant settings."}
+        res["error"] = "The API key was rejected. Check it in the Assistant settings."
     except anthropic.PermissionDeniedError:
-        return {"text": "", "error": "This API key isn't allowed to use that model."}
+        res["error"] = "This API key isn't allowed to use that model."
     except anthropic.RateLimitError:
-        return {"text": "".join(text), "error": "Rate limited by the API — wait a moment and try again."}
+        res["error"] = "Rate limited by the API — wait a moment and try again."
     except anthropic.APIStatusError as e:
-        return {"text": "".join(text), "error": f"API error {e.status_code}: {getattr(e, 'message', e)}"}
+        res["error"] = f"API error {e.status_code}: {getattr(e, 'message', e)}"
     except anthropic.APIConnectionError:
-        return {"text": "".join(text), "error": "Couldn't reach the Claude API — check your internet connection."}
+        res["error"] = "Couldn't reach the Claude API — check your internet connection."
+    res.update(text="".join(text), cost=total, approx=approx)
+    return res
