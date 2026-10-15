@@ -1,5 +1,7 @@
 """Disk SMART health (via UDisks2, no root needed) and temperature / throttling sensors."""
 
+import json
+import time
 from glob import glob
 from pathlib import Path
 
@@ -88,7 +90,64 @@ def drives():
         out.append(info)
     order = {"NVMe": 0, "SSD": 1, "HDD": 2, "Disk": 3}
     out.sort(key=lambda x: (order[x["kind"]], x["device"]))
+    track(out)
     return out
+
+
+# ------------------------------------------------------------------ SMART trend
+
+# Counters that should never grow on a healthy drive; CRC errors point at the cable instead
+GROWTH = {"realloc": (WARN, _("{0} more reallocated sector(s) since {1} — the drive is wearing out; back it up")),
+          "pending": (FAIL, _("{0} more pending sector(s) since {1} — back up this drive now")),
+          "offline_unc": (FAIL, _("{0} more uncorrectable sector(s) since {1} — back up this drive now")),
+          "media": (WARN, _("{0} more media error(s) since {1} — back it up and watch it")),
+          "crc": (WARN, _("{0} more interface CRC error(s) since {1} — the SATA cable or port is still faulty; "
+                          "reseat or replace the cable"))}
+WINDOW = 30 * 86400
+
+
+def growth(samples, current, now=None):
+    """[(level, text)] for counters that rose since the oldest sample in the last 30 days."""
+    now = now or time.time()
+    recent = [s for s in samples if now - s["ts"] <= WINDOW]
+    if not recent:
+        return []
+    base = recent[0]
+    when = time.strftime("%d %b", time.localtime(base["ts"]))
+    notes = []
+    for key, (level, text) in GROWTH.items():
+        delta = current.get(key, 0) - base["c"].get(key, 0)
+        if key in current and key in base["c"] and delta > 0:
+            notes.append((level, text.format(delta, when)))
+    return notes
+
+
+def track(drives_, path=None, now=None):
+    """Record each drive's error counters (once a day or when they change) and add growth notes."""
+    from . import maintenance
+    path = path or maintenance.STATE / "smart-history.json"
+    now = now or time.time()
+    try:
+        hist = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        hist = {}
+    for d in drives_:
+        cur = d.get("counters")
+        if not cur:
+            continue
+        key = d.get("serial") or f"{d['model']}|{d['device']}"
+        samples = hist.setdefault(key, [])
+        for note in growth(samples, cur, now):
+            d["notes"].append(note)
+            d["health"] = _worst(d["health"], note[0])
+        if not samples or samples[-1]["c"] != cur or now - samples[-1]["ts"] > 86400:
+            samples.append({"ts": now, "c": cur})
+        del samples[:-90]                       # about three months of daily samples
+    try:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        Path(path).write_text(json.dumps(hist))
+    except OSError:
+        pass
 
 
 def _nvme(bus, path, ctl, info):
@@ -135,6 +194,7 @@ def _nvme(bus, path, ctl, info):
         levels.append(WARN)
         info["notes"].append((WARN, _('Last self-test result: {0}').format(st)))
     info["health"] = _worst(*levels)
+    info["counters"] = {"media": media}
     info["stats"] = [
         ("TEMP", f"{info['temp']:.0f}°C" if info["temp"] is not None else "–"),
         ("POWERED ON", _years(info["hours"] or 0)),
@@ -186,6 +246,7 @@ def _ata(bus, path, ata, info):
         levels.append(WARN)
         info["notes"].append((WARN, _('Last self-test result: {0}').format(st)))
     info["health"] = _worst(*levels)
+    info["counters"] = {"realloc": rea, "pending": pend, "offline_unc": unc, "crc": crc}
     info["stats"] = [
         ("TEMP", f"{info['temp']:.0f}°C" if info["temp"] is not None else "–"),
         ("POWERED ON", _years(info["hours"])),

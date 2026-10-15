@@ -101,6 +101,72 @@ def _ping(host, count=3):
     return loss, float(avg.group(1)) if avg else None
 
 
+SPEED_HOST = "https://speed.cloudflare.com"
+
+
+def speed_test(host=SPEED_HOST, seconds=8, cancel=lambda: False):
+    """Latency, download and upload against Cloudflare's speed-test endpoints.
+
+    Returns {'ping_ms', 'down_mbps', 'up_mbps'} (None for a part that failed) or raises OSError if
+    the server can't be reached at all.
+    """
+    import http.client
+    import urllib.request
+    from urllib.parse import urlparse
+    ua = {"User-Agent": "MintCare speed test"}
+
+    def get(nbytes, deadline=None):
+        t0 = time.monotonic()
+        got = 0
+        with urllib.request.urlopen(urllib.request.Request(f"{host}/__down?bytes={nbytes}", headers=ua),
+                                    timeout=10) as r:
+            while not cancel():
+                chunk = r.read(65536)
+                if not chunk:
+                    break
+                got += len(chunk)
+                if deadline and time.monotonic() > deadline:
+                    break
+        return got, time.monotonic() - t0
+
+    def put(nbytes):
+        t0 = time.monotonic()
+        req = urllib.request.Request(f"{host}/__up", data=bytes(nbytes), headers=ua, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as r:
+            r.read()
+        return nbytes, time.monotonic() - t0
+
+    # Latency over one kept-open connection, so it's a single round trip rather than TCP + TLS setup
+    u = urlparse(host)
+    conn = (http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection)(u.netloc, timeout=10)
+    pings = []
+    try:
+        for _i in range(4):
+            t0 = time.monotonic()
+            conn.request("GET", "/__down?bytes=0", headers=ua)
+            conn.getresponse().read()
+            pings.append(time.monotonic() - t0)
+    finally:
+        conn.close()
+    res = {"ping_ms": min(pings[1:]) * 1000, "down_mbps": None, "up_mbps": None}
+    try:
+        deadline, got, t0 = time.monotonic() + seconds, 0, time.monotonic()
+        while time.monotonic() < deadline and got < 100_000_000 and not cancel():   # at most ~100 MB
+            got += get(25_000_000, deadline)[0]        # the server refuses single requests of 100 MB or more
+        res["down_mbps"] = got * 8 / max(time.monotonic() - t0, 1e-6) / 1e6
+    except OSError:
+        pass
+    try:
+        if not cancel():
+            n, secs = put(2_000_000)
+            if secs < 1.5 and not cancel():                 # fast line: a bigger sample is more accurate
+                n, secs = put(20_000_000)
+            res["up_mbps"] = n * 8 / max(secs, 1e-6) / 1e6
+    except OSError:
+        pass
+    return res
+
+
 def network():
     """Interfaces, Wi-Fi details, latency and DNS timing, with issues."""
     res = {"devices": [], "wifi": None, "gateway": "", "latency": {}, "dns_ms": None, "issues": [],

@@ -1,6 +1,6 @@
 # Releasing MintCare
 
-Nothing here has been published yet. Each step below needs your accounts and your go-ahead.
+Each step below that publishes something needs your accounts and your go-ahead.
 
 ## Before the first public release
 - Licence: GPL-3.0-or-later (`LICENSE`, `debian/copyright`).
@@ -20,11 +20,32 @@ Nothing here has been published yet. Each step below needs your accounts and you
 3. Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`, which checks the tag matches the
    version, runs the tests and attaches the `.deb` to a GitHub Release.
 
+## Verifying a release
+Each release has the `.deb`, a `SHA256SUMS` file, and a signed build-provenance attestation
+(Sigstore, made by the release workflow; no keys to manage). Anyone can check that a `.deb` was
+built by this repository's workflow from the tagged source:
+```
+sha256sum -c SHA256SUMS
+gh attestation verify mintcare_X.Y.Z_all.deb --repo FireFoxx150/MintCare   # gh 2.49 or newer
+```
+MintCare's own updater checks the SHA-256 that GitHub records for the asset before installing.
+
 ## Launchpad PPA (updates through Update Manager)
-1. Create a Launchpad account, upload your GPG key, sign the Code of Conduct and create a PPA.
+One-time setup, all on your accounts:
+1. Create a GPG key for the maintainer address in `debian/control`
+   (`gpg --full-generate-key`), then a Launchpad account; upload the key
+   (`gpg --keyserver keyserver.ubuntu.com --send-keys KEYID`, then add its fingerprint on Launchpad),
+   sign the Ubuntu Code of Conduct and create a PPA named `mintcare`.
 2. `sudo apt install devscripts debhelper dput`
-3. For each Ubuntu base Mint uses (22.x = noble): set the changelog version to e.g.
-   `1.7.1~ppa1~noble` and the series to `noble`, then
-   `debuild -S -sa` (signs with your key) and `dput ppa:USER/mintcare ../mintcare_*_source.changes`.
-4. Users then run `sudo add-apt-repository ppa:USER/mintcare && sudo apt install mintcare`
-   and get updates through Mint's Update Manager.
+
+Every release, after tagging:
+```
+packaging/ppa.sh noble 1        # Mint 22.x; builds dist/ppa/mintcare_X.Y.Z+ppa1~noble1_source.changes
+dput ppa:YOUR-LAUNCHPAD-NAME/mintcare dist/ppa/mintcare_X.Y.Z+ppa1~noble1_source.changes
+```
+`ppa.sh` signs with your key when it finds one; without a key it builds unsigned as a dry run, which
+Launchpad would reject. Bump the last argument (`2`, `3`…) to re-upload the same version. The PPA
+version sorts above the GitHub `.deb` of the same release, so `.deb` users move to the PPA cleanly.
+
+Users then run `sudo add-apt-repository ppa:YOUR-LAUNCHPAD-NAME/mintcare && sudo apt install mintcare`
+and get updates through Mint's Update Manager.

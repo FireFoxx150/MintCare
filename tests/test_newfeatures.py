@@ -150,10 +150,28 @@ class Ports(TempDirTest):
         self.assertEqual(s_[("tcp", 60000)]["level"], "warn")
 
     def test_root_scan_parse(self):
-        names, ufw = ports.parse_root_scan(["@@SS", 'tcp LISTEN 0 50 *:60000 *:* users:(("rustdesk",pid=5,fd=9))',
-                                            "@@UFW", "Status: active", "Default: deny (incoming)"])
+        names, details, ufw = ports.parse_root_scan(
+            ["@@SS", 'tcp LISTEN 0 50 *:60000 *:* users:(("rustdesk",pid=5,fd=9))',
+             "@@PROC", "5\t/usr/bin/rustdesk\trustdesk.service",
+             "@@UFW", "Status: active", "Default: deny (incoming)"])
         self.assertEqual(names[("tcp", 60000)], "rustdesk")
+        self.assertEqual(details[("tcp", 60000)], {"exe": "/usr/bin/rustdesk", "unit": "rustdesk.service"})
         self.assertEqual(ufw, ["Status: active", "Default: deny (incoming)"])
+
+    def test_unknown_port_explained(self):
+        items = [ports.Listener("tcp", "0.0.0.0", 60000)]
+        details = {("tcp", 60000): {"exe": "/usr/bin/rustdesk", "unit": "rustdesk.service"}}
+        packaged = lambda exe: ("rustdesk", "Remote desktop software")
+        s_ = ports.services(items, {("tcp", 60000): "rustdesk"}, details, owner_of=packaged)[0]
+        self.assertIn("rustdesk package", s_["advice"])
+        self.assertIn("rustdesk.service", s_["advice"])
+        stray = ports.services(items, {}, details, owner_of=lambda exe: (None, None))[0]
+        self.assertEqual(stray["level"], "warn")
+        self.assertIn("isn't from any installed package", stray["advice"])
+
+    def test_owner_of_a_real_program(self):
+        pkg, _summary = ports.owner("/bin/ls")                     # merged /usr: listed as /usr/bin/ls
+        self.assertEqual(pkg, "coreutils")
 
 
 class SelfUpdate(TempDirTest):

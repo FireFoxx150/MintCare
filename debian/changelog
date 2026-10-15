@@ -1,3 +1,18 @@
+mintcare (1.10.0) noble; urgency=medium
+
+  * SMART trend: drive error counters are recorded and a warning appears
+    when reallocated, pending, uncorrectable, media or CRC errors grow.
+  * Security: Identify now explains unknown listening ports (program,
+    owning package, systemd service) and suggests keeping or turning off.
+  * Troubleshoot: internet speed test (download, upload, latency).
+  * Mint upgrade checklist: held and half-installed packages, DKMS drivers,
+    battery power.
+  * Releases carry SHA256SUMS and a signed build-provenance attestation;
+    packaging/ppa.sh builds Launchpad source packages.
+  * README screenshots. Tests never touch the real ~/.config or ~/.local.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 15 Oct 2026 21:40:47 +0100
+
 mintcare (1.9.0) noble; urgency=low
 
   * French, German, Portuguese and Italian translations.

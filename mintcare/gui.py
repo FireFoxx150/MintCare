@@ -1721,7 +1721,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         return scrolled(page)
 
     def load_security(self):
-        self.bg(lambda: (ports.firewall_enabled(), ports.services(root_names=self.root_port_names)),
+        self.bg(lambda: (ports.firewall_enabled(), ports.services(root_names=self.root_port_names,
+                                                                root_details=getattr(self, 'root_port_details', {}))),
                 self._render_security)
         self.bg(secaudit.audit, self._render_login)
         self._render_malware()
@@ -1860,8 +1861,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if res.get("ports-root") != 0:
                 self.set_status(_("Identify was cancelled or failed"), bad=True)
                 return
-            names, ufw = ports.parse_root_scan(lines)
-            self.root_port_names = names
+            names, details, ufw = ports.parse_root_scan(lines)
+            self.root_port_names, self.root_port_details = names, details
             self.fw_rules.set_text("\n".join(ufw) or _("No firewall rules reported."))
             self.fw_rules.show()
             self.set_status(_('Identified {0} listening program(s)').format(len(names)))
@@ -3515,6 +3516,25 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.in_thread(_("Working…"), lambda: self.execute([], [("fix", script.split(";")[0][:60], script)],
                                                            "Troubleshoot"), done)
 
+    def speed_test(self):
+        def done(r):
+            if not r:
+                self._speed_text = _("Couldn't reach speed.cloudflare.com — check your internet connection.")
+            else:
+                fmt = lambda v: _('{0:.1f} Mb/s').format(v) if v is not None else "–"
+                self._speed_text = _('Download {0} · Upload {1} · Latency {2:.0f} ms').format(
+                    fmt(r["down_mbps"]), fmt(r["up_mbps"]), r["ping_ms"])
+                maintenance.record("other", _('Speed test: {0}').format(self._speed_text))
+            self.speed_lbl.set_text(self._speed_text)
+            self.set_status(self._speed_text)
+
+        def work():
+            try:
+                return troubleshoot.speed_test()
+            except OSError:
+                return None
+        self.in_thread(_("Testing internet speed…"), work, done)
+
     def _render_network(self, n):
         box = self.ts_boxes["network"]
         self._clear(box, "ts_network")
@@ -3548,11 +3568,23 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                tag="ts_network"), False, False, 0)
         c.pack_start(bar, False, False, 10)
         box.pack_start(c, False, False, 0)
+        sc = card()
+        sr = hbox(12)
+        st = vbox(2)
+        st.pack_start(label(_("Internet speed"), ("h3",)), False, False, 0)
+        self.speed_lbl = label(getattr(self, "_speed_text", None) or
+                               _("Measures download and upload speed against speed.cloudflare.com (uses up to about 120 MB of data)."),
+                               ("muted",), wrap=True)
+        st.pack_start(self.speed_lbl, False, False, 0)
+        sr.pack_start(st, True, True, 0)
+        sr.pack_end(self._btn(_("Test speed"), self.speed_test, primary=True, tag="ts_network"), False, False, 0)
+        sc.pack_start(sr, False, False, 0)
+        box.pack_start(sc, False, False, 0)
         if n["nearby"]:
             box.pack_start(label(_("NEARBY WI-FI"), ("kicker",)), False, False, 0)
             nc, nl = list_card()
             for w in sorted(n["nearby"], key=lambda w: -w["signal"])[:12]:
-                nl.add(self._row(w["ssid"] or _("(hidden)"), "", f"channel {w['chan']} · {w['freq']} · {w['security']}",
+                nl.add(self._row(w["ssid"] or _("(hidden)"), "", _('channel {0} · {1} · {2}').format(w['chan'], w['freq'], w['security']),
                                  None, [(_("connected"), "ok")] if w["active"] else [], (), f"{w['signal']}%"))
             box.pack_start(nc, False, False, 0)
         box.show_all()

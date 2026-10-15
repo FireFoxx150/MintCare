@@ -4,6 +4,8 @@ on:
     tags: ["v*"]
 permissions:
   contents: write
+  id-token: write        # keyless Sigstore signing of the build provenance
+  attestations: write
 jobs:
   release:
     runs-on: ubuntu-24.04
@@ -19,7 +21,13 @@ jobs:
         run: ./build-deb.sh
       - name: Lint .deb
         run: lintian --fail-on error,warning dist/*.deb
+      - name: Checksums
+        run: cd dist && sha256sum *.deb > SHA256SUMS && cat SHA256SUMS
+      - name: Sign build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*.deb
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.deb --title "MintCare $GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/SHA256SUMS --title "MintCare $GITHUB_REF_NAME" --generate-notes

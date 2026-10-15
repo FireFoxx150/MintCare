@@ -330,4 +330,20 @@ def upgrade_readiness():
     third = [s_ for s_ in sources.sources() if s_.enabled and s_.kind in ("PPA", "Third-party")]
     items.append(("ok" if not third else "info", _("No PPAs or third-party sources") if not third else
                   _('{0} PPA/third-party source(s) — the upgrade tool disables them temporarily').format(len(third))))
+    hold = held()
+    items.append(("ok" if not hold else "warn", _("No held packages") if not hold else
+                  _('Held packages block the upgrade — release them on the Held back tab: {0}').format(", ".join(hold[:6]))))
+    audit = out(["dpkg", "--audit"], timeout=30)
+    items.append(("ok" if not audit else "fail", _("No half-installed packages") if not audit else
+                  _("Some packages are half-installed — run Diagnose & Fix › Repair packages first")))
+    dkms = sorted({line.split("/")[0].split(",")[0] for line in out(["dkms", "status"]).splitlines() if line.strip()})
+    if dkms:
+        items.append(("info", _('Drivers built for each kernel ({0}) are rebuilt during the upgrade; if the '
+                                'screen or Wi-Fi misbehaves afterwards, reinstall them from Driver Manager').format(
+                                    ", ".join(dkms))))
+    supplies = list(Path("/sys/class/power_supply").glob("*"))
+    if any(read(p_ / "type") == "Battery" for p_ in supplies):
+        mains = any(read(p_ / "type") == "Mains" and read(p_ / "online") == "1" for p_ in supplies)
+        items.append(("ok" if mains else "fail", _("Plugged in to power") if mains else
+                      _("Running on battery — plug in before upgrading")))
     return items

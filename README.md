@@ -5,9 +5,15 @@ style of MintCare Companion) with tweaks in the
 spirit of Chris Titus Tech's linutil/winutil, plus a diagnostics engine that
 finds and fixes common problems.
 
+![Dashboard](docs/screenshots/dashboard.png)
+
+| Diagnose & Fix | Optimise | Clean |
+|---|---|---|
+| ![Diagnose & Fix](docs/screenshots/diagnose.png) | ![Optimise](docs/screenshots/optimise.png) | ![Clean](docs/screenshots/clean.png) |
+
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.9.0_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.10.0_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -44,13 +50,13 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 | **Optimise** | 4 one-click profiles (Everyday desktop, Gaming, Laptop battery, Developer) and 29 toggleable tweaks; switching one off reverts it |
 | **Disk space** | Clickable treemap of any folder (or the whole system) with the largest files, a content-based duplicate finder (BLAKE2, oldest copy kept) and Timeshift snapshot clean-up. Files go to the Trash |
 | **Software & updates** | MintCare self-update from GitHub (SHA-256 verified); APT source health — never downloaded, wrong Ubuntu series, duplicates, missing keys, apt test run — with disable/enable for third-party sources |
-| **Packages** | Largest packages, what you installed, held packages; apt history with *Undo*; kernel manager; mirror speed test and switch (backed up); Mint upgrade check with a readiness list |
+| **Packages** | Largest packages, what you installed, held packages; apt history with *Undo*; kernel manager; mirror speed test and switch (backed up); Mint upgrade check with a readiness list; the upgrade checklist covers disk space, snapshot, updates, PPAs, held and half-installed packages, DKMS drivers and power |
 | **Flatpak apps** | Every Flatpak with size, origin and a sandbox rating; Flatseal-style switches (network, home, whole filesystem, Downloads, devices, sound, X11) via per-user overrides; update, repair, uninstall |
 | **Clean** | Measures and removes junk |
 | **Processes** | Live CPU/RAM list, *What is this?* (with the owning package), end or force-end |
-| **Hardware** | Firmware updates via fwupd/LVFS; SMART health per drive (NVMe wear/spare/errors, HDD reallocated/pending/CRC), live temperature tiles, CPU/GPU throttling, full `smartctl -x` report |
-| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…); login audit (failed logins, SSH settings, AppArmor, auto-login, screen lock); ClamAV and rkhunter scans with quarantine |
-| **Troubleshoot** | Sound, network and Wi-Fi, printers, Bluetooth and crash reports, each with one-click fixes |
+| **Hardware** | Firmware updates via fwupd/LVFS; SMART health per drive (NVMe wear/spare/errors, HDD reallocated/pending/CRC), live temperature tiles, CPU/GPU throttling, full `smartctl -x` report; error counters tracked over time, with a warning when they grow |
+| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…); login audit (failed logins, SSH settings, AppArmor, auto-login, screen lock); ClamAV and rkhunter scans with quarantine; unknown listeners explained (program, package, service) with a keep-or-turn-off suggestion |
+| **Troubleshoot** | Sound, network and Wi-Fi (with an internet speed test), printers, Bluetooth and crash reports, each with one-click fixes |
 | **Boot & Startup** | Boot timeline (firmware/loader/kernel/services), boot-time history, slowest units with *blocks boot* markers and Disable/Enable for known-safe services, startup-app switches |
 | **Backup** | rsync snapshots of chosen folders to another drive (unchanged files hard-linked), schedule, keep N; export/import MintCare settings to move to another PC |
 | **Maintenance** | Scheduled check-up (systemd user timer, daily/weekly/monthly) with optional safe cleaning and a desktop notification when something needs attention; safety-snapshot preference (ask / always / never); *Undo all* for every MintCare change; a persistent history timeline |
@@ -121,7 +127,7 @@ mintcare --tray            # start the GUI hidden in the tray
 
 ## Development
 ```
-./run-tests.sh                 # 67 stdlib unittest tests; never needs root or changes the system
+./run-tests.sh                 # 76 stdlib unittest tests; never needs root or changes the system
 po/update-pot.sh               # refresh the translation template (see po/README.md)
 ```
 See `RELEASING.md` for GitHub releases and a Launchpad PPA.
