@@ -8,6 +8,7 @@ from pathlib import Path
 
 from gi.repository import GLib
 
+from .i18n import _
 from .util import has_cmd, out, q, run
 
 USER_OVERRIDES = Path(GLib.get_user_data_dir()) / "flatpak" / "overrides"
@@ -16,19 +17,19 @@ LIST_KEYS = ("shared", "sockets", "devices", "features", "filesystems")
 
 # id: (title, explanation, (list-key, value), grant flag, revoke flag, risk weight)
 PERMISSIONS = [
-    ("network", "Network access", "Internet and local network",
+    ("network", _("Network access"), _("Internet and local network"),
      ("shared", "network"), "--share=network", "--unshare=network", 0),
-    ("home", "Home folder", "Read and write all your personal files",
+    ("home", _("Home folder"), _("Read and write all your personal files"),
      ("filesystems", "home"), "--filesystem=home", "--nofilesystem=home", 2),
-    ("host", "Entire filesystem", "Read and write almost every file on the computer",
+    ("host", _("Entire filesystem"), _("Read and write almost every file on the computer"),
      ("filesystems", "host"), "--filesystem=host", "--nofilesystem=host", 3),
-    ("downloads", "Downloads folder", "Read and write ~/Downloads",
+    ("downloads", _("Downloads folder"), _("Read and write ~/Downloads"),
      ("filesystems", "xdg-download"), "--filesystem=xdg-download", "--nofilesystem=xdg-download", 0),
-    ("devices", "All devices", "Webcams, game controllers, USB and GPU devices",
+    ("devices", _("All devices"), _("Webcams, game controllers, USB and GPU devices"),
      ("devices", "all"), "--device=all", "--nodevice=all", 2),
-    ("sound", "Sound & microphone", "PulseAudio / PipeWire audio",
+    ("sound", "Sound & microphone", _("PulseAudio / PipeWire audio"),
      ("sockets", "pulseaudio"), "--socket=pulseaudio", "--nosocket=pulseaudio", 0),
-    ("x11", "X11 windowing", "Legacy display access: can read other windows and keystrokes",
+    ("x11", "X11 windowing", _("Legacy display access: can read other windows and keystrokes"),
      ("sockets", "x11"), "--socket=x11", "--nosocket=x11", 1),
 ]
 PERM_BY_ID = {p[0]: p for p in PERMISSIONS}
@@ -134,13 +135,13 @@ def set_permission(app_id, key, grant):
     flag = PERM_BY_ID[key][4 if grant else 5]
     rc, o = run(["flatpak", "override", "--user", flag, app_id])
     if rc != 0:
-        raise RuntimeError(o or f"flatpak override failed ({rc})")
+        raise RuntimeError(o or _('flatpak override failed ({0})').format(rc))
 
 
 def reset(app_id):
     rc, o = run(["flatpak", "override", "--user", "--reset", app_id])
     if rc != 0:
-        raise RuntimeError(o or "reset failed")
+        raise RuntimeError(o or _("reset failed"))
 
 
 def updates_available():
@@ -154,16 +155,16 @@ def updates_available():
 
 
 def update_steps():
-    return ([("fp-update-sys", "Update system Flatpaks",
+    return ([("fp-update-sys", _("Update system Flatpaks"),
               "flatpak update --system -y --noninteractive")],
-            [("fp-update-user", "Update your Flatpaks",
+            [("fp-update-user", _("Update your Flatpaks"),
               "flatpak update --user -y --noninteractive || true")])
 
 
 def repair_steps():
-    return ([("fp-repair-sys", "Repair system Flatpak installation",
+    return ([("fp-repair-sys", _("Repair system Flatpak installation"),
               "flatpak repair --system\nflatpak uninstall --system --unused -y --noninteractive || true")],
-            [("fp-repair-user", "Repair your Flatpak installation",
+            [("fp-repair-user", _("Repair your Flatpak installation"),
               "flatpak repair --user || true")])
 
 

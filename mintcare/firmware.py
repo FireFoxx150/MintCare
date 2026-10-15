@@ -3,6 +3,7 @@
 import json
 import re
 
+from .i18n import _
 from .util import has_cmd, run
 
 
@@ -69,8 +70,8 @@ def metadata_age():
 
 
 def refresh_step():
-    return ("fw-refresh", "Download the latest firmware catalogue", "fwupdmgr refresh --force")
+    return ("fw-refresh", _("Download the latest firmware catalogue"), "fwupdmgr refresh --force")
 
 
 def update_step():
-    return ("fw-update", "Install firmware updates", "fwupdmgr update --assume-yes --no-reboot-check")
+    return ("fw-update", _("Install firmware updates"), "fwupdmgr update --assume-yes --no-reboot-check")

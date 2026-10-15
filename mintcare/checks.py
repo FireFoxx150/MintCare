@@ -143,7 +143,7 @@ def c_reboot():
     if Path("/run/reboot-required").exists():
         pkgs = read("/run/reboot-required.pkgs").split()
         extra = f" ({', '.join(sorted(set(pkgs))[:4])})" if pkgs else ""
-        return Result(WARN, "A restart is required to finish updates" + extra)
+        return Result(WARN, _("A restart is required to finish updates") + extra)
     running = out(["uname", "-r"])
     newest = sorted((p.name[len("vmlinuz-"):] for p in Path("/boot").glob("vmlinuz-*")),
                     key=lambda v: [int(x) if x.isdigit() else x for x in v.replace("-", ".").split(".")])
@@ -175,7 +175,8 @@ def c_residual():
 def c_disk_root():
     du = shutil.disk_usage("/")
     pct = du.used * 100 // du.total
-    msg = f"Root filesystem {pct}% full ({human(du.free)} free of {human(du.total)})"
+    # xgettext:no-python-format
+    msg = _('Root filesystem {0}% full ({1} free of {2})').format(pct, human(du.free), human(du.total))
     if pct >= 95:
         return Result(FAIL, msg, Fix("page", "clean", _("Free space")))
     if pct >= 85:
@@ -188,9 +189,10 @@ def c_disk_boot():
         return Result(OK, _("/boot is part of the root filesystem"))
     du = shutil.disk_usage("/boot")
     pct = du.used * 100 // du.total
-    msg = f"/boot is {pct}% full ({human(du.free)} free)"
+    # xgettext:no-python-format
+    msg = _('/boot is {0}% full ({1} free)').format(pct, human(du.free))
     if pct >= 80:
-        return Result(FAIL if pct >= 90 else WARN, msg + "; kernel updates may fail",
+        return Result(FAIL if pct >= 90 else WARN, msg + _("; kernel updates may fail"),
                       Fix("root", "DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y",
                           _("Remove old kernels")))
     return Result(OK, msg)
@@ -217,7 +219,7 @@ def c_journal():
                     pass
     if size > 1 << 30:
         return Result(WARN, _('System logs use {0}').format(human(size)), tweak_fix("journal", _("Cap logs")))
-    return Result(OK, f"System logs use {human(size)}" if size else "Journal size looks fine")
+    return Result(OK, _('System logs use {0}').format(human(size)) if size else _("Journal size looks fine"))
 
 
 def c_timeshift():
@@ -264,7 +266,8 @@ def c_memory():
     if not total:
         return Result(INFO, _("Could not read memory info"))
     used_pct = 100 - avail * 100 // total
-    msg = f"{used_pct}% of {human(total)} RAM in use"
+    # xgettext:no-python-format
+    msg = _('{0}% of {1} RAM in use').format(used_pct, human(total))
     return Result(WARN if used_pct >= 90 else OK, msg)
 
 
@@ -336,16 +339,16 @@ def c_boot_errors():
     crashes = sum(g["count"] for g in groups if g["who"].startswith("crash:"))
     parts = []
     if crashes:
-        parts.append(f"{crashes} program crash{'es' if crashes != 1 else ''}")
+        parts.append(ngettext('{0} program crash', '{0} program crashes', crashes).format(crashes))
     if by[FAIL]:
         parts.append(f"{len(by[FAIL])} serious")
     look = [g for g in by[INFO] + by[WARN] if not g["who"].startswith("crash:")]
     if look:
-        parts.append(f"{len(look)} to look at")
+        parts.append(_('{0} to look at').format(len(look)))
     if by[OK]:
         parts.append(f"{len(by[OK])} harmless")
     level = FAIL if by[FAIL] else WARN if by[WARN] else INFO if by[INFO] else OK
-    return Result(level, f"{len(groups)} kind(s) of error since boot: " + ", ".join(parts) +
+    return Result(level, _('{0} kind(s) of error since boot: ').format(len(groups)) + ", ".join(parts) +
                   " — click for details and explanations")
 
 
@@ -421,7 +424,7 @@ def c_smart():
     bad = [d for d in ds if d["health"] in (WARN, FAIL)]
     if bad:
         d = max(bad, key=lambda x: hardware.RANK[x["health"]])
-        note = next((t for lvl, t in d["notes"] if lvl == d["health"]), "needs attention")
+        note = next((t for lvl, t in d["notes"] if lvl == d["health"]), _("needs attention"))
         return Result(d["health"], f"{d['model']} ({d['device']}): {note}",
                       Fix("page", "hardware", _("View drives")))
     infos = [(d, t) for d in ds for lvl, t in d["notes"] if lvl == INFO and "CRC" in t]
@@ -456,7 +459,7 @@ def c_boot():
         return Result(INFO, _("Boot timing not available"))
     chain = boot.critical_chain()
     slow = [(u, s) for u, s in chain.items() if u in boot.SAFE_TO_DISABLE and s >= 2]
-    msg = f"Last boot took {t['total']:.1f} s"
+    msg = _('Last boot took {0:.1f} s').format(t['total'])
     if slow:
         u, s = max(slow, key=lambda x: x[1])
         return Result(INFO, _('{0}; {1} delays it by {2:.1f} s and can be disabled').format(msg, u, s),
@@ -510,7 +513,7 @@ def c_firmware():
         return Result(WARN, _('{0} firmware update(s) available: {1}').format(len(ups), names),
                       Fix("page", "hardware", _("View firmware")))
     age = firmware.metadata_age()
-    return Result(OK, "Firmware is up to date" + (f" (catalogue checked {age} ago)" if age else ""))
+    return Result(OK, _("Firmware is up to date") + (f" (catalogue checked {age} ago)" if age else ""))
 
 
 def c_sources():
@@ -538,7 +541,7 @@ def c_ports():
         names = ", ".join(f"{x['name']} ({x['port']}/{x['proto']})" for x in info[:3])
         return Result(INFO, _('Open to the network behind the firewall: {0}').format(names),
                       Fix("page", "security", _("Review")))
-    return Result(OK, f"{len(svcs)} network-facing port(s), all expected or blocked by the firewall"
+    return Result(OK, _('{0} network-facing port(s), all expected or blocked by the firewall').format(len(svcs))
                   if svcs else _("No services are reachable from the network"))
 
 
@@ -571,9 +574,11 @@ def c_battery():
     if b["health"] is None:
         return Result(OK, _("Battery health isn't reported by this laptop"))
     if b["health"] < 60:
+        # xgettext:no-python-format
         return Result(WARN, _('Battery holds only {0}% of its original charge — consider replacing it').format(b['health']),
                       Fix("page", "hardware", _("View battery")))
-    return Result(OK, f"Battery holds {b['health']}% of its original charge"
+    # xgettext:no-python-format
+    return Result(OK, _('Battery holds {0}% of its original charge').format(b['health'])
                   + (f" after {b['cycles']} cycles" if b["cycles"] else ""))
 
 
@@ -684,20 +689,20 @@ def details(check_id):
 # extra buttons in a check's details panel
 DETAIL_ACTIONS = {
     "updates": [("Open Update Manager", "launch", "mintupdate")],
-    "kernels": [("Manage kernels", "page", "packages")],
-    "residual": [("Open cleaner", "page", "clean")],
+    "kernels": [(_("Manage kernels"), "page", "packages")],
+    "residual": [(_("Open cleaner"), "page", "clean")],
     "sources": [("Open Software & updates", "page", "software"), ("Software Sources", "launch", "mintsources")],
-    "rootdisk": [("Find big files", "page", "space")],
+    "rootdisk": [(_("Find big files"), "page", "space")],
     "backup": [("Open Backup", "page", "backup")],
     "timeshift": [("Open Timeshift", "launch", "timeshift-launcher")],
-    "memory": [("Open process explorer", "page", "processes")],
+    "memory": [(_("Open process explorer"), "page", "processes")],
     "gpu": [("Open Driver Manager", "launch", "driver-manager")],
-    "smart": [("Open drive details", "page", "hardware")],
-    "temps": [("Open sensors", "page", "hardware")],
-    "firmware": [("Open firmware", "page", "hardware")],
-    "ports": [("Open Security page", "page", "security")],
+    "smart": [(_("Open drive details"), "page", "hardware")],
+    "temps": [(_("Open sensors"), "page", "hardware")],
+    "firmware": [(_("Open firmware"), "page", "hardware")],
+    "ports": [(_("Open Security page"), "page", "security")],
     "failed": [("Open Boot & Startup", "page", "startup")],
     "boottime": [("Open Boot & Startup", "page", "startup")],
-    "internet": [("Network troubleshooter", "page", "troubleshoot")],
-    "dns": [("Network troubleshooter", "page", "troubleshoot")],
+    "internet": [(_("Network troubleshooter"), "page", "troubleshoot")],
+    "dns": [(_("Network troubleshooter"), "page", "troubleshoot")],
 }

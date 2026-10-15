@@ -11,6 +11,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from .i18n import _
 from .util import has_cmd, out, q, read, run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -22,13 +23,13 @@ def audio():
     """{'server', 'default', 'sinks': [...], 'sources': [...], 'issues': [(level, text, action)]}."""
     res = {"server": "", "default": "", "sinks": [], "sources": [], "issues": []}
     if not has_cmd("pactl"):
-        res["issues"].append((FAIL, "pactl isn't installed, so sound can't be checked", None))
+        res["issues"].append((FAIL, _("pactl isn't installed, so sound can't be checked"), None))
         return res
     info = out(["pactl", "info"])
     m = re.search(r"Server Name: (.+)", info)
     res["server"] = m.group(1) if m else ""
     if not res["server"]:
-        res["issues"].append((FAIL, "The sound server isn't running", "restart"))
+        res["issues"].append((FAIL, _("The sound server isn't running"), "restart"))
         return res
     res["default"] = out(["pactl", "get-default-sink"])
     for kind in ("sinks", "sources"):
@@ -49,17 +50,17 @@ def audio():
                               "active_port": s.get("active_port", "")})
     sinks = res["sinks"]
     if not sinks:
-        res["issues"].append((FAIL, "No sound outputs found — the sound card or driver isn't detected", "restart"))
+        res["issues"].append((FAIL, _("No sound outputs found — the sound card or driver isn't detected"), "restart"))
     d = next((s for s in sinks if s["name"] == res["default"]), None)
     if d:
         if d["mute"]:
-            res["issues"].append((WARN, f"Your default output “{d['desc']}” is muted", "unmute"))
+            res["issues"].append((WARN, _('Your default output “{0}” is muted').format(d['desc']), "unmute"))
         elif d["volume"] < 15:
-            res["issues"].append((WARN, f"Volume is very low ({d['volume']}%)", "unmute"))
+            res["issues"].append((WARN, _('Volume is very low ({0}%)').format(d['volume']), "unmute"))
         elif d["volume"] > 100:
-            res["issues"].append((INFO, f"Volume is above 100% ({d['volume']}%), which can distort sound", "normal"))
+            res["issues"].append((INFO, _('Volume is above 100% ({0}%), which can distort sound').format(d['volume']), "normal"))
     elif sinks:
-        res["issues"].append((WARN, "No default output is set", "default"))
+        res["issues"].append((WARN, _("No default output is set"), "default"))
     return res
 
 
@@ -129,24 +130,22 @@ def network():
             same = sum(1 for n in nets if not n["active"] and abs(n["chan"] - cur["chan"]) < 3 and n["chan"] <= 14)
             res["wifi"] = dict(cur, crowd=same)
             if cur["signal"] < 40:
-                res["issues"].append((WARN, f"Weak Wi-Fi signal ({cur['signal']}%) — move closer or use 5 GHz", None))
+                res["issues"].append((WARN, _('Weak Wi-Fi signal ({0}%) — move closer or use 5 GHz').format(cur['signal']), None))
             if cur["chan"] <= 14 and same >= 4:
-                res["issues"].append((INFO, f"{same} other networks share channel {cur['chan']} — a 5 GHz band or "
-                                            "another channel on your router may be faster", None))
+                res["issues"].append((INFO, _('{0} other networks share channel {1} — a 5 GHz band or another channel on your router may be faster').format(same, cur['chan']), None))
     for d in res["devices"]:
         if d["type"] == "ethernet" and d["state"] == "connected" and d.get("speed") and d["speed"] < 1000:
-            res["issues"].append((INFO, f"{d['name']} links at {d['speed']} Mb/s — a faulty cable or port can "
-                                        "limit gigabit to 100 Mb/s", None))
+            res["issues"].append((INFO, _('{0} links at {1} Mb/s — a faulty cable or port can limit gigabit to 100 Mb/s').format(d['name'], d['speed']), None))
     for name, host in (("router", res["gateway"]), ("internet", "1.1.1.1")):
         if host:
             res["latency"][name] = _ping(host)
     r = res["latency"].get("router")
     if r and r[0] > 0:
-        res["issues"].append((WARN, f"{r[0]}% packet loss to your router — check Wi-Fi signal or the cable",
+        res["issues"].append((WARN, _('{0}% packet loss to your router — check Wi-Fi signal or the cable').format(r[0]),
                               "reset"))
     i = res["latency"].get("internet")
     if i and i[0] == 100:
-        res["issues"].append((FAIL, "No internet connection (1.1.1.1 unreachable)", "reset"))
+        res["issues"].append((FAIL, _("No internet connection (1.1.1.1 unreachable)"), "reset"))
     t0 = time.monotonic()
     try:
         socket.getaddrinfo(f"mintcare-{int(t0)}.example.com", 80)
@@ -154,7 +153,7 @@ def network():
         pass
     res["dns_ms"] = (time.monotonic() - t0) * 1000
     if res["dns_ms"] > 800:
-        res["issues"].append((WARN, f"DNS lookups are slow ({res['dns_ms']:.0f} ms) — try Optimise › Encrypted DNS",
+        res["issues"].append((WARN, _('DNS lookups are slow ({0:.0f} ms) — try Optimise › Encrypted DNS').format(res['dns_ms']),
                               "flushdns"))
     return res
 
@@ -170,7 +169,7 @@ def printers():
     rc, o = run(["lpstat", "-p", "-d"])
     if rc != 0 and "not running" in o.lower() + out(["lpstat", "-r"]).lower():
         res["cups"] = False
-        res["issues"].append((FAIL, "The printing service (CUPS) isn't running", "restart-cups"))
+        res["issues"].append((FAIL, _("The printing service (CUPS) isn't running"), "restart-cups"))
         return res
     for line in o.splitlines():
         m = re.match(r"printer (\S+) (?:is )?(.+?)\.", line)
@@ -189,20 +188,19 @@ def printers():
         if f:
             res["jobs"].append({"id": f[0], "user": f[1] if len(f) > 1 else "", "line": line})
     if res["printers"] and not res["default"]:
-        res["issues"].append((INFO, "No default printer is set, so apps may ask every time or pick the wrong one",
+        res["issues"].append((INFO, _("No default printer is set, so apps may ask every time or pick the wrong one"),
                               "default"))
     for p in res["printers"]:
         if p["disabled"]:
             res["issues"].append((WARN, f"{p['name']} is paused/disabled", f"enable:{p['name']}"))
     old = [j for j in res["jobs"]]
     if old:
-        res["issues"].append((WARN, f"{len(old)} print job(s) waiting — a stuck job blocks everything after it",
+        res["issues"].append((WARN, _('{0} print job(s) waiting — a stuck job blocks everything after it').format(len(old)),
                               "cancel"))
     names = [p["name"] for p in res["printers"]]
     dup = [n for n in names if n.endswith("_USB") and n[:-4] in names]
     if dup:
-        res["issues"].append((INFO, f"The same printer is set up twice ({dup[0][:-4]} over the network and USB) — "
-                                    "pick one as the default", "default"))
+        res["issues"].append((INFO, _('The same printer is set up twice ({0} over the network and USB) — pick one as the default').format(dup[0][:-4]), "default"))
     return res
 
 
@@ -215,7 +213,7 @@ CANCEL_ALL = "cancel -a -x 2>/dev/null || cancel -a"
 
 
 def enable_printer_step(name):
-    return ("cups-enable", f"Resume printer {name}", f"cupsenable {q(name)} && cupsaccept {q(name)}")
+    return ("cups-enable", _('Resume printer {0}').format(name), f"cupsenable {q(name)} && cupsaccept {q(name)}")
 
 
 # ------------------------------------------------------------------ bluetooth
@@ -226,7 +224,7 @@ def bluetooth():
         return res
     show = out(["bluetoothctl", "show"], timeout=10)
     if not show or "No default controller" in show:
-        res["issues"].append((INFO, "No Bluetooth adapter found", None))
+        res["issues"].append((INFO, _("No Bluetooth adapter found"), None))
         res["available"] = False
         return res
     res["powered"] = "Powered: yes" in show
@@ -241,10 +239,10 @@ def bluetooth():
         res["devices"].append({"mac": m.group(1), "name": m.group(2), "connected": "Connected: yes" in info,
                                "trusted": "Trusted: yes" in info, "battery": int(bat.group(1)) if bat else None})
     if not res["powered"]:
-        res["issues"].append((INFO, "Bluetooth is switched off", "power-on"))
+        res["issues"].append((INFO, _("Bluetooth is switched off"), "power-on"))
     for d in res["devices"]:
         if d["battery"] is not None and d["battery"] < 20:
-            res["issues"].append((WARN, f"{d['name']} battery is low ({d['battery']}%)", None))
+            res["issues"].append((WARN, _('{0} battery is low ({1}%)').format(d['name'], d['battery']), None))
     return res
 
 

@@ -14,6 +14,7 @@ from pathlib import Path
 
 from gi.repository import GLib
 
+from .i18n import _
 from . import STATE_DIR
 from .util import human, out, run
 
@@ -198,13 +199,14 @@ def undo_inventory():
             items.append(("tweak", t.id, f"Optimisation: {t.title}"))
     if UNIT_MARKERS.is_dir():
         for m in sorted(UNIT_MARKERS.iterdir()):
-            items.append(("unit", m.name, f"Re-enable boot service {m.name}"))
+            items.append(("unit", m.name, _('Re-enable boot service {0}').format(m.name)))
     c = _changes()
     for file, info in c["autostart"].items():
-        verb = "Re-enable" if info["was_enabled"] else "Disable again"
-        items.append(("autostart", file, f"{verb} startup app {file[:-8] if file.endswith('.desktop') else file}"))
+        name = file[:-8] if file.endswith('.desktop') else file
+        items.append(("autostart", file, (_('Re-enable startup app {0}') if info["was_enabled"]
+                                          else _('Disable startup app {0} again')).format(name)))
     for app in c["flatpak"]:
-        items.append(("flatpak", app, f"Reset Flatpak permissions of {app}"))
+        items.append(("flatpak", app, _('Reset Flatpak permissions of {0}').format(app)))
     return items
 
 
@@ -232,10 +234,10 @@ def undo_user_item(kind, key):
 def timeshift_ready():
     from . import space
     if not shutil.which("timeshift"):
-        return False, "Timeshift is not installed."
+        return False, _("Timeshift is not installed.")
     cfg = space._ts_config()
     if not cfg.get("backup_device_uuid"):
-        return False, "Timeshift has no backup drive set up yet."
+        return False, _("Timeshift has no backup drive set up yet.")
     return True, ""
 
 
@@ -248,7 +250,7 @@ def recent_snapshot(minutes=30):
 def snapshot_step(reason):
     from .util import q
     comment = f"MintCare: before {reason}"[:60]
-    return ("snapshot", f"Timeshift snapshot ({comment})",
+    return ("snapshot", _('Timeshift snapshot ({0})').format(comment),
             f"timeshift --create --comments {q(comment)} --tags O --scripted")
 
 
@@ -325,7 +327,7 @@ def run_maintenance(notify=True, on_line=None):
     s = load_settings()["maintenance"]
     started = time.time()
 
-    log("Running checks…")
+    log(_("Running checks…"))
     results = [(c, c.run()) for c in checks.CHECKS]
     issues = [(c.title, r.summary) for c, r in results if r.status in (checks.WARN, checks.FAIL)]
     tips = sum(1 for _c, r in results if r.status == checks.INFO)
@@ -353,22 +355,22 @@ def run_maintenance(notify=True, on_line=None):
     summary = (f"{len(issues)} issue(s)" if issues else "no issues") + \
               (f", freed {human(freed)}" if freed > 1 << 20 else "")
     if s.get("report"):
-        log("Saving a health report…")
+        log(_("Saving a health report…"))
         from . import report as report_mod
         try:
             saved = report_mod.save_scheduled(s.get("report_format", "pdf"), s.get("report_folder") or None)
             report["report_path"] = saved
-            log(f"Report saved: {saved}")
+            log(_('Report saved: {0}').format(saved))
         except Exception as e:                       # never let the report break the check-up
-            log(f"Couldn't save the report: {e}")
-    record("scheduled", f"Scheduled check-up: {summary}", True,
+            log(_("Couldn't save the report: {0}").format(e))
+    record("scheduled", _('Scheduled check-up: {0}').format(summary), True,
            "; ".join(t for t, _s in issues))
     log(f"Check-up finished: {summary}")
 
     mode = s.get("notify", "issues")
     if notify and shutil.which("notify-send") and (mode == "always" or issues):
-        title = "MintCare: " + (f"{len(issues)} thing(s) need attention" if issues else "all good")
-        body = "\n".join(f"• {t}" for t, _s in issues[:5]) or "Your system passed every check."
+        title = "MintCare: " + (_('{0} thing(s) need attention').format(len(issues)) if issues else _("all good"))
+        body = "\n".join(f"• {t}" for t, _s in issues[:5]) or _("Your system passed every check.")
         if freed > 1 << 20:
             body += f"\nCleaned up {human(freed)}."
         try:

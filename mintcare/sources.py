@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .i18n import _
 from .util import q, read
 
 SOURCES_DIR = Path("/etc/apt/sources.list.d")
@@ -202,23 +203,23 @@ def analyse(srcs=None):
             continue
         name = lists_name(s_.uri, s_.suite)
         if s_.type == "deb" and not any((LISTS_DIR / f"{name}_{f}").exists() for f in ("InRelease", "Release")):
-            s_.problems.append((FAIL, "Has never downloaded successfully — apt can't reach it or it no longer exists"))
+            s_.problems.append((FAIL, _("Has never downloaded successfully — apt can't reach it or it no longer exists")))
         if s_.kind == "PPA" and codename and s_.suite.split("-")[0] not in (codename,):
-            s_.problems.append((WARN, f"Built for Ubuntu '{s_.suite}', but Mint uses '{codename}' packages"))
+            s_.problems.append((WARN, _("Built for Ubuntu '{0}', but Mint uses '{1}' packages").format(s_.suite, codename)))
         if s_.signed_by and s_.signed_by.startswith("/") and not Path(s_.signed_by).exists():
-            s_.problems.append((FAIL, f"Its signing key file {s_.signed_by} is missing"))
+            s_.problems.append((FAIL, _('Its signing key file {0} is missing').format(s_.signed_by)))
         k = s_.key()
         if k in seen:
-            s_.problems.append((WARN, f"Duplicate of an entry in {Path(seen[k]).name}"))
+            s_.problems.append((WARN, _('Duplicate of an entry in {0}').format(Path(seen[k]).name)))
         else:
             seen[k] = s_.file
         if test:
             for e in test["errors"]:
                 if e["uri"].rstrip("/") == s_.uri.rstrip("/") and e["suite"] in (s_.suite, s_.suite + "/"):
-                    s_.problems.append((FAIL, "Failed in the last test: " + (e["text"] or "download error")))
+                    s_.problems.append((FAIL, _("Failed in the last test: ") + (e["text"] or _("download error"))))
             for w in test["warnings"]:
                 if "NO_PUBKEY" in w and s_.uri.rstrip("/") in w:
-                    s_.problems.append((FAIL, "Signing key is missing (NO_PUBKEY) — open Software Sources › Maintenance"))
+                    s_.problems.append((FAIL, _("Signing key is missing (NO_PUBKEY) — open Software Sources › Maintenance")))
     return srcs
 
 

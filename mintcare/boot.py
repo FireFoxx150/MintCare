@@ -2,6 +2,7 @@
 
 import re
 
+from .i18n import _
 from .util import out, run, unit_enabled
 
 # Services MintCare may offer to disable, with what you lose by doing so.
@@ -9,27 +10,27 @@ SAFE_TO_DISABLE = {
     "NetworkManager-wait-online.service":
         "Holds up boot until the network is up. Only needed for network shares mounted from /etc/fstab.",
     "systemd-networkd-wait-online.service":
-        "Holds up boot until the network is up. Only needed for network shares mounted at boot.",
-    "ModemManager.service": "Mobile-broadband (3G/4G/5G) modem support. Not needed without a cellular modem.",
-    "cups-browsed.service": "Auto-discovers network printers. Printers you have already added keep working.",
+        _("Holds up boot until the network is up. Only needed for network shares mounted at boot."),
+    "ModemManager.service": _("Mobile-broadband (3G/4G/5G) modem support. Not needed without a cellular modem."),
+    "cups-browsed.service": _("Auto-discovers network printers. Printers you have already added keep working."),
     "smartmontools.service":
-        "smartd background disk monitor. MintCare's Hardware page and scan read SMART data on demand, "
-        "but you lose smartd's continuous logging of early failure signs.",
+        _("smartd background disk monitor. MintCare's Hardware page and scan read SMART data on demand, "
+        "but you lose smartd's continuous logging of early failure signs."),
     "ollama.service": "Local AI model server. Start it when needed with: systemctl start ollama",
-    "docker.service": "Docker engine. If docker.socket stays enabled it still starts on first use.",
-    "containerd.service": "Container runtime used by Docker; started on demand by Docker.",
-    "kerneloops.service": "Sends kernel crash reports to kerneloops.org.",
-    "teamviewerd.service": "TeamViewer remote-access daemon. TeamViewer can start it when launched.",
-    "anydesk.service": "AnyDesk remote-access daemon.",
-    "e2scrub_reap.service": "Cleans up after ext4 online checks. Harmless to disable.",
-    "libvirtd.service": "Virtual-machine manager. Socket activation starts it when virt-manager opens.",
-    "apache2.service": "Apache web server, often pulled in as a dependency.",
-    "nginx.service": "nginx web server.",
-    "mysql.service": "MySQL database server.",
-    "mariadb.service": "MariaDB database server.",
-    "postgresql.service": "PostgreSQL database server.",
-    "postfix.service": "Postfix mail server, rarely needed on a desktop.",
-    "lvm2-monitor.service": "LVM monitoring. Only needed if you use LVM volumes.",
+    "docker.service": _("Docker engine. If docker.socket stays enabled it still starts on first use."),
+    "containerd.service": _("Container runtime used by Docker; started on demand by Docker."),
+    "kerneloops.service": _("Sends kernel crash reports to kerneloops.org."),
+    "teamviewerd.service": _("TeamViewer remote-access daemon. TeamViewer can start it when launched."),
+    "anydesk.service": _("AnyDesk remote-access daemon."),
+    "e2scrub_reap.service": _("Cleans up after ext4 online checks. Harmless to disable."),
+    "libvirtd.service": _("Virtual-machine manager. Socket activation starts it when virt-manager opens."),
+    "apache2.service": _("Apache web server, often pulled in as a dependency."),
+    "nginx.service": _("nginx web server."),
+    "mysql.service": _("MySQL database server."),
+    "mariadb.service": _("MariaDB database server."),
+    "postgresql.service": _("PostgreSQL database server."),
+    "postfix.service": _("Postfix mail server, rarely needed on a desktop."),
+    "lvm2-monitor.service": _("LVM monitoring. Only needed if you use LVM volumes."),
 }
 
 MOUNT_ADVICE = ("A drive mounted from /etc/fstab. Adding the options 'nofail,x-systemd.automount' "
@@ -103,8 +104,8 @@ def unit_row(unit, secs, critical):
     enabled = unit_enabled(unit) if unit in SAFE_TO_DISABLE else None
     if enabled is False and unit.endswith("wait-online.service"):
         who = online_wanters()
-        advice = ("Already disabled, but still started because " +
-                  (", ".join(who) if who else "another service") +
+        advice = (_("Already disabled, but still started because ") +
+                  (", ".join(who) if who else _("another service")) +
                   (" wait" if len(who) > 1 else " waits") + " for network-online.target.")
     return {
         "unit": unit, "secs": secs, "critical": critical,

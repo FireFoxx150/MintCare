@@ -8,6 +8,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from .i18n import _
 from .util import out, q, read, run
 
 HISTORY = Path("/var/log/apt")
@@ -142,7 +143,7 @@ def kernels(pk=None):
 
 def kernel_remove_step(k):
     names = " ".join(q(n) for n in k["packages"])
-    return ("kernel-rm", f"Remove kernel {k['version']}",
+    return ("kernel-rm", _('Remove kernel {0}').format(k['version']),
             f"DEBIAN_FRONTEND=noninteractive apt-get purge -y {names}\nupdate-grub")
 
 
@@ -245,11 +246,11 @@ def switch_mirrors_step(mint_url, ubuntu_url):
     if ubuntu_url and ubuntu_url != cur_ubu:
         script += f"sed -i 's|{cur_ubu}|{ubuntu_url}|g' {f}\n"
     script += f"cat {f}\napt-get update 2>&1 | tail -3"
-    return ("mirrors", "Switch to the fastest mirrors", script)
+    return ("mirrors", _("Switch to the fastest mirrors"), script)
 
 
 def restore_mirrors_step():
-    return ("mirrors-restore", "Restore the original mirrors",
+    return ("mirrors-restore", _("Restore the original mirrors"),
             f"cp -a /var/lib/mintcare/official-package-repositories.list.orig {q(str(OFFICIAL_LIST))}\n"
             "apt-get update 2>&1 | tail -3")
 
@@ -316,17 +317,17 @@ def upgrade_readiness():
     from . import space
     items = []
     free = shutil.disk_usage("/").free
-    items.append(("ok" if free > 15 << 30 else "fail", f"{free >> 30} GB free on / (need about 15 GB)"))
+    items.append(("ok" if free > 15 << 30 else "fail", _('{0} GB free on / (need about 15 GB)').format(free >> 30)))
     snaps, _note = space.snapshots()
     recent = snaps and time.time() - snaps[0]["created"] < 3 * 86400
-    items.append(("ok" if recent else "warn", "Recent Timeshift snapshot" if recent else
-                  "No Timeshift snapshot in the last 3 days — take one first"))
+    items.append(("ok" if recent else "warn", _("Recent Timeshift snapshot") if recent else
+                  _("No Timeshift snapshot in the last 3 days — take one first")))
     n_up = sum(1 for line in out(["apt-get", "-s", "-o", "Debug::NoLocking=1", "upgrade"], timeout=60).splitlines()
                if line.startswith("Inst "))
-    items.append(("ok" if n_up == 0 else "warn", "All updates installed" if n_up == 0 else
-                  f"{n_up} updates pending — install them first"))
+    items.append(("ok" if n_up == 0 else "warn", _("All updates installed") if n_up == 0 else
+                  _('{0} updates pending — install them first').format(n_up)))
     from . import sources
     third = [s_ for s_ in sources.sources() if s_.enabled and s_.kind in ("PPA", "Third-party")]
-    items.append(("ok" if not third else "info", "No PPAs or third-party sources" if not third else
-                  f"{len(third)} PPA/third-party source(s) — the upgrade tool disables them temporarily"))
+    items.append(("ok" if not third else "info", _("No PPAs or third-party sources") if not third else
+                  _('{0} PPA/third-party source(s) — the upgrade tool disables them temporarily').format(len(third))))
     return items

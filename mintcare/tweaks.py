@@ -261,6 +261,7 @@ systemctl restart systemd-resolved""",
     # ----------------------------------------------------------------- Memory
     Tweak(
         "zram", _("Compressed RAM swap (zram)"), _("Memory"),
+        # xgettext:no-python-format
         _("Adds a zstd-compressed swap device in RAM (50% of memory). Keeps the "
         "desktop responsive under memory pressure and reduces SSD writes."),
         probe=_zram_active,
@@ -422,8 +423,8 @@ for q in /sys/block/sd*/queue; do [ "$(cat $q/rotational)" = 1 ] && echo mq-dead
         revert=f"gpasswd -d {q(USER)} gamemode || true"),
     Tweak(
         "gamemodecfg", _("GameMode performance profile"), _("Gaming"),
-        "While gaming: performance CPU governor, higher process and I/O priority, "
-        "screensaver blocked" + (", NVIDIA 'prefer maximum performance'" if has_cmd("nvidia-smi") else "")
+        _("While gaming: performance CPU governor, higher process and I/O priority, "
+        "screensaver blocked") + (_(", NVIDIA 'prefer maximum performance'") if has_cmd("nvidia-smi") else "")
         + ". Writes /etc/gamemode.ini (any existing file is backed up).",
         probe=lambda: GAMEMODE_INI.exists(),
         apply=f"""mkdir -p {STATE_DIR}

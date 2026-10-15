@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-from .i18n import _
+from .i18n import _, ngettext
 from .util import dir_size, has_cmd, out, q
 
 HOME = Path.home()
@@ -36,7 +36,7 @@ def _files_size(paths):
 
 def s_apt():
     debs = list(Path("/var/cache/apt/archives").glob("*.deb"))
-    return _files_size(debs), f"{len(debs)} downloaded package file{'s' if len(debs) != 1 else ''}"
+    return _files_size(debs), ngettext("{0} downloaded package file", "{0} downloaded package files", len(debs)).format(len(debs))
 
 
 def _autoremove_pkgs():
@@ -47,19 +47,20 @@ def _autoremove_pkgs():
 def s_autoremove():
     pkgs = _autoremove_pkgs()
     if not pkgs:
-        return 0, "Nothing to remove"
+        return 0, _("Nothing to remove")
     o = out(["dpkg-query", "-W", "-f=${Installed-Size}\n"] + pkgs)
     kb = sum(int(x) for x in o.split() if x.isdigit())
     kernels = sum(1 for p in pkgs if p.startswith("linux-image-"))
-    detail = f"{len(pkgs)} package{'s' if len(pkgs) != 1 else ''}"
+    detail = ngettext("{0} package", "{0} packages", len(pkgs)).format(len(pkgs))
     if kernels:
-        detail += f", including {kernels} old kernel{'s' if kernels != 1 else ''}"
+        detail += ngettext(", including {0} old kernel", ", including {0} old kernels", kernels).format(kernels)
     return kb * 1024, detail
 
 
 def s_residual():
     pkgs = out("dpkg -l | awk '/^rc/{print $2}'").split()
-    return None, f"{len(pkgs)} removed package{'s' if len(pkgs) != 1 else ''} with leftover config"
+    return None, ngettext("{0} removed package with leftover config", "{0} removed packages with leftover config",
+                          len(pkgs)).format(len(pkgs))
 
 
 def s_journal():
@@ -82,16 +83,16 @@ def s_oldlogs():
         logs = _old_logs()
     except OSError:
         logs = []
-    return _files_size(logs), f"{len(logs)} rotated log file{'s' if len(logs) != 1 else ''}"
+    return _files_size(logs), ngettext("{0} rotated log file", "{0} rotated log files", len(logs)).format(len(logs))
 
 
 def s_crash():
     files = [p for p in Path("/var/crash").glob("*") if p.is_file()]
-    return _files_size(files), f"{len(files)} crash report{'s' if len(files) != 1 else ''}"
+    return _files_size(files), ngettext("{0} crash report", "{0} crash reports", len(files)).format(len(files))
 
 
 def s_thumbs():
-    return dir_size(HOME / ".cache/thumbnails"), "Preview images regenerated on demand"
+    return dir_size(HOME / ".cache/thumbnails"), _("Preview images regenerated on demand")
 
 
 def _stale_cache_files(days=30):
@@ -112,7 +113,7 @@ def _stale_cache_files(days=30):
 
 def s_usercache():
     size, n = _stale_cache_files()
-    return size, f"{n:,} files in ~/.cache unused for 30+ days"
+    return size, _('{0:,} files in ~/.cache unused for 30+ days').format(n)
 
 
 DEV_CACHES = [HOME / ".cache/pip", HOME / ".npm/_cacache", HOME / ".cache/yarn",
@@ -121,20 +122,21 @@ DEV_CACHES = [HOME / ".cache/pip", HOME / ".npm/_cacache", HOME / ".cache/yarn",
 
 def s_devcache():
     present = [p for p in DEV_CACHES if p.exists()]
-    names = ", ".join(p.relative_to(HOME).as_posix() for p in present) or "none found"
+    names = ", ".join(p.relative_to(HOME).as_posix() for p in present) or _("none found")
     return sum(dir_size(p) for p in present), names
 
 
 def s_trash():
     t = HOME / ".local/share/Trash"
     n = len(list((t / "files").glob("*"))) if (t / "files").exists() else 0
-    return dir_size(t), f"{n} item{'s' if n != 1 else ''} in the Trash"
+    return dir_size(t), ngettext("{0} item in the Trash", "{0} items in the Trash", n).format(n)
 
 
 def s_flatpak():
     o = out(["flatpak", "list", "--runtime", "--columns=application"])
     n = len(o.splitlines())
-    return None, f"{n} runtime{'s' if n != 1 else ''} installed; unused ones are removed"
+    return None, ngettext("{0} runtime installed; unused ones are removed", "{0} runtimes installed; unused ones are removed",
+                    n).format(n)
 
 
 # Browser caches: (id, name, cache dirs relative to HOME, process names)
@@ -167,8 +169,8 @@ def _browser_scan(dirs, procs, name):
         present = [HOME / d for d in dirs if (HOME / d).exists()]
         size = sum(dir_size(p) for p in present)
         if running(procs):
-            return size, f"{name} is open — close it first or this item is skipped"
-        return size, f"Cached pages and images; {name} rebuilds them as you browse"
+            return size, _('{0} is open — close it first or this item is skipped').format(name)
+        return size, _('Cached pages and images; {0} rebuilds them as you browse').format(name)
     return scan
 
 
@@ -185,7 +187,7 @@ def _browser_items():
     for bid, name, dirs, procs in BROWSERS:
         if not any((HOME / d).exists() for d in dirs):
             continue
-        items.append(CleanItem(f"browser-{bid}", f"{name} cache", f"{name}'s disk cache.",
+        items.append(CleanItem(f"browser-{bid}", f"{name} cache", _("{0}'s disk cache.").format(name),
                                _browser_scan(dirs, procs, name),
                                user_script=_browser_script(dirs, procs, name)))
     return items

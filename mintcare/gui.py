@@ -16,7 +16,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
-from .i18n import N_, _
+from .i18n import N_, _, ngettext
 from . import (__version__, assistant, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
                flatpaks, hardware, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
                space, theme, troubleshoot, tweaks, widgets)
@@ -1028,7 +1028,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         else:
             f.unlink(missing_ok=True)
             self.set_status(_("MintCare won't start at login"))
-        maintenance.record("startup", f"Start in tray at login {'on' if on else 'off'}")
+        maintenance.record("startup", (_('Start in tray at login: on') if on else _('Start in tray at login: off')))
 
     def export_report(self):
         d = Gtk.FileChooserDialog(title=_("Export health report"), transient_for=self,
@@ -1130,7 +1130,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         view.load_html(page, "file:///")
 
     def _report_saved(self, path):
-        maintenance.record("other", f"Exported health report ({os.path.basename(path)})")
+        maintenance.record("other", _('Exported health report ({0})').format(os.path.basename(path)))
         self.log(_('Health report saved: {0}').format(path))
         self.set_status(_('Report saved: {0}').format(os.path.basename(path)))
         try:
@@ -1402,9 +1402,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.side_score.set_text(str(score))
         self.side_bar.color = color
         self.side_bar.set_value(score)
-        self.cnt_fail.set_text(_('{0} problems').format(counts[checks.FAIL]))
-        self.cnt_warn.set_text(_('{0} warnings').format(counts[checks.WARN]))
-        self.cnt_info.set_text(_('{0} tips').format(counts[checks.INFO]))
+        self.cnt_fail.set_text(ngettext('{0} problem', '{0} problems', counts[checks.FAIL]).format(counts[checks.FAIL]))
+        self.cnt_warn.set_text(ngettext('{0} warning', '{0} warnings', counts[checks.WARN]).format(counts[checks.WARN]))
+        self.cnt_info.set_text(ngettext('{0} tip', '{0} tips', counts[checks.INFO]).format(counts[checks.INFO]))
         fixable = sum(1 for r in res.values() if r.fix and r.status in (checks.WARN, checks.FAIL)
                       and r.fix.kind in ("root", "user", "tweak"))
         self.issue_summary.set_text(
@@ -1489,7 +1489,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if not results or results.get("selfupdate") != 0:
                 self.set_status(_("The update didn't install — see Activity log"), bad=True)
                 return
-            maintenance.record("update", f"Updated MintCare to {info['version']}")
+            maintenance.record("update", _('Updated MintCare to {0}').format(info['version']))
             if self.confirm(_('MintCare {0} is installed').format(info['version']), _("Restart MintCare now to use it?")):
                 cmd = " ".join(maintenance.launcher())
                 subprocess.Popen(["bash", "-c", f"sleep 1; exec {cmd}"], start_new_session=True)
@@ -1640,7 +1640,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             n = len(data["errors"])
             self.set_status(_('Tested sources: {0} error(s)').format(n) if n else _("All software sources downloaded fine"),
                             bad=bool(n))
-            maintenance.record("other", f"Tested software sources: {n} error(s)", n == 0)
+            maintenance.record("other", _('Tested software sources: {0} error(s)').format(n), n == 0)
             self.load_software()
             self.run_diagnose()
         self.in_thread(_("Testing software sources…"), work, done)
@@ -1738,7 +1738,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                    lambda r: self.load_security()), primary=True, tag="login_row"))
             elif action == "lock-on":
                 btns.append(self._btn(_("Turn on screen lock"), lambda: (secaudit.lock_screen_on(),
-                                      maintenance.record("other", "Screen lock turned on"), self.load_security()),
+                                      maintenance.record("other", _("Screen lock turned on")), self.load_security()),
                                       primary=True, tag="login_row"))
             self.login_list.add(self._row(title, text, "", STATUS_ICON[lvl][0], [], btns))
         self.login_list.show_all()
@@ -1796,7 +1796,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self.mal_results.pack_start(self._btn(_("Quarantine these files"), lambda: self._root_job(
                     _("Quarantining…"), [secaudit.quarantine_step([p for p, _v in found])], "Security"),
                     primary=True, tag="mal_res"), False, False, 0)
-            maintenance.record("other", f"Malware scan: {len(found)} infected file(s)", not found)
+            maintenance.record("other", _('Malware scan: {0} infected file(s)').format(len(found)), not found)
             self.mal_results.show_all()
         self.mal_progress.set_text(_("Scanning… press the button again to cancel"))
         self.bg(lambda: secaudit.clam_scan([str(Path.home())], line, self._mal_cancel.is_set), done)
@@ -2050,8 +2050,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                      False, False, 0)
         top.pack_end(small(_("Copy"), lambda: self._copy(cmd), "edit-copy-symbolic"), False, False, 0)
         top.pack_end(small(_("Ask the assistant"), lambda: self.ask_assistant(
-            f"MintCare's check “{check.title}” says: {self.check_results[check.id].summary if check.id in self.check_results else ''}"
-            f". What does this mean on my PC, and what should I do?"), "user-available-symbolic"), False, False, 0)
+            _("MintCare's check “{0}” says: {1}. What does this mean on my PC, and what should I do?").format(check.title, self.check_results[check.id].summary if check.id in self.check_results else '')), "user-available-symbolic"), False, False, 0)
         panel.pack_start(top, False, False, 0)
         panel.pack_start(sw, False, False, 0)
         acts = hbox(8)
@@ -2847,8 +2846,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             for p, _x in ok:
                 self.log(_('Moved duplicate to Trash: {0}').format(p))
             if ok:
-                maintenance.record("trash", f"Moved {len(ok):,} duplicate file(s) to the Trash "
-                                            f"({human(sum(s_ for _x, s_ in ok))})", not failed)
+                maintenance.record("trash", _('Moved {0:,} duplicate file(s) to the Trash ({1})').format(len(ok), human(sum(s_ for _x, s_ in ok))), not failed)
             for f in failed:
                 self.log(_('Could not trash {0}').format(f))
             gone = {p for p, _x in ok}
@@ -2958,7 +2956,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                             "\n".join(lines) + _("\n\nThis can't be undone; you won't be able to roll back to "
                             "these points.")):
             return
-        steps = [(f"snap{i}", f"Delete snapshot {n}", space.delete_snapshot_script(n)) for i, n in enumerate(names)]
+        steps = [(f"snap{i}", _('Delete snapshot {0}').format(n), space.delete_snapshot_script(n)) for i, n in enumerate(names)]
         before = shutil.disk_usage("/").free
 
         def done(results):
@@ -3186,7 +3184,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.pkg_list.add(self._row(_("Nothing to show"), _("No packages match.")))
         self.pkg_list.show_all()
 
-    def remove_packages(self, names, heading="Remove packages"):
+    def remove_packages(self, names, heading=_("Remove packages")):
         removed, ok = packages.simulate_remove(names)
         if not ok or not removed:
             self.set_status(_("apt can't remove that cleanly — see the Activity log"), bad=True)
@@ -3200,7 +3198,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if not self.confirm(_('Remove {0} package(s)?').format(len(removed)), body):
             return
         self._root_job(_("Removing packages…"), [packages.remove_step(names)], "Packages",
-                       lambda r: (self.load_packages(), self.run_clean_scan()), snapshot_reason="removing packages")
+                       lambda r: (self.load_packages(), self.run_clean_scan()), snapshot_reason=_("removing packages"))
 
     def _render_pkg_history(self):
         d = self.pkg_data
@@ -3309,7 +3307,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._launch("mintupgrade")
             return
         self._root_job(_("Installing Mint's upgrade tool…"),
-                       [("mintupgrade", "Install mintupgrade", "DEBIAN_FRONTEND=noninteractive apt-get install -y mintupgrade")],
+                       [("mintupgrade", _("Install mintupgrade"), "DEBIAN_FRONTEND=noninteractive apt-get install -y mintupgrade")],
                        "Packages", lambda r: self._launch("mintupgrade") if r.get("mintupgrade") == 0 else None)
 
     # ------------------------------------------------------------ processes
@@ -3368,6 +3366,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                  and (not flt or flt in r["name"].lower() or flt in r["cmd"].lower())]
         shown.sort(key=lambda r: -r[key])
         tot_cpu = sum(r["cpu"] for r in rows)
+        # xgettext:no-python-format
         self.proc_head.set_text(_('{0} processes · {1:.0f}% of all CPU · showing {2}').format(len(rows), tot_cpu / (os.cpu_count() or 1), min(len(shown), 40)))
         for r in shown[:40]:
             pills = [] if r["mine"] else [(r["user"], "dim")]
@@ -3499,7 +3498,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             troubleshoot.set_default(sink)
         elif action in ("unmute", "normal") and sink:
             troubleshoot.set_volume(sink, 70 if action == "unmute" or a["sinks"] else 70)
-        maintenance.record("other", "Sound: fixed volume/default output")
+        maintenance.record("other", _("Sound: fixed volume/default output"))
         troubleshoot.test_sound()
         self.load_troubleshoot()
 
@@ -3531,7 +3530,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
             rows.append(("Wi-Fi", _('{0} · signal {1}% · channel {2} ({3}) · {4} networks nearby on the same channel').format(
                 w['ssid'], w['signal'], w['chan'], w['freq'], w['crowd'])))
         for name, (loss, avg) in n["latency"].items():
-            rows.append((_('Ping {0}').format(name), _('{0:.1f} ms, {1}% loss').format(avg, loss) if avg is not None
+            rows.append((_('Ping {0}').format(name),
+                         # xgettext:no-python-format
+                         _('{0:.1f} ms, {1}% loss').format(avg, loss) if avg is not None
+                         # xgettext:no-python-format
                          else _('{0}% loss').format(loss)))
         rows.append((_("DNS lookup"), f"{n['dns_ms']:.0f} ms" if n["dns_ms"] is not None else "?"))
         rows.append((_("Router"), n["gateway"] or _("none")))
@@ -3560,7 +3562,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if self.confirm(_("Reset networking?"), _("Disconnects for a few seconds, then reconnects.")):
                 self._user_fix(troubleshoot.NET_RESET, "network")
         elif action == "flushdns":
-            self._root_job(_("Flushing DNS…"), [("dns", "Flush DNS cache", troubleshoot.DNS_FLUSH)], "Troubleshoot",
+            self._root_job(_("Flushing DNS…"), [("dns", _("Flush DNS cache"), troubleshoot.DNS_FLUSH)], "Troubleshoot",
                            lambda r: self.load_troubleshoot())
 
     def _render_devices(self, res):
@@ -3576,7 +3578,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if p_["disabled"]:
                 pills.append(("paused", "warn"))
             btns = [] if is_def else [self._btn(_("Make default"), lambda n=p_["name"]: (
-                troubleshoot.set_default_printer(n), maintenance.record("other", f"Default printer: {n}"),
+                troubleshoot.set_default_printer(n), maintenance.record("other", _('Default printer: {0}').format(n)),
                 self.load_troubleshoot()), tag="ts_devices")]
             lb.add(self._row(p_["name"].replace("_", " "), p_["state"], "", "printer-symbolic", pills, btns))
         for j in pr["jobs"]:
@@ -3630,11 +3632,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if best:
                 troubleshoot.set_default_printer(best)
                 self.set_status(_('{0} is now your default printer').format(best))
-                maintenance.record("other", f"Default printer: {best}")
+                maintenance.record("other", _('Default printer: {0}').format(best))
             self.load_troubleshoot()
         elif action == "cancel":
             if self.confirm(_("Cancel all print jobs?"), _("Everything waiting to print is removed.")):
-                self._root_job(_("Cancelling jobs…"), [("cancel", "Cancel all print jobs", troubleshoot.CANCEL_ALL)],
+                self._root_job(_("Cancelling jobs…"), [("cancel", _("Cancel all print jobs"), troubleshoot.CANCEL_ALL)],
                                "Troubleshoot", lambda r: self.load_troubleshoot())
         elif action == "restart-cups":
             self._root_job(_("Restarting printing…"), [("cups", "Restart CUPS", troubleshoot.CUPS_RESTART)],
@@ -3685,7 +3687,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             bar = hbox(8)
             bar.pack_end(self._btn(_("Delete stored crash dumps"), lambda: self.confirm(
                 _("Delete stored crash dumps?"), _("Frees the space they use; the list of crashes stays in the log."))
-                and self._root_job(_("Deleting…"), [("dumps", "Delete crash dumps", troubleshoot.CLEAR_DUMPS)],
+                and self._root_job(_("Deleting…"), [("dumps", _("Delete crash dumps"), troubleshoot.CLEAR_DUMPS)],
                                    "Troubleshoot", lambda r: self.load_troubleshoot()), tag="ts_crashes"), False, False, 0)
             box.pack_start(bar, False, False, 0)
         box.show_all()
@@ -3847,10 +3849,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self._bk_loading = False
                 return
             backup.install_timer(b["frequency"])
-            maintenance.record("backup", "Automatic backup turned on")
+            maintenance.record("backup", _("Automatic backup turned on"))
         else:
             backup.remove_timer()
-            maintenance.record("backup", "Automatic backup turned off")
+            maintenance.record("backup", _("Automatic backup turned off"))
         self.load_backup()
 
     def _pick_folder(self, title, start=None):
@@ -4040,7 +4042,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.set_status(_("That doesn't look like an Anthropic API key (sk-ant-…)"), bad=True)
             return
         assistant.set_key(k)
-        maintenance.record("other", "Assistant: API key saved")
+        maintenance.record("other", _("Assistant: API key saved"))
         self.load_assistant()
 
     def _ai_clear(self):
@@ -4265,7 +4267,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.set_status(_("Reset failed"), bad=True)
             return
         maintenance.note_flatpak(a["id"], reset=True)
-        maintenance.record("flatpak", f"{a['name']}: permissions reset to defaults")
+        maintenance.record("flatpak", _('{0}: permissions reset to defaults').format(a['name']))
         self.log(_("Flatpak: {0} permissions reset to the app's defaults").format(a['name']))
         self.set_status(_('{0} permissions reset').format(a['name']))
         self.load_flatpaks()
@@ -4286,7 +4288,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         root, user = flatpaks.update_steps()
 
         def done(results):
-            self.notify_done(results or {}, _("Flatpak update"))
+            self.notify_done(results or {}, "Flatpak update")
             self.load_flatpaks(check_updates=True)
         self.in_thread(_("Updating Flatpaks…"), lambda: self.execute(root, user, "Flatpak update"), done)
 
@@ -4294,7 +4296,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         root, user = flatpaks.repair_steps()
 
         def done(results):
-            self.notify_done(results or {}, _("Flatpak repair"))
+            self.notify_done(results or {}, "Flatpak repair")
             self.load_flatpaks()
             self.run_clean_scan()
         self.in_thread(_("Repairing Flatpak…"), lambda: self.execute(root, user, "Flatpak repair"), done)
@@ -4391,6 +4393,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             t = vbox(2)
             t.pack_start(label(f"{b['maker']} {b['model']}".strip() or b["name"], ("h2",)), False, False, 0)
             hl = b["health"]
+            # xgettext:no-python-format
             t.pack_start(label((_('Holds {0}% of its original charge').format(hl) if hl is not None else _("Health unknown")) +
                                (_(' · {0} charge cycles').format(b['cycles']) if b["cycles"] else "") +
                                (_(' · {0:.1f} of {1:.1f} Wh').format(b['full_wh'], b['design_wh']) if b["full_wh"] and b["design_wh"]
@@ -4436,7 +4439,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             return
 
         def work():
-            r = bench.disk(target, 256, lambda t: GLib.idle_add(self.set_status, f"Disk test {t}"))
+            r = bench.disk(target, 256, lambda t: GLib.idle_add(self.set_status, _('Disk test {0}').format(t)))
             bench.save("disk", target, r)
             return r
         self.in_thread(_("Testing disk speed…"), work, lambda r: (self._render_bench(),
@@ -4653,7 +4656,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if not ds:
             self.set_status(_("No drives loaded yet"))
             return
-        steps = [(f"smart{i}", f"SMART report: {d['model']} ({d['device']})",
+        steps = [(f"smart{i}", _('SMART report: {0} ({1})').format(d['model'], d['device']),
                   f"smartctl -x {q(d['device'])} || true") for i, d in enumerate(ds)]
 
         def done(results):
@@ -4866,7 +4869,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             return
         a["enabled"] = on
         maintenance.note_autostart(a["file"], on, had_user_file)
-        maintenance.record("startup", f"Startup app {a['name']} {'enabled' if on else 'disabled'}")
+        maintenance.record("startup", (_('Startup app {0} enabled') if on else _('Startup app {0} disabled')).format(a['name']))
         self.log(_('Startup: {0} {1} (~/.config/autostart/{2})').format(a['name'], 'enabled' if on else 'disabled', a['file']))
         self.set_status((_('{0} will start at login') if on else _('{0} will no longer start at login')).format(a['name']))
 
@@ -5057,11 +5060,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
         counts = {}
         for kind, _k, _t in inv:
             counts[kind] = counts.get(kind, 0) + 1
-        names = {"tweak": "optimisation", "unit": "boot service", "autostart": "startup app",
-                 "flatpak": "Flatpak app"}
+        names = {"tweak": lambda n: ngettext("{0} optimisation", "{0} optimisations", n),
+                 "unit": lambda n: ngettext("{0} boot service", "{0} boot services", n),
+                 "autostart": lambda n: ngettext("{0} startup app", "{0} startup apps", n),
+                 "flatpak": lambda n: ngettext("{0} Flatpak app", "{0} Flatpak apps", n)}
         self.undo_summary.set_text(
-            (_("MintCare has changed ") + ", ".join(f"{n} {names[k]}{'s' if n != 1 else ''}"
-                                                for k, n in counts.items()) +
+            (_("MintCare has changed ") + ", ".join(names[k](n).format(n) for k, n in counts.items()) +
              _(". Choose what to put back the way it was.")) if inv else
             _("Nothing to undo — MintCare hasn't changed anything that's still active."))
 
@@ -5130,11 +5134,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if sw.get_active():
                 self._save_maint_settings()
                 maintenance.install_timer(maintenance.load_settings()["maintenance"]["frequency"])
-                maintenance.record("scheduled", "Scheduled check-up turned on")
+                maintenance.record("scheduled", _("Scheduled check-up turned on"))
                 self.set_status(_("Scheduled check-up turned on"))
             else:
                 maintenance.remove_timer()
-                maintenance.record("scheduled", "Scheduled check-up turned off")
+                maintenance.record("scheduled", _("Scheduled check-up turned off"))
                 self.set_status(_("Scheduled check-up turned off"))
         except Exception as e:
             self.log(_('Scheduled check-up: {0}').format(e))
@@ -5157,7 +5161,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if not ready:
             self.set_status(why, bad=True)
             return
-        step = maintenance.snapshot_step("a manual MintCare snapshot")
+        step = maintenance.snapshot_step(_("a manual MintCare snapshot"))
 
         def done(results):
             self.notify_done(results or {}, _("Snapshot"))
@@ -5187,8 +5191,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                        False, False, 0)
         lst = vbox(4)
         checks_ = []
-        groups = {"tweak": "Optimisations", "unit": "Boot services", "autostart": "Startup apps",
-                  "flatpak": "Flatpak permissions"}
+        groups = {"tweak": _("Optimisations"), "unit": _("Boot services"), "autostart": _("Startup apps"),
+                  "flatpak": _("Flatpak permissions")}
         for kind, title in groups.items():
             mine = [i for i in inv if i[0] == kind]
             if not mine:

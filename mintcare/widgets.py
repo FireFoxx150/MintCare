@@ -77,6 +77,11 @@ class RingGauge(Gtk.DrawingArea):
         from gi.repository import GLib
         if getattr(self, "_anim", None):
             return
+        settings = Gtk.Settings.get_default()
+        if settings is not None and not settings.props.gtk_enable_animations:   # desktop's "reduce motion"
+            self.shown = self.value
+            self.queue_draw()
+            return
 
         def step():
             d = self.value - self.shown

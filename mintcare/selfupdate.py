@@ -8,6 +8,7 @@ import time
 import urllib.request
 from pathlib import Path
 
+from .i18n import _
 from . import __version__
 from .util import q
 
@@ -89,7 +90,7 @@ def latest(max_age=6 * 3600, timeout=8):
 def download(info, progress=lambda done, total: None):
     """Fetch the .deb into a fresh /tmp folder (readable by apt's _apt user) and verify it."""
     if not info.get("asset"):
-        raise RuntimeError("This release has no .deb attached")
+        raise RuntimeError(_("This release has no .deb attached"))
     folder = tempfile.mkdtemp(prefix="mintcare-update-", dir="/tmp")
     os.chmod(folder, 0o755)
     path = os.path.join(folder, info["asset_name"])
@@ -110,9 +111,9 @@ def download(info, progress=lambda done, total: None):
     if info.get("sha256"):
         if h.hexdigest() != info["sha256"]:
             os.unlink(path)
-            raise RuntimeError("Downloaded file does not match the release checksum — not installing it")
+            raise RuntimeError(_("Downloaded file does not match the release checksum — not installing it"))
     else:
-        raise RuntimeError("The release has no checksum to verify against — not installing it")
+        raise RuntimeError(_("The release has no checksum to verify against — not installing it"))
     return path
 
 

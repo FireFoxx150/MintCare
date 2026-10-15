@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .i18n import _
 from .util import out, read
 
 HOME = str(Path.home())
@@ -247,12 +248,12 @@ def snapshots():
     """List Timeshift rsync snapshots, newest first. Returns (list, note)."""
     cfg = _ts_config()
     if not cfg:
-        return [], "Timeshift is not set up."
+        return [], _("Timeshift is not set up.")
     if cfg.get("btrfs_mode") == "true":
-        return [], "BTRFS snapshots are managed inside Timeshift."
+        return [], _("BTRFS snapshots are managed inside Timeshift.")
     d = snapshot_dir()
     if not d:
-        return [], "The Timeshift backup drive isn't mounted, so snapshots can't be listed here."
+        return [], _("The Timeshift backup drive isn't mounted, so snapshots can't be listed here.")
     res = []
     for name in sorted(os.listdir(d), reverse=True):
         info_p = os.path.join(d, name, "info.json")

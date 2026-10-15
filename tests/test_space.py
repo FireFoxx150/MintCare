@@ -75,5 +75,24 @@ class Treemap(unittest.TestCase):
         self.assertEqual(_squarify([(0, "a")], 0, 0, 10, 10), [])
 
 
+@unittest.skipUnless(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"), "needs a display")
+class ReducedMotion(unittest.TestCase):
+    def test_gauge_jumps_when_animations_are_off(self):
+        from gi.repository import Gtk
+        from mintcare.widgets import RingGauge
+        settings = Gtk.Settings.get_default()
+        was = settings.props.gtk_enable_animations
+        try:
+            settings.props.gtk_enable_animations = False
+            g = RingGauge()
+            g.set_value(70)
+            self.assertEqual(g.shown, 70)
+            settings.props.gtk_enable_animations = True
+            g.set_value(20)
+            self.assertEqual(g.shown, 70)          # animating: still on its way down
+        finally:
+            settings.props.gtk_enable_animations = was
+
+
 if __name__ == "__main__":
     unittest.main()

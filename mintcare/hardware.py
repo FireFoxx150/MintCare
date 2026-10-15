@@ -3,6 +3,7 @@
 from glob import glob
 from pathlib import Path
 
+from .i18n import _
 from .util import has_cmd, human, read, run
 
 UD = "org.freedesktop.UDisks2"
@@ -10,12 +11,12 @@ OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
 RANK = {OK: 0, INFO: 1, WARN: 2, FAIL: 3}
 
 NVME_WARNINGS = {
-    "spare": "spare capacity below threshold",
-    "temperature": "temperature outside safe range",
-    "degraded": "reliability degraded by media errors",
-    "readonly": "drive switched to read-only mode",
-    "volatile_mem": "volatile memory backup failed",
-    "pmr_readonly": "persistent memory region read-only",
+    "spare": _("spare capacity below threshold"),
+    "temperature": _("temperature outside safe range"),
+    "degraded": _("reliability degraded by media errors"),
+    "readonly": _("drive switched to read-only mode"),
+    "volatile_mem": _("volatile memory backup failed"),
+    "pmr_readonly": _("persistent memory region read-only"),
 }
 
 
@@ -65,7 +66,7 @@ def drives():
         rot = d.get("RotationRate", -1)
         kind = "NVMe" if nvme else "SSD" if rot == 0 else "HDD" if rot and rot > 0 else "Disk"
         info = {
-            "model": (d.get("Model") or d.get("Vendor") or "Unknown drive").strip(),
+            "model": (d.get("Model") or d.get("Vendor") or _("Unknown drive")).strip(),
             "serial": d.get("Serial", ""), "size": d["Size"], "kind": kind,
             "rpm": rot if rot and rot > 0 else None,
             "device": devs.get(path, ""), "removable": d.get("Removable", False),
@@ -79,11 +80,11 @@ def drives():
                 _ata(bus, path, ata, info)
             else:
                 info["health"] = INFO
-                info["notes"].append((INFO, "SMART is not available for this drive "
-                                            "(common for USB enclosures and SD cards)"))
+                info["notes"].append((INFO, _("SMART is not available for this drive "
+                                            "(common for USB enclosures and SD cards)")))
         except Exception as e:
             info["health"] = INFO
-            info["notes"].append((INFO, f"Could not read SMART data: {e}"))
+            info["notes"].append((INFO, _('Could not read SMART data: {0}').format(e)))
         out.append(info)
     order = {"NVMe": 0, "SSD": 1, "HDD": 2, "Disk": 3}
     out.sort(key=lambda x: (order[x["kind"]], x["device"]))
@@ -101,37 +102,38 @@ def _nvme(bus, path, ctl, info):
     levels = []
     crit = ctl.get("SmartCriticalWarning") or []
     for w in crit:
-        info["notes"].append((FAIL, "Critical warning: " + NVME_WARNINGS.get(w, w)))
+        info["notes"].append((FAIL, _("Critical warning: ") + NVME_WARNINGS.get(w, w)))
         levels.append(FAIL)
     if used >= 90:
         levels.append(FAIL)
-        info["notes"].append((FAIL, f"{used}% of rated endurance used — plan a replacement"))
+        # xgettext:no-python-format
+        info["notes"].append((FAIL, _('{0}% of rated endurance used — plan a replacement').format(used)))
     elif used >= 80:
         levels.append(WARN)
-        info["notes"].append((WARN, f"{used}% of rated endurance used"))
+        # xgettext:no-python-format
+        info["notes"].append((WARN, _('{0}% of rated endurance used').format(used)))
     if spare <= thresh:
         levels.append(FAIL)
-        info["notes"].append((FAIL, f"Spare blocks at {spare}% (threshold {thresh}%)"))
+        info["notes"].append((FAIL, _('Spare blocks at {0}% (threshold {1}%)').format(spare, thresh)))
     elif spare < thresh + 10:
         levels.append(WARN)
-        info["notes"].append((WARN, f"Spare blocks low: {spare}%"))
+        info["notes"].append((WARN, _('Spare blocks low: {0}%').format(spare)))
     if media:
         levels.append(WARN)
-        info["notes"].append((WARN, f"{media} media/data-integrity error(s) recorded"))
+        info["notes"].append((WARN, _('{0} media/data-integrity error(s) recorded').format(media)))
     if info["temp"] and warn_t > 0 and info["temp"] >= warn_t:
         levels.append(WARN)
-        info["notes"].append((WARN, f"Running hot: {info['temp']:.0f}°C (warning at {warn_t:.0f}°C)"))
+        info["notes"].append((WARN, _('Running hot: {0:.0f}°C (warning at {1:.0f}°C)').format(info['temp'], warn_t)))
     if a.get("critical_temp_time"):
-        info["notes"].append((INFO, f"Spent {a['critical_temp_time']} min above critical temperature"))
+        info["notes"].append((INFO, _('Spent {0} min above critical temperature').format(a['critical_temp_time'])))
     elif a.get("warning_temp_time"):
-        info["notes"].append((INFO, f"Spent {a['warning_temp_time']} min above warning temperature "
-                                    "in its lifetime"))
+        info["notes"].append((INFO, _('Spent {0} min above warning temperature in its lifetime').format(a['warning_temp_time'])))
     if unsafe > 100:
-        info["notes"].append((INFO, f"{unsafe} unsafe shutdowns (power loss / hard resets)"))
+        info["notes"].append((INFO, _('{0} unsafe shutdowns (power loss / hard resets)').format(unsafe)))
     st = ctl.get("SmartSelftestStatus", "")
     if st and st not in ("success", "inprogress", "aborted", ""):
         levels.append(WARN)
-        info["notes"].append((WARN, f"Last self-test result: {st}"))
+        info["notes"].append((WARN, _('Last self-test result: {0}').format(st)))
     info["health"] = _worst(*levels)
     info["stats"] = [
         ("TEMP", f"{info['temp']:.0f}°C" if info["temp"] is not None else "–"),
@@ -160,32 +162,29 @@ def _ata(bus, path, ata, info):
     levels = []
     if ata.get("SmartFailing"):
         levels.append(FAIL)
-        info["notes"].append((FAIL, "Drive reports SMART FAILING — back up now and replace it"))
+        info["notes"].append((FAIL, _("Drive reports SMART FAILING — back up now and replace it")))
     for name in below:
         levels.append(FAIL)
-        info["notes"].append((FAIL, f"Attribute '{name}' has crossed its failure threshold"))
+        info["notes"].append((FAIL, _("Attribute '{0}' has crossed its failure threshold").format(name)))
     pend, unc, rea, crc = raw.get("pending", 0), raw.get("offline_unc", 0), raw.get("realloc", 0), raw.get("crc", 0)
     if pend or unc:
         levels.append(FAIL)
-        info["notes"].append((FAIL, f"{pend} pending / {unc} uncorrectable sector(s): data on them may "
-                                    "be unreadable — back up this drive"))
+        info["notes"].append((FAIL, _('{0} pending / {1} uncorrectable sector(s): data on them may be unreadable — back up this drive').format(pend, unc)))
     if rea:
         levels.append(WARN if rea < 100 else FAIL)
-        info["notes"].append((WARN if rea < 100 else FAIL, f"{rea} reallocated sector(s); watch whether "
-                                                            "this number grows"))
+        info["notes"].append((WARN if rea < 100 else FAIL, _('{0} reallocated sector(s); watch whether this number grows').format(rea)))
     if crc:
-        info["notes"].append((INFO, f"{crc} interface CRC error(s): usually a loose or poor SATA cable, "
-                                    "not the disk itself"))
+        info["notes"].append((INFO, _('{0} interface CRC error(s): usually a loose or poor SATA cable, not the disk itself').format(crc)))
     limit = 55 if info["kind"] == "HDD" else 70
     if info["temp"] and info["temp"] >= limit:
         levels.append(WARN)
-        info["notes"].append((WARN, f"Running hot: {info['temp']:.0f}°C"))
+        info["notes"].append((WARN, _('Running hot: {0:.0f}°C').format(info['temp'])))
     if info["kind"] == "HDD" and info["hours"] > 50000:
-        info["notes"].append((INFO, f"Aging drive: {_years(info['hours'])} powered on"))
+        info["notes"].append((INFO, _('Aging drive: {0} powered on').format(_years(info['hours']))))
     st = ata.get("SmartSelftestStatus", "")
     if st and st not in ("success", "inprogress", "aborted", "interrupted", ""):
         levels.append(WARN)
-        info["notes"].append((WARN, f"Last self-test result: {st}"))
+        info["notes"].append((WARN, _('Last self-test result: {0}').format(st)))
     info["health"] = _worst(*levels)
     info["stats"] = [
         ("TEMP", f"{info['temp']:.0f}°C" if info["temp"] is not None else "–"),
@@ -240,7 +239,7 @@ def sensors(with_gpu=True):
             found.append({"label": _label(chip, lbl, Path(stem).name[4:]), "temp": t,
                           "high": high, "crit": crit, "group": group})
     if seen_core:
-        found.append({"label": "CPU · hottest core", "temp": max(seen_core), "high": None,
+        found.append({"label": _("CPU · hottest core"), "temp": max(seen_core), "high": None,
                       "crit": None, "group": "cpu"})
     if with_gpu:
         gpu = nvidia()
@@ -257,8 +256,8 @@ def cpu_temp():
     return None
 
 
-NV_REASONS = {0x4: "power cap", 0x8: "hardware slowdown", 0x20: "thermal (driver)",
-              0x40: "thermal (hardware)", 0x80: "power brake"}
+NV_REASONS = {0x4: _("power cap"), 0x8: _("hardware slowdown"), 0x20: "thermal (driver)",
+              0x40: "thermal (hardware)", 0x80: _("power brake")}
 
 
 def nvidia():
@@ -305,11 +304,11 @@ def throttling():
             pass
     cpu_t = cpu_temp()
     if counts and sum(counts):
-        res.append(("CPU", WARN, f"Thermally throttled {sum(counts):,} times since boot"))
+        res.append(("CPU", WARN, _('Thermally throttled {0:,} times since boot').format(sum(counts))))
     elif cpu_t is not None and cpu_t >= 90:
-        res.append(("CPU", WARN, f"At {cpu_t:.0f}°C — at its thermal limit and likely throttling"))
+        res.append(("CPU", WARN, _('At {0:.0f}°C — at its thermal limit and likely throttling').format(cpu_t)))
     elif cpu_t is not None:
-        res.append(("CPU", OK, f"No thermal throttling ({cpu_t:.0f}°C)"))
+        res.append(("CPU", OK, _('No thermal throttling ({0:.0f}°C)').format(cpu_t)))
     g = nvidia()
     if g:
         active = [txt for bit, txt in NV_REASONS.items() if g["reasons"] & bit]
@@ -317,7 +316,7 @@ def throttling():
         if thermal:
             res.append(("GPU", WARN, "Throttling: " + ", ".join(active)))
         elif active:
-            res.append(("GPU", INFO, "Limited by " + ", ".join(active) + " (normal under load)"))
+            res.append(("GPU", INFO, _("Limited by ") + ", ".join(active) + " (normal under load)"))
         else:
             res.append(("GPU", OK, f"No throttling ({g['temp']:.0f}°C, {g['clock']:.0f} MHz)"))
     return res

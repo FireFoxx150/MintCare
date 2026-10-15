@@ -13,6 +13,7 @@ import socket
 import time
 from pathlib import Path
 
+from .i18n import _
 from . import __version__, autostart, boot, checks, flatpaks, hardware, maintenance, tweaks
 from .util import human, read, sysctl
 
@@ -25,7 +26,7 @@ def score(results):
 
 
 def collect(private=True, progress=lambda _s: None):
-    progress("Running checks…")
+    progress(_("Running checks…"))
     results = [(c, c.run()) for c in checks.CHECKS]
     sc, counts = score([r for _c, r in results])
     osr = dict(l.split("=", 1) for l in read("/etc/os-release").splitlines() if "=" in l)
@@ -35,12 +36,12 @@ def collect(private=True, progress=lambda _s: None):
                 if l.startswith("MemTotal")), 0)
     du = shutil.disk_usage("/")
     up = float(read("/proc/uptime", "0").split()[0])
-    progress("Reading drives and sensors…")
+    progress(_("Reading drives and sensors…"))
     drives = [d for d in hardware.drives() if "error" not in d]
     if private:
         for d in drives:
             d["serial"] = ""
-    progress("Reading boot and startup…")
+    progress(_("Reading boot and startup…"))
     bt = boot.times()
     data = {
         "generated": time.strftime("%Y-%m-%d %H:%M"),

@@ -4,6 +4,7 @@ import json
 import re
 import time
 
+from .i18n import _
 from .util import run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -13,46 +14,46 @@ OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
 # "tweak" (apply a tweak)
 EXPLAIN = [
     (r"I/O error|blk_update_request|Buffer I/O error|critical medium error", FAIL,
-     "A disk reported read/write errors. Check Hardware › drives (SMART) and back up important files.",
-     ("Check drives", "page", "hardware")),
+     _("A disk reported read/write errors. Check Hardware › drives (SMART) and back up important files."),
+     (_("Check drives"), "page", "hardware")),
     (r"dumped core", WARN,
-     "A program crashed. If it keeps happening, update or reinstall it; the program name is shown above.",
-     ("View crash reports", "page", "troubleshoot")),
+     _("A program crashed. If it keeps happening, update or reinstall it; the program name is shown above."),
+     (_("View crash reports"), "page", "troubleshoot")),
     (r"Out of memory|oom-kill|Killed process", WARN,
-     "The system ran out of memory and closed a program. Consider zram (Optimise) or closing heavy apps.",
-     ("Enable zram", "tweak", "zram")),
+     _("The system ran out of memory and closed a program. Consider zram (Optimise) or closing heavy apps."),
+     (_("Enable zram"), "tweak", "zram")),
     (r"hpmud.*usb_open|usb_open: Permission denied", OK,
-     "The HP printer/scanner driver probed your USB device without permission (colour-management "
-     "service). Harmless — printing and scanning still work."),
+     _("The HP printer/scanner driver probed your USB device without permission (colour-management "
+     "service). Harmless — printing and scanning still work.")),
     (r"gkr-pam", INFO,
-     "Your keyring password doesn't match your login password, so it didn't unlock at login. Fix: open "
-     "Passwords and Keys › right-click Login › Change Password, and set it to your login password.",
-     ("Open Passwords and Keys", "launch", "seahorse")),
+     _("Your keyring password doesn't match your login password, so it didn't unlock at login. Fix: open "
+     "Passwords and Keys › right-click Login › Change Password, and set it to your login password."),
+     (_("Open Passwords and Keys"), "launch", "seahorse")),
     (r"pam_ecryptfs", INFO,
-     "The ecryptfs login module is installed but unused. MintCare's scan offers to remove it.",
-     ("Remove ecryptfs", "check", "ecryptfs")),
+     _("The ecryptfs login module is installed but unused. MintCare's scan offers to remove it."),
+     (_("Remove ecryptfs"), "check", "ecryptfs")),
     (r"Sap driver|sap-server|sap_server", OK,
-     "Bluetooth's SIM Access plugin failed to start. Harmless; MintCare's scan can switch the plugin off.",
-     ("Switch the plugin off", "check", "btsap")),
+     _("Bluetooth's SIM Access plugin failed to start. Harmless; MintCare's scan can switch the plugin off."),
+     (_("Switch the plugin off"), "check", "btsap")),
     (r"EVIOCSKEYCODE", OK,
-     "A keyboard hot-key mapping the kernel didn't accept. Harmless."),
+     _("A keyboard hot-key mapping the kernel didn't accept. Harmless.")),
     (r"a password is required|incorrect password attempt|authentication failure", INFO,
-     "A command asked for an administrator password and didn't get one."),
+     _("A command asked for an administrator password and didn't get one.")),
     (r"ACPI (BIOS )?Error|ACPI Error|AE_NOT_FOUND|AE_ALREADY_EXISTS", OK,
-     "Your motherboard's firmware tables contain a small bug. Usually harmless; a BIOS update can fix it."),
+     _("Your motherboard's firmware tables contain a small bug. Usually harmless; a BIOS update can fix it.")),
     (r"NVRM|nvidia", INFO,
-     "A message from the NVIDIA driver. If you see glitches, check Driver Manager for a newer driver.",
+     _("A message from the NVIDIA driver. If you see glitches, check Driver Manager for a newer driver."),
      ("Open Driver Manager", "launch", "driver-manager")),
-    (r"Bluetooth: hci\d", OK, "The Bluetooth adapter reported a firmware quirk. Usually harmless."),
+    (r"Bluetooth: hci\d", OK, _("The Bluetooth adapter reported a firmware quirk. Usually harmless.")),
     (r"device descriptor read|unable to enumerate USB device|over-current", WARN,
-     "A USB device failed to connect properly — try another port or cable, or an unpowered hub may be the cause."),
+     _("A USB device failed to connect properly — try another port or cable, or an unpowered hub may be the cause.")),
     (r"Failed to start|failed with result", WARN,
-     "A system service failed to start. See the Failed services check for details.",
+     _("A system service failed to start. See the Failed services check for details."),
      ("Open Boot & Startup", "page", "startup")),
     (r"firmware: failed to load|Direct firmware load .* failed", INFO,
-     "A driver couldn't find an optional firmware file. Usually harmless unless that device misbehaves."),
-    (r"wireplumber|pipewire", INFO, "A message from the sound system (PipeWire).",
-     ("Open sound troubleshooter", "page", "troubleshoot")),
+     _("A driver couldn't find an optional firmware file. Usually harmless unless that device misbehaves.")),
+    (r"wireplumber|pipewire", INFO, _("A message from the sound system (PipeWire)."),
+     (_("Open sound troubleshooter"), "page", "troubleshoot")),
 ]
 
 
@@ -122,7 +123,7 @@ def report(groups=None):
     """Readable text for the details panel."""
     groups = grouped() if groups is None else groups
     if not groups:
-        return "No errors have been logged since this boot."
+        return _("No errors have been logged since this boot.")
     words = {FAIL: "PROBLEM", WARN: "WARNING", INFO: "NOTE", OK: "HARMLESS"}
     lines = []
     for g in groups:

@@ -1,6 +1,7 @@
 """Run batches of shell steps, root steps through a single pkexec prompt."""
 
 import os
+from .i18n import _
 import subprocess
 import tempfile
 
@@ -46,7 +47,7 @@ def run_steps(steps, root, on_line=print):
         if sid not in results:
             results[sid] = prc or 1
     if prc in (126, 127) and not any(rc == 0 for rc in results.values()):
-        on_line("Authentication was cancelled or failed.")
+        on_line(_("Authentication was cancelled or failed."))
     return results
 
 

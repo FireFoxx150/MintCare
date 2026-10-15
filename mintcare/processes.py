@@ -4,52 +4,53 @@ import os
 import signal
 import time
 
+from .i18n import _
 from .util import out, read
 
 KNOWN = {
-    "Xorg": "The display server that draws your screen.",
-    "cinnamon": "The Cinnamon desktop (panel, menu, windows).",
-    "cinnamon-session": "Starts and supervises your desktop session.",
-    "nemo-desktop": "Draws the desktop icons.",
-    "nemo": "The Files app.",
-    "pipewire": "The sound and screen-sharing server.",
-    "pipewire-pulse": "PulseAudio compatibility for PipeWire (most apps' sound goes through it).",
-    "wireplumber": "Chooses audio devices for PipeWire.",
-    "Xwayland": "Runs X11 apps on Wayland.",
-    "systemd": "The system and service manager.",
-    "systemd-journald": "Collects the system log.",
-    "NetworkManager": "Manages network connections.",
-    "firefox": "Firefox web browser (one process per tab group).",
-    "firefox-bin": "Firefox web browser (one process per tab group).",
-    "Isolated Web Co": "A Firefox tab's content process.",
-    "Web Content": "A Firefox tab's content process.",
-    "brave": "Brave web browser (several processes per window).",
-    "chrome": "Google Chrome (several processes per window).",
+    "Xorg": _("The display server that draws your screen."),
+    "cinnamon": _("The Cinnamon desktop (panel, menu, windows)."),
+    "cinnamon-session": _("Starts and supervises your desktop session."),
+    "nemo-desktop": _("Draws the desktop icons."),
+    "nemo": _("The Files app."),
+    "pipewire": _("The sound and screen-sharing server."),
+    "pipewire-pulse": _("PulseAudio compatibility for PipeWire (most apps' sound goes through it)."),
+    "wireplumber": _("Chooses audio devices for PipeWire."),
+    "Xwayland": _("Runs X11 apps on Wayland."),
+    "systemd": _("The system and service manager."),
+    "systemd-journald": _("Collects the system log."),
+    "NetworkManager": _("Manages network connections."),
+    "firefox": _("Firefox web browser (one process per tab group)."),
+    "firefox-bin": _("Firefox web browser (one process per tab group)."),
+    "Isolated Web Co": _("A Firefox tab's content process."),
+    "Web Content": _("A Firefox tab's content process."),
+    "brave": _("Brave web browser (several processes per window)."),
+    "chrome": _("Google Chrome (several processes per window)."),
     "code": "Visual Studio Code.",
-    "Discord": "Discord chat.",
-    "steam": "Steam client.",
+    "Discord": _("Discord chat."),
+    "steam": _("Steam client."),
     "steamwebhelper": "Steam's built-in browser.",
-    "ollama": "Ollama AI model server — uses a lot of RAM while a model is loaded.",
-    "kdeconnectd": "KDE Connect phone integration.",
-    "csd-media-keys": "Cinnamon settings daemon: media keys.",
-    "csd-power": "Cinnamon settings daemon: power management.",
+    "ollama": _("Ollama AI model server — uses a lot of RAM while a model is loaded."),
+    "kdeconnectd": _("KDE Connect phone integration."),
+    "csd-media-keys": _("Cinnamon settings daemon: media keys."),
+    "csd-power": _("Cinnamon settings daemon: power management."),
     "mintupdate": "Linux Mint Update Manager.",
     "mintreport": "Linux Mint System Reports.",
-    "timeshift": "Timeshift system snapshots.",
-    "tracker-miner-f": "Indexes files for search.",
-    "baloo_file": "Indexes files for search (KDE).",
-    "gnome-keyring-d": "Stores passwords and keys.",
-    "polkitd": "Handles administrator password prompts.",
-    "udisksd": "Manages disks and USB drives.",
-    "upowerd": "Battery and power information.",
-    "cupsd": "The printing service.",
-    "avahi-daemon": "Finds printers and devices on the network.",
-    "smartd": "Monitors disk health in the background.",
-    "fwupd": "Firmware update service.",
-    "packagekitd": "Software install/update service.",
-    "python3": "A Python program — the command line shows which one.",
-    "java": "A Java program — the command line shows which one.",
-    "node": "A Node.js program — the command line shows which one.",
+    "timeshift": _("Timeshift system snapshots."),
+    "tracker-miner-f": _("Indexes files for search."),
+    "baloo_file": _("Indexes files for search (KDE)."),
+    "gnome-keyring-d": _("Stores passwords and keys."),
+    "polkitd": _("Handles administrator password prompts."),
+    "udisksd": _("Manages disks and USB drives."),
+    "upowerd": _("Battery and power information."),
+    "cupsd": _("The printing service."),
+    "avahi-daemon": _("Finds printers and devices on the network."),
+    "smartd": _("Monitors disk health in the background."),
+    "fwupd": _("Firmware update service."),
+    "packagekitd": _("Software install/update service."),
+    "python3": _("A Python program — the command line shows which one."),
+    "java": _("A Java program — the command line shows which one."),
+    "node": _("A Node.js program — the command line shows which one."),
 }
 
 
@@ -116,11 +117,11 @@ def describe(p):
     pkg = ""
     if exe:
         o = out(["dpkg", "-S", exe.replace(" (deleted)", "")], timeout=10)
-        if ":" in o and "no path found" not in o:
+        if ":" in o and _("no path found") not in o:
             pkg = o.split(":", 1)[0].split(",")[0].strip()
     summary = out(["dpkg-query", "-W", "-f=${binary:Summary}", pkg]) if pkg else ""
     if p["kernel"]:
-        text = text or "A kernel thread — part of Linux itself."
+        text = text or _("A kernel thread — part of Linux itself.")
     return {"text": text, "exe": exe, "package": pkg, "summary": summary}
 
 

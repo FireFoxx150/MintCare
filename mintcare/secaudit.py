@@ -5,6 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from .i18n import _
 from .util import has_cmd, out, pkg_installed, q, read, run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -44,13 +45,11 @@ def audit():
     total = sum(fails.values())
     where = ", ".join(f"{n}× {svc}" for svc, n in sorted(fails.items(), key=lambda kv: -kv[1]))
     if fails.get("ssh", 0) >= 10:
-        items.append((WARN, "Failed logins", f"{fails['ssh']} failed SSH logins in 7 days — someone may be "
-                                             "guessing passwords", None))
+        items.append((WARN, _("Failed logins"), _('{0} failed SSH logins in 7 days — someone may be guessing passwords').format(fails['ssh']), None))
     elif total:
-        items.append((INFO, "Failed logins", f"{total} wrong password(s) in 7 days ({where}). Usually just typos "
-                                             "at the lock screen.", None))
+        items.append((INFO, _("Failed logins"), _('{0} wrong password(s) in 7 days ({1}). Usually just typos at the lock screen.').format(total, where), None))
     else:
-        items.append((OK, "Failed logins", "No failed password attempts in the last 7 days", None))
+        items.append((OK, _("Failed logins"), _("No failed password attempts in the last 7 days"), None))
 
     if pkg_installed("openssh-server"):
         s = _sshd_settings()
@@ -58,39 +57,38 @@ def audit():
         pw = s.get("passwordauthentication", "yes").lower()
         active = out(["systemctl", "is-active", "ssh"]) == "active" or out(["systemctl", "is-active", "ssh.socket"]) == "active"
         if root == "yes":
-            items.append((WARN, "SSH server", "Allows root to log in with a password", "ssh-harden"))
+            items.append((WARN, _("SSH server"), _("Allows root to log in with a password"), "ssh-harden"))
         elif pw == "yes" and active:
-            items.append((INFO, "SSH server", "Running and accepts passwords. Keys are safer; "
-                                              "make sure your password is strong.", "ssh-harden"))
+            items.append((INFO, _("SSH server"), _("Running and accepts passwords. Keys are safer; "
+                                              "make sure your password is strong."), "ssh-harden"))
         else:
-            items.append((OK, "SSH server", f"{'Running' if active else 'Installed but stopped'}; root login "
-                                            f"{root}, passwords {pw}", None))
+            items.append((OK, _("SSH server"), _('{0}; root login {1}, passwords {2}').format(_('Running') if active else _('Installed but stopped'), root, pw), None))
     else:
-        items.append((OK, "SSH server", "Not installed, so nobody can log in remotely", None))
+        items.append((OK, _("SSH server"), _("Not installed, so nobody can log in remotely"), None))
 
     aa = read("/sys/module/apparmor/parameters/enabled") == "Y"
-    items.append((OK if aa else WARN, "AppArmor", "Enabled: apps with profiles are confined" if aa else
-                  "Disabled: apps aren't confined by AppArmor profiles", None))
+    items.append((OK if aa else WARN, "AppArmor", _("Enabled: apps with profiles are confined") if aa else
+                  _("Disabled: apps aren't confined by AppArmor profiles"), None))
 
     auto = ""
     for f in glob.glob("/etc/lightdm/lightdm.conf") + glob.glob("/etc/lightdm/lightdm.conf.d/*.conf"):
         m = re.search(r"^\s*autologin-user\s*=\s*(\S+)", read(f), re.M)
         if m:
             auto = m.group(1)
-    items.append((INFO if auto else OK, "Automatic login",
-                  f"{auto} is logged in automatically — anyone who switches the PC on gets your desktop" if auto
-                  else "Off — a password is needed at start-up", None))
+    items.append((INFO if auto else OK, _("Automatic login"),
+                  _('{0} is logged in automatically — anyone who switches the PC on gets your desktop').format(auto) if auto
+                  else _("Off — a password is needed at start-up"), None))
 
     lock = out(["gsettings", "get", "org.cinnamon.desktop.screensaver", "lock-enabled"]) == "true"
     delay = out(["gsettings", "get", "org.cinnamon.desktop.session", "idle-delay"]).split()[-1:]
     mins = int(delay[0]) // 60 if delay and delay[0].isdigit() else 0
     if not lock:
-        items.append((WARN, "Screen lock", "The screen doesn't lock when you're away", "lock-on"))
+        items.append((WARN, _("Screen lock"), _("The screen doesn't lock when you're away"), "lock-on"))
     elif mins == 0 or mins > 30:
-        items.append((INFO, "Screen lock", f"Locks only after {'never' if mins == 0 else f'{mins} min'} idle",
+        items.append((INFO, _("Screen lock"), _('Locks only after {0} idle').format(_('never') if mins == 0 else _('{0} min').format(mins)),
                       "lock-on"))
     else:
-        items.append((OK, "Screen lock", f"Locks after {mins} minutes idle", None))
+        items.append((OK, _("Screen lock"), _('Locks after {0} minutes idle').format(mins), None))
 
     admins = [u for u in out(["getent", "group", "sudo"]).split(":")[-1].split(",") if u]
     items.append((OK if len(admins) <= 2 else INFO, "Administrators", f"{len(admins)} account(s) can use sudo: "
@@ -149,7 +147,7 @@ def clam_scan(paths, on_line=lambda line: None, cancel=lambda: False):
 
 
 def rkhunter_step():
-    return ("rkhunter", "Rootkit check (rkhunter)", "rkhunter --check --sk --rwo --nocolors 2>&1 || true")
+    return ("rkhunter", _("Rootkit check (rkhunter)"), "rkhunter --check --sk --rwo --nocolors 2>&1 || true")
 
 
 def quarantine_step(paths):

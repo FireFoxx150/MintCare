@@ -15,6 +15,7 @@ from pathlib import Path
 
 from gi.repository import GLib
 
+from .i18n import _
 from . import __version__
 from .util import human, out, run
 
@@ -77,24 +78,23 @@ def check_destination(dest):
     """[(level, text)] — problems with a chosen destination."""
     issues = []
     if not dest:
-        return [("warn", "No backup destination chosen yet")]
+        return [("warn", _("No backup destination chosen yet"))]
     p = Path(dest)
     if not p.is_dir():
-        return [("fail", f"{dest} isn't available — is the drive connected and mounted?")]
+        return [("fail", _("{0} isn't available — is the drive connected and mounted?").format(dest))]
     if not os.access(p, os.W_OK):
-        issues.append(("fail", f"You can't write to {dest}"))
+        issues.append(("fail", _("You can't write to {0}").format(dest)))
     try:
         if os.stat(p).st_dev == os.stat(HOME).st_dev:
-            issues.append(("warn", "This folder is on the same drive as your home folder — if that drive fails, "
-                                   "the backup goes with it. Choose another drive."))
+            issues.append(("warn", _("This folder is on the same drive as your home folder — if that drive fails, "
+                                   "the backup goes with it. Choose another drive.")))
     except OSError:
         pass
     fs = fstype(p)
     if fs in NO_HARDLINKS:
-        issues.append(("info", f"The drive uses {fs}, which can't hard-link files, so every snapshot is a full "
-                               "copy. ext4 or NTFS saves a lot of space."))
+        issues.append(("info", _("The drive uses {0}, which can't hard-link files, so every snapshot is a full copy. ext4 or NTFS saves a lot of space.").format(fs)))
     free = shutil.disk_usage(p).free if p.is_dir() else 0
-    issues.append(("ok", f"{human(free)} free on the destination ({fs or 'unknown filesystem'})"))
+    issues.append(("ok", _('{0} free on the destination ({1})').format(human(free), fs or _('unknown filesystem'))))
     return issues
 
 
@@ -111,7 +111,7 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
         return {"ok": False, "error": problems[0]}
     folders = [f for f in b["folders"] if os.path.isdir(f)]
     if not folders:
-        return {"ok": False, "error": "None of the chosen folders exist"}
+        return {"ok": False, "error": _("None of the chosen folders exist")}
     r = root(b["dest"])
     r.mkdir(parents=True, exist_ok=True)
     prev = snapshots(b["dest"])
@@ -147,7 +147,7 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
         shutil.rmtree(partial, ignore_errors=True)
         return {"ok": False, "error": "Cancelled"}
     if rc not in (0, 24):              # 24 = some files vanished during the copy (normal for live folders)
-        return {"ok": False, "error": f"rsync failed (exit {rc}): " + " ".join(tail[-2:])}
+        return {"ok": False, "error": _('rsync failed (exit {0}): ').format(rc) + " ".join(tail[-2:])}
     partial.rename(target)
     for old in snapshots(b["dest"])[int(b.get("keep", 8)):]:
         shutil.rmtree(old, ignore_errors=True)
@@ -163,8 +163,8 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
         (maintenance.STATE / "last-backup.json").write_text(json.dumps(result))
     except OSError:
         pass
-    maintenance.record("backup", f"Backed up {len(folders)} folder(s) to {b['dest']}", True,
-                       f"{result['files']} files changed")
+    maintenance.record("backup", _('Backed up {0} folder(s) to {1}').format(len(folders), b['dest']), True,
+                       _('{0} files changed').format(result['files']))
     return result
 
 
@@ -229,7 +229,7 @@ def import_settings(path):
     from . import autostart, maintenance, tweaks
     data = json.loads(Path(path).read_text())
     if "mintcare" not in data:
-        raise ValueError("This isn't a MintCare settings file")
+        raise ValueError(_("This isn't a MintCare settings file"))
     st = maintenance.load_settings()
     for k, v in data.get("settings", {}).items():
         if k in st and k != "backup":
