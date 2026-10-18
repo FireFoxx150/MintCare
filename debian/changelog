@@ -11,6 +11,9 @@ mintcare (1.11.0) noble; urgency=medium
   * Startup apps can start 10 s, 30 s or 1 min after login.
   * Backup: restore files, folders or a whole snapshot without losing what
     they replace.
+  * Security: names from outside MintCare (processes, files, Flatpak apps)
+    can no longer run commands in root steps; private reports and the
+    assistant no longer show passwords in software source addresses.
 
  -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 15 Oct 2026 22:05:33 +0100
 
