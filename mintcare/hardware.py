@@ -524,4 +524,29 @@ def inventory():
             elif vram.isdigit() and int(vram) > 0:
                 detail = _("{0} VRAM").format(_gb(int(vram)))
         items.append((kind, name, detail))
+    for line in read("/proc/asound/cards").splitlines():
+        m = re.match(r"\s*\d+ \[[^\]]*\]: (.*)", line)
+        if m:
+            driver, _x, longname = m.group(1).partition(" - ")
+            items.append(("sound", longname or driver, ""))
+
+    for ifc in sorted(glob("/sys/class/net/*/wireless")):
+        iface = ifc.split("/")[4]
+        ids = re.search(r"PRODUCT=([0-9a-f]+)/([0-9a-f]+)", read(f"/sys/class/net/{iface}/device/uevent"))
+        name = _("Wireless adapter")
+        if ids:
+            usb = next((ln for ln in run(["lsusb"], timeout=5)[1].splitlines()
+                        if f"ID {ids.group(1).zfill(4)}:{ids.group(2).zfill(4)}" in ln), "")
+            if usb:
+                name = usb.split(":", 1)[1].split(" ", 1)[1].strip() or name
+        items.append(("network", name, iface))
+
+    for dev in sorted(glob("/sys/block/*")):
+        n = dev.rsplit("/", 1)[1]
+        if not re.match(r"(sd|hd|nvme|mmcblk)", n):
+            continue
+        model = read(f"{dev}/device/model").strip()
+        size = read(f"{dev}/size").strip()
+        if model and size.isdigit():
+            items.append(("drive", model, human(int(size) * 512)))
     return items

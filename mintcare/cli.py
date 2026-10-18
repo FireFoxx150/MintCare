@@ -90,6 +90,9 @@ def cmd_clean(args):
 
 def cmd_hardware(args):
     from . import hardware, boot
+    for kind, name, detail in hardware.inventory():
+        print(f"{kind:9} {name}" + (f"  ({detail})" if detail else ""))
+    print()
     print("Drives:")
     for d in hardware.drives():
         if "error" in d:

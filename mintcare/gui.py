@@ -4557,7 +4557,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._render_bench()
 
     INV_ICONS = {"computer": "computer-symbolic", "cpu": "system-run-symbolic", "memory": "media-flash-symbolic",
-                 "gpu": "video-display-symbolic", "network": "network-wired-symbolic"}
+                 "gpu": "video-display-symbolic", "network": "network-wired-symbolic",
+                 "sound": "audio-card-symbolic", "drive": "drive-harddisk-symbolic"}
 
     def _render_inventory(self, items):
         self._clear(self.inv_box)

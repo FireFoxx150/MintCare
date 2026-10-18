@@ -63,6 +63,7 @@ def collect(private=True, progress=lambda _s: None):
         "score": sc, "counts": counts,
         "checks": [(c.category, c.title, r.status, r.summary) for c, r in results],
         "drives": drives,
+        "hardware": [(n, dt) for k, n, dt in hardware.inventory() if k != "drive"],
         "sensors": [(s["label"], s["temp"], hardware.temp_level(s)) for s in hardware.sensors()],
         "throttling": hardware.throttling(),
         "boot": bt,
@@ -135,6 +136,11 @@ def render_html(d):
     out.append("<h2>System</h2><div class='card'><table>")
     out += [f"<tr><th style='width:30%'>{e(k)}</th><td>{e(v)}</td></tr>" for k, v in d["system"]]
     out.append("</table></div>")
+
+    if d["hardware"]:
+        out.append("<h2>Hardware</h2><div class='card'><table>")
+        out += [f"<tr><td>{e(n)}</td><td class='sub'>{e(dt)}</td></tr>" for n, dt in d["hardware"]]
+        out.append("</table></div>")
 
     order = {"fail": 0, "warn": 1, "info": 2, "ok": 3}
     out.append("<h2>Checks</h2><div class='card'><table><tr><th>Area</th><th>Check</th><th>Result</th><th></th></tr>")
