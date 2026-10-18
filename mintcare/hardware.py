@@ -1,6 +1,9 @@
 """Disk SMART health (via UDisks2, no root needed) and temperature / throttling sensors."""
 
 import json
+import os
+import re
+import shlex
 import time
 from glob import glob
 from pathlib import Path
@@ -423,3 +426,102 @@ def batteries():
                      "design_wh": design / unit_wh if unit_wh and design else None,
                      "full_wh": full / unit_wh if unit_wh and full else None})
     return out_
+
+
+PLACEHOLDERS = ("system product name", "to be filled", "default string", "not applicable", "system manufacturer", "o.e.m")
+PCI_KINDS = {"03": "gpu", "0200": "network", "0280": "network"}
+
+
+def _pci_name(vendor, device):
+    """'NVIDIA Corporation', 'GA106 [GeForce RTX 3060]' -> 'NVIDIA GeForce RTX 3060'."""
+    strip = lambda s: re.sub(r"\s*\[[0-9a-f]{4}\]$", "", s)
+    vendor, device = strip(vendor), strip(device)
+    m = re.search(r"\[([^\]]+)\]", vendor)
+    short = m.group(1).split("/")[0] if m else vendor.split()[0]
+    m = re.search(r"\[([^\]]+)\]", device)
+    return f"{short} {m.group(1) if m else device}"
+
+
+def parse_lspci(text):
+    """[(kind, pci slot, name)] for graphics and network adapters, from `lspci -Dmm -nn`."""
+    found = []
+    for line in text.splitlines():
+        try:
+            f = shlex.split(line)
+        except ValueError:
+            continue
+        if len(f) < 4:
+            continue
+        cls = re.search(r"\[([0-9a-f]{4})\]$", f[1])
+        kind = cls and (PCI_KINDS.get(cls.group(1)) or PCI_KINDS.get(cls.group(1)[:2]))
+        if kind:
+            found.append((kind, f[0], _pci_name(f[2], f[3])))
+    return found
+
+
+def _nvidia_cards():
+    """{pci slot: (name, VRAM MiB, driver)} from nvidia-smi."""
+    if not has_cmd("nvidia-smi"):
+        return {}
+    rc, o = run(["nvidia-smi", "--query-gpu=pci.bus_id,name,memory.total,driver_version",
+                 "--format=csv,noheader,nounits"], timeout=5)
+    cards = {}
+    for line in o.splitlines() if rc == 0 else ():
+        f = [x.strip() for x in line.split(",")]
+        if len(f) == 4:
+            cards[f[0].lower()[-12:]] = (f[1], float(f[2]) if f[2].isdigit() else None, f[3])
+    return cards
+
+
+def _gb(n_bytes):
+    gb = n_bytes / 2 ** 30
+    return f"{gb:.0f} GB" if gb >= 3 else f"{gb:.1f} GB"
+
+
+def inventory():
+    """[(kind, name, detail)] describing the main parts of this PC, readable without a password."""
+    items = []
+    dmi = lambda k: read(f"/sys/class/dmi/id/{k}").strip()
+    usable = lambda s: s if s and not any(p in s.lower() for p in PLACEHOLDERS) else ""
+    maker, model = usable(dmi("sys_vendor")), usable(dmi("product_name"))
+    board = " ".join(x for x in (usable(dmi("board_vendor")), usable(dmi("board_name"))) if x)
+    if model or board:
+        items.append(("computer", f"{maker} {model}".strip() if model else board,
+                      _("Motherboard: {0}").format(board) if model and board else ""))
+
+    cpuinfo = read("/proc/cpuinfo")
+    m = re.search(r"^model name\s*:\s*(.+)$", cpuinfo, re.M)
+    if m:
+        cores = len({(re.search(r"^physical id\s*:\s*(\d+)", b, re.M) or m).group(1) + "/" +
+                     re.search(r"^core id\s*:\s*(\d+)", b, re.M).group(1)
+                     for b in cpuinfo.split("\n\n") if re.search(r"^core id", b, re.M)})
+        threads = os.cpu_count() or 0
+        mhz = read("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq").strip()
+        bits = [_("{0} cores, {1} threads").format(cores, threads) if cores else _("{0} threads").format(threads)]
+        if mhz.isdigit():
+            bits.append(_("up to {0:.1f} GHz").format(int(mhz) / 1e6))
+        items.append(("cpu", re.sub(r"\s+", " ", m.group(1)).strip(), " · ".join(bits)))
+
+    # Online memory blocks are close to what is installed; MemTotal leaves out what the kernel reserves
+    block = read("/sys/devices/system/memory/block_size_bytes").strip()
+    online = sum(read(f).strip() == "online" for f in glob("/sys/devices/system/memory/memory*/state"))
+    m = re.search(r"^MemTotal:\s*(\d+) kB", read("/proc/meminfo"), re.M)
+    total = int(block, 16) * online if block and online else int(m.group(1)) * 1024 if m else 0
+    if total:
+        items.append(("memory", _("{0} of memory").format(_gb(total)), ""))
+
+    nv = _nvidia_cards()
+    rc, o = run(["lspci", "-Dmm", "-nn"], timeout=5) if has_cmd("lspci") else (1, "")
+    for kind, slot, name in parse_lspci(o if rc == 0 else ""):
+        detail = ""
+        if kind == "gpu":
+            card = nv.get(slot.lower()[-12:])
+            vram = read(f"/sys/bus/pci/devices/{slot}/mem_info_vram_total").strip()
+            if card:
+                name = card[0]
+                detail = " · ".join(x for x in (card[1] and _("{0} VRAM").format(_gb(card[1] * 2 ** 20)),
+                                                 _("driver {0}").format(card[2])) if x)
+            elif vram.isdigit() and int(vram) > 0:
+                detail = _("{0} VRAM").format(_gb(int(vram)))
+        items.append((kind, name, detail))
+    return items

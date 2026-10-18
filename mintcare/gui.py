@@ -4475,6 +4475,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
              self.action_button(_("Full SMART report"), self.smart_report, icon_name="utilities-terminal-symbolic")]),
             False, False, 0)
 
+        ic = card()
+        ih = hbox(8)
+        ih.pack_start(icon("computer-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
+        ih.pack_start(label(_("Your hardware"), ("h2",)), False, False, 0)
+        ic.pack_start(ih, False, False, 0)
+        self.inv_box = vbox(8)
+        self.inv_box.pack_start(label(_("Detecting hardware…"), ("faint",)), False, False, 0)
+        ic.pack_start(self.inv_box, False, False, 10)
+        page.pack_start(ic, False, False, 0)
+
         tc = card()
         th = hbox(8)
         th.pack_start(icon("weather-clear-symbolic", Gtk.IconSize.BUTTON, "warn"), False, False, 0)
@@ -4541,9 +4551,28 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def load_drives(self):
         self.bg(hardware.drives, self._render_drives)
+        self.bg(hardware.inventory, self._render_inventory)
         self.load_firmware()
         self._render_battery()
         self._render_bench()
+
+    INV_ICONS = {"computer": "computer-symbolic", "cpu": "system-run-symbolic", "memory": "media-flash-symbolic",
+                 "gpu": "video-display-symbolic", "network": "network-wired-symbolic"}
+
+    def _render_inventory(self, items):
+        self._clear(self.inv_box)
+        if not items:
+            self.inv_box.pack_start(label(_("No hardware details could be read."), ("faint",)), False, False, 0)
+        for kind, name, detail in items:
+            row = hbox(10)
+            row.pack_start(icon(self.INV_ICONS.get(kind, "dialog-information-symbolic")), False, False, 0)
+            t = vbox(1)
+            t.pack_start(label(name, wrap=True, selectable=True), False, False, 0)
+            if detail:
+                t.pack_start(label(detail, ("muted",), wrap=True), False, False, 0)
+            row.pack_start(t, True, True, 0)
+            self.inv_box.pack_start(row, False, False, 0)
+        self.inv_box.show_all()
 
     def _render_battery(self):
         self._clear(self.bat_box)
