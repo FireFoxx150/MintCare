@@ -53,7 +53,7 @@ class Source:
         if m:
             return f"ppa:{m.group(1)}/{m.group(2)}"
         host = re.sub(r"^\w+://", "", self.uri).split("/")[0]
-        return host
+        return host.rpartition("@")[2]                 # never show user:password@
 
     @property
     def health(self):

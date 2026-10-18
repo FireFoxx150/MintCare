@@ -1,6 +1,7 @@
 """Run batches of shell steps, root steps through a single pkexec prompt."""
 
 import os
+import shlex
 from .i18n import _
 import subprocess
 import tempfile
@@ -12,7 +13,7 @@ HELPER = "/usr/lib/mintcare/mintcare-root"
 def _script(steps):
     parts = ["#!/bin/bash", "export DEBIAN_FRONTEND=noninteractive LC_ALL=C"]
     for sid, title, body in steps:
-        parts.append(f'echo "{BEGIN} {sid}"\necho "==> {title}"\n'
+        parts.append(f'echo "{BEGIN} {sid}"\necho {shlex.quote("==> " + title)}\n'
                      f"(\n{body}\n) </dev/null 2>&1\n"
                      f'echo "{END} {sid} $?"')
     return "\n".join(parts) + "\n"

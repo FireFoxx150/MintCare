@@ -8,6 +8,7 @@ import getpass
 import html
 import os
 import platform
+import re
 import shutil
 import socket
 import time
@@ -77,6 +78,7 @@ def collect(private=True, progress=lambda _s: None):
 def _scrub(text, private):
     if not private:
         return text
+    text = re.sub(r"(\w+://)[^/@\s]+@", r"\1", text)   # credentials in URLs (apt sources)
     home, user, host = str(Path.home()), getpass.getuser(), socket.gethostname()
     for old, new in ((home, "~"), (f"/home/{user}", "~"), (host, "this-pc")):
         if old:

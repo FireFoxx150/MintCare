@@ -1,5 +1,6 @@
 """Every shell script MintCare can run must at least parse, and ids must be consistent."""
 import unittest
+from pathlib import Path
 
 from mintcare import checks, cleaner, tweaks
 from mintcare.runner import _script
@@ -70,3 +71,29 @@ class Consistency(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestUntrustedText(unittest.TestCase):
+    """Names from outside MintCare (process names, file names, Flatpak names) must stay text in root scripts."""
+
+    def test_title_and_quarantine_path(self):
+        import os, subprocess, tempfile
+        from mintcare import processes, secaudit
+        with tempfile.TemporaryDirectory() as d:
+            mark = os.path.join(d, "pwned")
+            name = "x';touch pwned;'.exe"
+            Path(d, name).touch()
+            sid, title, body = secaudit.quarantine_step([os.path.join(d, name)])
+            body = body.replace("/var/lib/mintcare/quarantine", os.path.join(d, "q"))
+            kill = processes.end_step(999999, f"$(touch {mark})`touch {mark}`")
+            out = subprocess.run(["bash", "-c", _script([(sid, title, body), kill])],
+                                 capture_output=True, text=True, cwd=d).stdout
+            self.assertFalse(os.path.exists(mark), out)
+            self.assertIn(f"==> End $(touch {mark})", out)
+            self.assertIn(f"Quarantined {d}/{name}", out)
+
+    def test_source_credentials_hidden(self):
+        from mintcare import report, sources
+        s = sources.Source("f", 1, "list", "deb", "https://TOKEN:secret@packagecloud.io/org/repo/ubuntu", "noble", [])
+        self.assertEqual(s.label, "packagecloud.io")
+        self.assertNotIn("secret", report._scrub("deb https://TOKEN:secret@example.com/x noble main", True))

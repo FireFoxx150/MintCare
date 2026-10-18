@@ -154,6 +154,6 @@ def quarantine_step(paths):
     """Move infected files into /var/lib/mintcare/quarantine (root-only, not executable)."""
     lines = ["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine"]
     for p in paths:
-        lines.append(f"mv -- {q(p)} /var/lib/mintcare/quarantine/ && echo 'Quarantined {p}'")
+        lines.append(f"mv -- {q(p)} /var/lib/mintcare/quarantine/ && echo {q('Quarantined ' + p)}")
     lines.append("chmod -R a-x /var/lib/mintcare/quarantine/* 2>/dev/null || true")
     return ("quarantine", f"Quarantine {len(paths)} file(s)", "\n".join(lines))
