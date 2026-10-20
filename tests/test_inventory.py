@@ -23,6 +23,25 @@ class Inventory(unittest.TestCase):
         self.assertEqual(hardware._gb(12288 * 2 ** 20), "12 GB")
         self.assertEqual(hardware._gb(512 * 2 ** 20), "0.5 GB")
 
+    def test_usb_name(self):
+        lsusb = ("Bus 003 Device 004: ID 33fa:0010  UGREEN BT5.4 Adapter\n"
+                 "Bus 001 Device 002: ID 1a40:0101 Terminus Technology Inc. Hub\n")
+        self.assertEqual(hardware._usb_name(lsusb, "33fa", "0010"), "UGREEN BT5.4 Adapter")
+        self.assertEqual(hardware._usb_name(lsusb, "1a40", "0101"), "Terminus Technology Inc. Hub")
+        self.assertEqual(hardware._usb_name(lsusb, "dead", "beef"), "")
+
+    def test_core_count(self):
+        # Two physical CPUs with two cores each; a block without core ids (ARM style) is skipped
+        blocks = []
+        for phys in ("0", "1"):
+            for core in ("0", "1"):
+                blocks.append(f"physical id\t: {phys}\ncore id\t\t: {core}\nmodel name\t: X")
+        blocks.append("processor\t: 9\nmodel name\t: ARM")
+        self.assertEqual(hardware._core_count("\n\n".join(blocks)), 4)
+        # Cores reported without a physical id count as one package
+        self.assertEqual(hardware._core_count("core id : 0\n\ncore id : 1"), 2)
+        self.assertEqual(hardware._core_count("processor : 0"), 0)
+
     def test_inventory_runs(self):
         kinds = [k for k, _n, _d in hardware.inventory()]
         self.assertIn("cpu", kinds)

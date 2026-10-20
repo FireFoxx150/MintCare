@@ -473,6 +473,26 @@ def _nvidia_cards():
     return cards
 
 
+def _core_count(cpuinfo):
+    """Distinct (physical id, core id) pairs in /proc/cpuinfo; 0 where the kernel does not report cores."""
+    cores = set()
+    for block in cpuinfo.split("\n\n"):
+        core = re.search(r"^core id\s*:\s*(\d+)", block, re.M)
+        if core:
+            phys = re.search(r"^physical id\s*:\s*(\d+)", block, re.M)
+            cores.add((phys.group(1) if phys else "0", core.group(1)))
+    return len(cores)
+
+
+def _usb_name(lsusb_text, vendor, product):
+    """Product name for a USB ID from `lsusb` output, or "" when it is not listed."""
+    wanted = f"ID {vendor.zfill(4)}:{product.zfill(4)} "
+    for line in lsusb_text.splitlines():
+        if wanted in line:
+            return line.split(wanted, 1)[1].strip()
+    return ""
+
+
 def _gb(n_bytes):
     gb = n_bytes / 2 ** 30
     return f"{gb:.0f} GB" if gb >= 3 else f"{gb:.1f} GB"
@@ -492,9 +512,7 @@ def inventory():
     cpuinfo = read("/proc/cpuinfo")
     m = re.search(r"^model name\s*:\s*(.+)$", cpuinfo, re.M)
     if m:
-        cores = len({(re.search(r"^physical id\s*:\s*(\d+)", b, re.M) or m).group(1) + "/" +
-                     re.search(r"^core id\s*:\s*(\d+)", b, re.M).group(1)
-                     for b in cpuinfo.split("\n\n") if re.search(r"^core id", b, re.M)})
+        cores = _core_count(cpuinfo)
         threads = os.cpu_count() or 0
         mhz = read("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq").strip()
         bits = [_("{0} cores, {1} threads").format(cores, threads) if cores else _("{0} threads").format(threads)]
@@ -535,10 +553,7 @@ def inventory():
         ids = re.search(r"PRODUCT=([0-9a-f]+)/([0-9a-f]+)", read(f"/sys/class/net/{iface}/device/uevent"))
         name = _("Wireless adapter")
         if ids:
-            usb = next((ln for ln in run(["lsusb"], timeout=5)[1].splitlines()
-                        if f"ID {ids.group(1).zfill(4)}:{ids.group(2).zfill(4)}" in ln), "")
-            if usb:
-                name = usb.split(":", 1)[1].split(" ", 1)[1].strip() or name
+            name = _usb_name(run(["lsusb"], timeout=5)[1], ids.group(1), ids.group(2)) or name
         items.append(("network", name, iface))
 
     for dev in sorted(glob("/sys/block/*")):
