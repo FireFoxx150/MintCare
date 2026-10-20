@@ -498,8 +498,21 @@ def _gb(n_bytes):
     return f"{gb:.0f} GB" if gb >= 3 else f"{gb:.1f} GB"
 
 
+_INVENTORY = {"at": 0.0, "items": []}
+
+
 def inventory():
-    """[(kind, name, detail)] describing the main parts of this PC, readable without a password."""
+    """[(kind, name, detail)] describing the main parts of this PC, readable without a password.
+
+    Cached for a minute: the Hardware page asks on every visit and the lookups run several commands.
+    """
+    if time.time() - _INVENTORY["at"] > 60:
+        _INVENTORY["items"] = _read_inventory()
+        _INVENTORY["at"] = time.time()
+    return list(_INVENTORY["items"])
+
+
+def _read_inventory():
     items = []
     dmi = lambda k: read(f"/sys/class/dmi/id/{k}").strip()
     usable = lambda s: s if s and not any(p in s.lower() for p in PLACEHOLDERS) else ""
@@ -542,12 +555,22 @@ def inventory():
             elif vram.isdigit() and int(vram) > 0:
                 detail = _("{0} VRAM").format(_gb(int(vram)))
         items.append((kind, name, detail))
+    items += _sound_items() + _wireless_items() + _disk_items()
+    return items
+
+
+def _sound_items():
+    items = []
     for line in read("/proc/asound/cards").splitlines():
         m = re.match(r"\s*\d+ \[[^\]]*\]: (.*)", line)
         if m:
             driver, _x, longname = m.group(1).partition(" - ")
             items.append(("sound", longname or driver, ""))
+    return items
 
+
+def _wireless_items():
+    items = []
     for ifc in sorted(glob("/sys/class/net/*/wireless")):
         iface = ifc.split("/")[4]
         ids = re.search(r"PRODUCT=([0-9a-f]+)/([0-9a-f]+)", read(f"/sys/class/net/{iface}/device/uevent"))
@@ -555,10 +578,13 @@ def inventory():
         if ids:
             name = _usb_name(run(["lsusb"], timeout=5)[1], ids.group(1), ids.group(2)) or name
         items.append(("network", name, iface))
+    return items
 
+
+def _disk_items():
+    items = []
     for dev in sorted(glob("/sys/block/*")):
-        n = dev.rsplit("/", 1)[1]
-        if not re.match(r"(sd|hd|nvme|mmcblk)", n):
+        if not re.match(r"(sd|hd|nvme|mmcblk)", dev.rsplit("/", 1)[1]):
             continue
         model = read(f"{dev}/device/model").strip()
         size = read(f"{dev}/size").strip()
