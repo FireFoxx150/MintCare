@@ -1,3 +1,11 @@
+mintcare (1.12.2) noble; urgency=medium
+
+  * Assistant: AI support installed by the "Install AI support" button is
+    found again. Mint's older system packages were loaded first and stopped
+    the Anthropic SDK from importing.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 21 Oct 2026 12:00:00 +0100
+
 mintcare (1.12.1) noble; urgency=medium
 
   * Hardware: USB Wi-Fi adapter names no longer include their USB ID, and
