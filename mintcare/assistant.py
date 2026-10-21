@@ -47,7 +47,7 @@ def _site_packages():
 def _load_sdk():
     sp = _site_packages()
     if sp and str(sp) not in sys.path:
-        sys.path.append(str(sp))
+        sys.path.insert(0, str(sp))         # before the system packages: Mint's copies are too old
     try:
         import anthropic  # noqa: F401
         return anthropic
