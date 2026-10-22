@@ -42,6 +42,27 @@ class Inventory(unittest.TestCase):
         self.assertEqual(hardware._core_count("core id : 0\n\ncore id : 1"), 2)
         self.assertEqual(hardware._core_count("processor : 0"), 0)
 
+    def test_gpu_load_parses_nvidia_smi(self):
+        from unittest import mock
+        out = "NVIDIA GeForce RTX 3060, 48, 285, 12288, 49\n"
+        with mock.patch.object(hardware, "has_cmd", return_value=True), \
+                mock.patch.object(hardware, "run", return_value=(0, out)):
+            g = hardware.gpu_load()
+        self.assertEqual(g["name"], "RTX 3060")
+        self.assertEqual(g["util"], 48.0)
+        self.assertEqual(g["vram_used"], 285 * 2 ** 20)
+        self.assertEqual(g["vram_total"], 12288 * 2 ** 20)
+        self.assertEqual(g["temp"], 49.0)
+
+    def test_gpu_load_unknown_values_are_none(self):
+        from unittest import mock
+        with mock.patch.object(hardware, "has_cmd", return_value=True), \
+                mock.patch.object(hardware, "run", return_value=(0, "NVIDIA GeForce GTX 970, [N/A], 512, 4096, [N/A]\n")):
+            g = hardware.gpu_load()
+        self.assertIsNone(g["util"])
+        self.assertIsNone(g["temp"])
+        self.assertEqual(g["vram_total"], 4096 * 2 ** 20)
+
     def test_inventory_runs(self):
         kinds = [k for k, _n, _d in hardware.inventory()]
         self.assertIn("cpu", kinds)

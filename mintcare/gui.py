@@ -234,6 +234,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._tick()
         GLib.timeout_add(1000, self._tick)
         GLib.timeout_add(2000, self._poll_sensors)
+        if getattr(self, "g_gpu", None) is not None:
+            GLib.timeout_add(2000, self._poll_gpu)
         self.stack.connect("notify::visible-child-name", self._on_page)
         self._on_page(self.stack, None)
         GLib.idle_add(self.run_diagnose)
@@ -1221,6 +1223,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
             "orange")
         self.disk_used, self.disk_free = self._tiles(disk_foot, _("OCCUPIED"), _("AVAILABLE"))
 
+        # GPU card only when a GPU reports its load (NVIDIA via nvidia-smi, AMD via sysfs)
+        gpu = hardware.gpu_load()
+        gpu_card = None
+        self._gpu_busy = False
+        if gpu:
+            self.g_gpu, gpu_card, gpu_foot = self._gauge_card(
+                _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), gpu["name"], "info")
+            self.gpu_vram, self.gpu_temp = self._tiles(gpu_foot, _("VRAM USED"), _("TEMPERATURE"))
+
         # performance chart (2 columns)
         perf = card()
         ph = hbox(8)
@@ -1287,10 +1298,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._fill_details()
         self._responsive.append((grid, {
             "wide": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 2, 0, 1, 1),
-                     (perf, 0, 1, 2, 1), (hc, 2, 1, 1, 2), (net, 0, 2, 1, 1), (det, 1, 2, 1, 1)],
+                     (perf, 0, 1, 2, 1), (hc, 2, 1, 1, 2), (net, 0, 2, 1, 1), (det, 1, 2, 1, 1)]
+                    + ([(gpu_card, 0, 3, 2, 1)] if gpu_card else []),
             "medium": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 0, 1, 1, 1),
-                       (hc, 1, 1, 1, 2), (det, 0, 2, 1, 1), (perf, 0, 3, 2, 1), (net, 0, 4, 2, 1)],
-            "narrow": [(w, 0, i, 1, 1) for i, w in enumerate((hc, cpu_card, mem_card, disk_card, perf, net, det))],
+                       (hc, 1, 1, 1, 2), (det, 0, 2, 1, 1), (perf, 0, 3, 2, 1), (net, 0, 4, 2, 1)]
+                      + ([(gpu_card, 1, 2, 1, 1)] if gpu_card else []),
+            "narrow": [(w, 0, i, 1, 1) for i, w in enumerate(
+                [hc, cpu_card, mem_card, disk_card] + ([gpu_card] if gpu_card else []) + [perf, net, det])],
         }))
 
         note = label(_("MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and records what "
@@ -4770,6 +4784,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 c.pack_start(r, False, False, 2)
             self.drives_box.pack_start(c, False, False, 0)
         self.drives_box.show_all()
+
+    def _poll_gpu(self):
+        if self.stack.get_visible_child_name() == "dashboard" and not self._gpu_busy:
+            self._gpu_busy = True
+            self.bg(hardware.gpu_load, self._render_gpu)
+        return True
+
+    def _render_gpu(self, g):
+        self._gpu_busy = False
+        if not g:
+            return
+        self.g_gpu.set_value(g["util"] or 0)
+        used, total = g["vram_used"], g["vram_total"]
+        self.gpu_vram.set_text(f"{human(used)} / {human(total)}" if used is not None and total else "n/a")
+        self.gpu_temp.set_text(f"{g['temp']:.0f}°C" if g["temp"] is not None else "n/a")
 
     def _poll_sensors(self, force=False):
         visible = self.stack.get_visible_child_name() == "hardware"

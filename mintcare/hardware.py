@@ -591,3 +591,29 @@ def _disk_items():
         if model and size.isdigit():
             items.append(("drive", model, human(int(size) * 512)))
     return items
+
+
+def gpu_load():
+    """{name, util, vram_used, vram_total, temp} for the first GPU that reports load, or None.
+
+    NVIDIA through nvidia-smi, AMD through the kernel's sysfs counters. Values are None when unknown.
+    """
+    if has_cmd("nvidia-smi"):
+        rc, o = run(["nvidia-smi", "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
+                     "--format=csv,noheader,nounits"], timeout=5)
+        if rc == 0 and o:
+            f = [x.strip() for x in o.splitlines()[0].split(",")]
+            num = lambda x: float(x) if re.fullmatch(r"[0-9.]+", x) else None
+            used, total = num(f[2]), num(f[3])
+            return {"name": f[0].replace("NVIDIA GeForce ", ""), "util": num(f[1]),
+                    "vram_used": used * 2 ** 20 if used is not None else None,
+                    "vram_total": total * 2 ** 20 if total is not None else None, "temp": num(f[4])}
+    for busy in sorted(glob("/sys/class/drm/card[0-9]*/device/gpu_busy_percent")):
+        dev = Path(busy).parent
+        util = read(busy).strip()
+        if util.isdigit():
+            used, total = (read(f"{dev}/mem_info_vram_{k}").strip() for k in ("used", "total"))
+            return {"name": "AMD", "util": float(util),
+                    "vram_used": int(used) if used.isdigit() else None,
+                    "vram_total": int(total) if total.isdigit() else None, "temp": None}
+    return None
