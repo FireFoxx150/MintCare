@@ -31,15 +31,19 @@ class Accessibility(unittest.TestCase):
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
         from mintcare import gui
-        app = gui.MintCareApp()
-        app.do_activate()
-        try:
-            unnamed = []
-            for win in Gtk.Window.list_toplevels():
-                _unnamed_buttons(win, unnamed)
-        finally:
-            for win in Gtk.Window.list_toplevels():
-                win.destroy()
+        from unittest import mock
+        from mintcare import hardware
+        # no graphics card: the GPU card is left out of the dashboard, which must still lay out
+        with mock.patch.object(hardware, "gpu_load", return_value=None):
+            app = gui.MintCareApp()
+            app.do_activate()
+            try:
+                unnamed = []
+                for win in Gtk.Window.list_toplevels():
+                    _unnamed_buttons(win, unnamed)
+            finally:
+                for win in Gtk.Window.list_toplevels():
+                    win.destroy()
         self.assertEqual(unnamed, [], f"{len(unnamed)} button(s) have no name")
 
 

@@ -1433,8 +1433,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.kv_grid = Gtk.Grid(column_spacing=14, row_spacing=6)
         det.pack_start(self.kv_grid, False, False, 10)
         self._fill_details()
-        self._dash_cards = {"cpu": cpu_card, "memory": mem_card, "disk": disk_card, "gpu": gpu_card,
-                            "performance": perf, "health": hc, "network": net, "details": det}
+        self._dash_cards = {k: w for k, w in {"cpu": cpu_card, "memory": mem_card, "disk": disk_card,
+                                              "gpu": gpu_card, "performance": perf, "health": hc,
+                                              "network": net, "details": det}.items() if w is not None}
         self._dash_switches = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=4)
         page.pack_start(self._dash_switches, False, False, 0)
         page.reorder_child(self._dash_switches, page.get_children().index(grid))
