@@ -394,3 +394,21 @@ def weekly_summary(events, points, now=None):
     return {"cleaned": count("clean"), "repairs": count("repair"), "checkups": count("scheduled"),
             "score_now": recent[-1]["score"] if recent else None,
             "score_then": recent[0]["score"] if recent else None}
+
+
+GPU_TEMPS_FILE = STATE / "gpu-temps.json"
+
+
+def load_gpu_temps():
+    try:
+        return [float(t) for t in json.loads(GPU_TEMPS_FILE.read_text())][-60:]
+    except (OSError, ValueError, TypeError):
+        return []
+
+
+def save_gpu_temps(temps):
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        GPU_TEMPS_FILE.write_text(json.dumps(temps[-60:]))
+    except OSError:
+        pass

@@ -14,7 +14,7 @@ import socket
 import time
 from pathlib import Path
 
-from .i18n import _
+from .i18n import _, current_language
 from . import __version__, autostart, boot, checks, flatpaks, hardware, maintenance, tweaks
 from .util import human, read, sysctl
 
@@ -120,7 +120,7 @@ def _pill(level, text=None):
 
 def render_html(d):
     e = html.escape
-    out = [f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>{_('MintCare health report')}"
+    out = [f"<!doctype html><html lang='{html.escape(current_language())}'><head><meta charset='utf-8'><title>{_('MintCare health report')}"
            f"</title><meta name='viewport' content='width=device-width,initial-scale=1'><style>{CSS}</style>"
            "</head><body><main>",
            f"<header><div class='logo'>M</div><div><h1>{_('System health report')}</h1>"

@@ -1368,6 +1368,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             gpu_foot.pack_start(self.gpu_chart, False, False, 2)
             self._gpu_hot = []                          # recent temperatures, for the sustained-heat warning
             self._gpu_alerted = False
+            self._gpu_temps = maintenance.load_gpu_temps()     # kept across restarts
+            for t in self._gpu_temps:
+                self.gpu_chart.push(t)
 
         # performance chart (2 columns)
         perf = card()
@@ -5019,6 +5022,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.gpu_temp.set_text(f"{g['temp']:.0f}°C" if g["temp"] is not None else "n/a")
         if g["temp"] is not None:
             self.gpu_chart.push(g["temp"])
+            self._gpu_temps = (self._gpu_temps + [g["temp"]])[-60:]
+            self._gpu_polls = getattr(self, "_gpu_polls", 0) + 1
+            if self._gpu_polls % 15 == 0:               # save about every 30 seconds, not every poll
+                maintenance.save_gpu_temps(self._gpu_temps)
             self._gpu_hot = (self._gpu_hot + [g["temp"]])[-GPU_HOT_SAMPLES:]
             hot = len(self._gpu_hot) == GPU_HOT_SAMPLES and all(t >= GPU_HOT_C for t in self._gpu_hot)
             if hot and not self._gpu_alerted:

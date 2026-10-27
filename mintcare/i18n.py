@@ -21,3 +21,10 @@ ngettext = _t.ngettext
 def N_(s):
     """Mark a string for translation without translating it here (it's passed to _() where it's shown)."""
     return s
+
+
+def current_language():
+    """The language gettext is using, such as 'de' (or 'en' when there is no translation)."""
+    localedir = str(_SOURCE_LOCALE) if _SOURCE_LOCALE.is_dir() else "/usr/share/locale"
+    found = gettext.find(DOMAIN, localedir)
+    return Path(found).parts[-3].split("_")[0] if found else "en"
