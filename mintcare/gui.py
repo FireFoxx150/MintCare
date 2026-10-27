@@ -1948,7 +1948,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(self.diag_box, False, False, 0)
         return scrolled(page)
 
-    def run_diagnose(self):
+    def run_diagnose(self, on_done=None):
         def work():
             return {c.id: c.run() for c in checks.CHECKS}
 
@@ -1960,6 +1960,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._update_overview()
             n = sum(1 for r in res.values() if r.status in (checks.WARN, checks.FAIL))
             self.set_status(_('Scan complete: {0} issue(s)').format(n) if n else _("Scan complete: all good"))
+            if on_done:
+                on_done(res)
         self.in_thread(_("Scanning system…"), work, done)
         return False
 
@@ -2153,11 +2155,28 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if snap is None:
             return
 
+        before = dict(self.check_results)
+
         def done(results):
             self.notify_done(results or {}, _("Repair"))
             self._refresh_tweaks()
-            self.run_diagnose()
+            self.run_diagnose(on_done=lambda after: self._show_before_after(before, after))
         self.in_thread(_("Fixing…"), lambda: self.execute(root, user, "Repair", snap), done)
+
+    def _show_before_after(self, before, after):
+        if not before:                                  # no scan before the repair, nothing to compare
+            return
+        fixed, still, new = checks.compare(before, after, {c.id: c.title for c in checks.CHECKS})
+        summary = _("Before and after: {0} fixed, {1} still open, {2} new").format(len(fixed), len(still), len(new))
+        self.log(summary)
+        for title in fixed:
+            self.log(_("  Fixed: {0}").format(title))
+        for title in still:
+            self.log(_("  Still open: {0}").format(title))
+        for title in new:
+            self.log(_("  New: {0}").format(title))
+        self.set_status(summary)
+        maintenance.record("repair", summary, True, "; ".join(fixed))
 
     def fix_all(self):
         items = [(c, self.check_results[c.id]) for c in checks.CHECKS

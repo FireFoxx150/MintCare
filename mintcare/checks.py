@@ -706,3 +706,23 @@ DETAIL_ACTIONS = {
     "internet": [(_("Network troubleshooter"), "page", "troubleshoot")],
     "dns": [(_("Network troubleshooter"), "page", "troubleshoot")],
 }
+
+
+def compare(before, after, titles):
+    """Before/after of a repair run: (fixed, still_open, new) lists of check titles.
+
+    before/after are {check id: Result}; titles is {check id: title}.
+    """
+    bad = (WARN, FAIL)
+    fixed, still, new = [], [], []
+    for cid, b in before.items():
+        a = after.get(cid)
+        if a is None:
+            continue
+        if b.status in bad and a.status not in bad:
+            fixed.append(titles.get(cid, cid))
+        elif b.status in bad and a.status in bad:
+            still.append(titles.get(cid, cid))
+        elif b.status not in bad and a.status in bad:
+            new.append(titles.get(cid, cid))
+    return fixed, still, new
