@@ -15,7 +15,7 @@ Messages with values use numbered fields, e.g. `"{0} of {1} items selected"`: ke
 `.po` file. Markup such as `<b>`, `<tt>` and `&amp;` must stay intact too.
 
 Available: Spanish (`es`), French (`fr`), German (`de`), Portuguese (`pt`, Brazilian wording)
-and Italian (`it`). Command output, the CLI and the exported health report stay in English.
+and Italian (`it`). The exported health report follows the app language. Command output and the CLI stay in English.
 
 For developers: put `# xgettext:no-python-format` on the line before any `_()` string that
 contains `%` (e.g. `"{0}% full"`), otherwise xgettext flags it as a printf string and msgfmt

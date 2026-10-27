@@ -18,7 +18,7 @@ from .i18n import _
 from . import __version__, autostart, boot, checks, flatpaks, hardware, maintenance, tweaks
 from .util import human, read, sysctl
 
-STATUS_TEXT = {"ok": "OK", "info": "Tip", "warn": "Warning", "fail": "Problem"}
+STATUS_TEXT = {"ok": "OK", "info": _("Tip"), "warn": _("Warning"), "fail": _("Problem")}
 
 
 def score(results):
@@ -49,16 +49,16 @@ def collect(private=True, progress=lambda _s: None):
         "version": __version__,
         "private": private,
         "system": [
-            ("Distribution", osr.get("PRETTY_NAME", "Linux").strip('"')),
-            ("Desktop", os.environ.get("XDG_CURRENT_DESKTOP", "unknown").replace("X-", "")),
-            ("Kernel", platform.release()),
-            ("Processor", f"{cpu} ({os.cpu_count()} threads)"),
-            ("Memory", human(mem)),
-            ("Root disk", f"{human(du.used)} used of {human(du.total)} ({du.used * 100 // du.total}%)"),
-            ("TCP congestion control", f"{sysctl('net.ipv4.tcp_congestion_control')} / "
+            (_("Distribution"), osr.get("PRETTY_NAME", "Linux").strip('"')),
+            (_("Desktop"), os.environ.get("XDG_CURRENT_DESKTOP", "unknown").replace("X-", "")),
+            (_("Kernel"), platform.release()),
+            (_("Processor"), _("{0} ({1} threads)").format(cpu, os.cpu_count())),
+            (_("Memory"), human(mem)),
+            (_("Root disk"), _("{0} used of {1} ({2}%)").format(human(du.used), human(du.total), du.used * 100 // du.total)),
+            (_("TCP congestion control"), f"{sysctl('net.ipv4.tcp_congestion_control')} / "
                                        f"{sysctl('net.core.default_qdisc')}"),
-            ("Swappiness", sysctl("vm.swappiness")),
-            ("Uptime", f"{int(up // 86400)}d {int(up % 86400 // 3600)}h {int(up % 3600 // 60)}m"),
+            (_("Swappiness"), sysctl("vm.swappiness")),
+            (_("Uptime"), _("{0}d {1}h {2}m").format(int(up // 86400), int(up % 86400 // 3600), int(up % 3600 // 60))),
         ],
         "score": sc, "counts": counts,
         "checks": [(c.category, c.title, r.status, r.summary) for c, r in results],
@@ -120,90 +120,89 @@ def _pill(level, text=None):
 
 def render_html(d):
     e = html.escape
-    out = [f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>MintCare health report"
+    out = [f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>{_('MintCare health report')}"
            f"</title><meta name='viewport' content='width=device-width,initial-scale=1'><style>{CSS}</style>"
            "</head><body><main>",
-           "<header><div class='logo'>M</div><div><h1>System health report</h1>"
-           f"<div class='sub'>Generated {e(d['generated'])} by MintCare {e(d['version'])}"
-           + (" · personal details removed" if d["private"] else "") + "</div></div></header>"]
+           f"<header><div class='logo'>M</div><div><h1>{_('System health report')}</h1>"
+           f"<div class='sub'>{_('Generated {0} by MintCare {1}').format(e(d['generated']), e(d['version']))}"
+           + (_(" · personal details removed") if d["private"] else "") + "</div></div></header>"]
     c = d["counts"]
     lvl = "ok" if d["score"] >= 85 else "warn" if d["score"] >= 60 else "fail"
     out.append(f"<div class='card score'><div class='ring'>{d['score']}<span class='sub'>/100</span></div>"
-               f"<div>{_pill(lvl, 'healthy' if lvl == 'ok' else 'needs care' if lvl == 'warn' else 'at risk')}"
-               f"<div class='sub' style='margin-top:6px'>{c['fail']} problems · {c['warn']} warnings · "
-               f"{c['info']} tips from {len(d['checks'])} checks</div></div></div>")
+               f"<div>{_pill(lvl, _('healthy') if lvl == 'ok' else _('needs care') if lvl == 'warn' else _('at risk'))}"
+               f"<div class='sub' style='margin-top:6px'>{_('{0} problems · {1} warnings · {2} tips from {3} checks').format(c['fail'], c['warn'], c['info'], len(d['checks']))}</div></div></div>")
 
-    out.append("<h2>System</h2><div class='card'><table>")
+    out.append(f"<h2>{_('System')}</h2><div class='card'><table>")
     out += [f"<tr><th style='width:30%'>{e(k)}</th><td>{e(v)}</td></tr>" for k, v in d["system"]]
     out.append("</table></div>")
 
     if d["hardware"]:
-        out.append("<h2>Hardware</h2><div class='card'><table>")
+        out.append(f"<h2>{_('Hardware')}</h2><div class='card'><table>")
         out += [f"<tr><td>{e(n)}</td><td class='sub'>{e(dt)}</td></tr>" for n, dt in d["hardware"]]
         out.append("</table></div>")
 
     order = {"fail": 0, "warn": 1, "info": 2, "ok": 3}
-    out.append("<h2>Checks</h2><div class='card'><table><tr><th>Area</th><th>Check</th><th>Result</th><th></th></tr>")
+    out.append(f"<h2>{_('Checks')}</h2><div class='card'><table><tr><th>{_('Area')}</th><th>{_('Check')}</th><th>{_('Result')}</th><th></th></tr>")
     for cat, title, st, summary in sorted(d["checks"], key=lambda x: (order[x[2]], x[0])):
         out.append(f"<tr><td>{e(cat)}</td><td>{e(title)}</td><td>{e(summary)}</td><td>{_pill(st)}</td></tr>")
     out.append("</table></div>")
 
     if d["drives"]:
-        out.append("<h2>Drives</h2>")
+        out.append(f"<h2>{_('Drives')}</h2>")
         for dr in d["drives"]:
             hl = {"ok": "ok", "info": "ok", "warn": "warn", "fail": "fail"}[dr["health"]]
-            word = {"ok": "healthy", "warn": "check", "fail": "failing"}[hl]
+            word = {"ok": _("healthy"), "warn": _("check"), "fail": _("failing")}[hl]
             stats = " · ".join(f"{k.lower()} {v}" for k, v in dr["stats"])
             notes = "".join(f"<div class='sub'>{_pill(l)} {e(t)}</div>" for l, t in dr["notes"])
-            serial = f" · S/N {e(dr['serial'])}" if dr.get("serial") else ""
+            serial = f" · {_('S/N')} {e(dr['serial'])}" if dr.get("serial") else ""
             out.append(f"<div class='card'><b>{e(dr['model'])}</b> {_pill(hl, word)} <span class='sub'>"
                        f"{e(dr['kind'])} · {e(dr['device'])} · {human(dr['size'])}{serial}</span>"
                        f"<div class='mono sub' style='margin:6px 0'>{e(stats)}</div>{notes}</div>")
 
     if d["sensors"]:
-        out.append("<h2>Temperatures</h2><div class='card'><table>")
+        out.append(f"<h2>{_('Temperatures')}</h2><div class='card'><table>")
         out += [f"<tr><td>{e(lbl)}</td><td class='mono'>{t:.0f}°C</td><td>{_pill(lv)}</td></tr>"
                 for lbl, t, lv in d["sensors"]]
-        out += [f"<tr><td>{e(comp)} throttling</td><td colspan='2'>{_pill(lv)} {e(txt)}</td></tr>"
+        out += [f"<tr><td>{_('{0} throttling').format(e(comp))}</td><td colspan='2'>{_pill(lv)} {e(txt)}</td></tr>"
                 for comp, lv, txt in d["throttling"]]
         out.append("</table></div>")
 
     if d["boot"].get("total"):
         b = d["boot"]
         parts = " + ".join(f"{k} {v:.1f} s" for k, v in b.items() if k != "total")
-        out.append(f"<h2>Boot</h2><div class='card'><b>{b['total']:.1f} s</b> <span class='sub'>({e(parts)})</span>"
-                   "<table style='margin-top:8px'><tr><th>Slowest units</th><th>Time</th><th></th></tr>")
+        out.append(f"<h2>{_('Boot')}</h2><div class='card'><b>{b['total']:.1f} s</b> <span class='sub'>({e(parts)})</span>"
+                   f"<table style='margin-top:8px'><tr><th>{_('Slowest units')}</th><th>{_('Time')}</th><th></th></tr>")
         out += [f"<tr><td class='mono'>{e(u)}</td><td class='mono'>{s_:.2f} s</td><td>"
-                f"{_pill('warn', 'blocks boot') if crit else ''}</td></tr>" for u, s_, crit in d["blame"]]
+                f"{_pill('warn', _('blocks boot')) if crit else ''}</td></tr>" for u, s_, crit in d["blame"]]
         out.append("</table></div>")
 
     if d["tweaks"]:
-        out.append("<h2>Active optimisations</h2><div class='card'><table>")
-        out += [f"<tr><td>{e(cat)}</td><td>{e(t)}</td><td>{_pill('ok' if st == 'mintcare' else 'dim', 'MintCare' if st == 'mintcare' else 'system')}</td></tr>"
+        out.append(f"<h2>{_('Active optimisations')}</h2><div class='card'><table>")
+        out += [f"<tr><td>{e(cat)}</td><td>{e(t)}</td><td>{_pill('ok' if st == 'mintcare' else 'dim', 'MintCare' if st == 'mintcare' else _('system'))}</td></tr>"
                 for cat, t, st in d["tweaks"]]
         out.append("</table></div>")
 
     if d["startup"] or d["flatpaks"]:
-        out.append("<h2>Apps</h2><div class='card'>")
+        out.append(f"<h2>{_('Apps')}</h2><div class='card'>")
         if d["startup"]:
-            out.append(f"<p><b>Starting at login ({len(d['startup'])}):</b> {e(', '.join(d['startup']))}</p>")
+            out.append(f"<p><b>{_('Starting at login ({0}):').format(len(d['startup']))}</b> {e(', '.join(d['startup']))}</p>")
         if d["flatpaks"]:
-            out.append("<table><tr><th>Flatpak</th><th>Sandbox</th><th>Broad access</th></tr>")
+            out.append(f"<table><tr><th>Flatpak</th><th>{_('Sandbox')}</th><th>{_('Broad access')}</th></tr>")
             for name, rating, why in d["flatpaks"]:
                 lv = {"strong": "ok", "moderate": "warn", "weak": "fail"}[rating]
-                out.append(f"<tr><td>{e(name)}</td><td>{_pill(lv, rating)}</td><td>{e(', '.join(why) or '—')}</td></tr>")
+                out.append(f"<tr><td>{e(name)}</td><td>{_pill(lv, _(rating))}</td><td>{e(', '.join(why) or '—')}</td></tr>")
             out.append("</table>")
         out.append("</div>")
 
     if d["history"]:
-        out.append("<h2>Recent MintCare changes</h2><div class='card'><table>")
+        out.append(f"<h2>{_('Recent MintCare changes')}</h2><div class='card'><table>")
         for ev in d["history"]:
             when = time.strftime("%Y-%m-%d %H:%M", time.localtime(ev["ts"]))
             out.append(f"<tr><td class='mono sub'>{when}</td><td>{e(ev['title'])}</td>"
                        f"<td>{_pill('ok' if ev.get('ok', True) else 'fail', ev.get('kind', ''))}</td></tr>")
         out.append("</table></div>")
 
-    out.append("<footer>Created with MintCare — clean, optimise and repair Linux Mint.</footer></main></body></html>")
+    out.append(f"<footer>{_('Created with MintCare — clean, optimise and repair Linux Mint.')}</footer></main></body></html>")
     return _scrub("".join(out), d["private"])
 
 

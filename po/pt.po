@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 09:11+0000\n"
+"POT-Creation-Date: 2026-10-27 09:14+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: Portuguese\n"
@@ -1021,7 +1021,8 @@ msgid "Personal file backup"
 msgstr "Backup de arquivos pessoais"
 
 #: mintcare/checks.py:604 mintcare/checks.py:605 mintcare/gui.py:1363
-#: mintcare/tweaks.py:295 mintcare/tweaks.py:313 mintcare/tweaks.py:319
+#: mintcare/report.py:56 mintcare/tweaks.py:295 mintcare/tweaks.py:313
+#: mintcare/tweaks.py:319
 msgid "Memory"
 msgstr "Memória"
 
@@ -2131,7 +2132,7 @@ msgstr "Mostrar no painel:"
 msgid "Disk"
 msgstr "Disco"
 
-#: mintcare/gui.py:1363
+#: mintcare/gui.py:1363 mintcare/report.py:55
 msgid "Processor"
 msgstr "Processador"
 
@@ -2161,7 +2162,8 @@ msgstr ""
 "registra o que mudou em <tt>/var/lib/mintcare</tt>, então cada otimização "
 "pode ser desligada de novo na página Otimizar."
 
-#: mintcare/gui.py:1443 mintcare/tweaks.py:570 mintcare/tweaks.py:576
+#: mintcare/gui.py:1443 mintcare/report.py:53 mintcare/tweaks.py:570
+#: mintcare/tweaks.py:576
 msgid "Desktop"
 msgstr "Área de trabalho"
 
@@ -2213,7 +2215,7 @@ msgstr "{0} verificação(ões) agendada(s)"
 msgid " Health score {0}, was {1} a week ago."
 msgstr " Pontuação de saúde {0}; há uma semana era {1}."
 
-#: mintcare/gui.py:1494
+#: mintcare/gui.py:1494 mintcare/report.py:154
 msgid "healthy"
 msgstr "saudável"
 
@@ -4605,7 +4607,9 @@ msgstr "Conversas salvas"
 msgid ""
 "\n"
 "— Saved chat. New questions start a fresh conversation."
-msgstr "\n— Conversa salva. Novas perguntas começam uma conversa nova."
+msgstr ""
+"\n"
+"— Conversa salva. Novas perguntas começam uma conversa nova."
 
 #: mintcare/gui.py:4400
 msgid "MintCare assistant:"
@@ -5034,7 +5038,8 @@ msgstr "Nenhum sinal de alerta nos dados SMART"
 #: mintcare/gui.py:4965
 #, python-brace-format
 msgid "The graphics card has been above {0}°C for a minute — check its cooling"
-msgstr "A placa de vídeo está acima de {0} °C há um minuto; verifique o resfriamento"
+msgstr ""
+"A placa de vídeo está acima de {0} °C há um minuto; verifique o resfriamento"
 
 #: mintcare/gui.py:5002
 msgid "no limit reported"
@@ -5139,7 +5144,7 @@ msgstr ""
 msgid "Boot loader"
 msgstr "Carregador de inicialização"
 
-#: mintcare/gui.py:5141
+#: mintcare/gui.py:5141 mintcare/report.py:54
 msgid "Kernel"
 msgstr "Kernel"
 
@@ -6472,6 +6477,18 @@ msgstr "nenhum caminho encontrado"
 msgid "A kernel thread — part of Linux itself."
 msgstr "Uma thread do kernel — parte do próprio Linux."
 
+#: mintcare/report.py:21
+msgid "Problem"
+msgstr "Problema"
+
+#: mintcare/report.py:21
+msgid "Tip"
+msgstr "Dica"
+
+#: mintcare/report.py:21
+msgid "Warning"
+msgstr "Aviso"
+
 #: mintcare/report.py:40
 msgid "Reading drives and sensors…"
 msgstr "Lendo discos e sensores…"
@@ -6479,6 +6496,53 @@ msgstr "Lendo discos e sensores…"
 #: mintcare/report.py:45
 msgid "Reading boot and startup…"
 msgstr "Lendo a inicialização…"
+
+#: mintcare/report.py:52
+msgid "Distribution"
+msgstr "Distribuição"
+
+#: mintcare/report.py:55
+#, python-brace-format
+msgid "{0} ({1} threads)"
+msgstr "{0} ({1} threads)"
+
+#: mintcare/report.py:57
+msgid "Root disk"
+msgstr "Disco do sistema"
+
+#: mintcare/report.py:57
+#, python-brace-format
+msgid "{0} used of {1} ({2}%)"
+msgstr "{0} usados de {1} ({2}%)"
+
+#: mintcare/report.py:58
+msgid "TCP congestion control"
+msgstr "Controle de congestionamento TCP"
+
+#: mintcare/report.py:60
+msgid "Swappiness"
+msgstr "Swappiness"
+
+#: mintcare/report.py:61
+msgid "Uptime"
+msgstr "Tempo ligado"
+
+#: mintcare/report.py:61
+#, python-brace-format
+msgid "{0}d {1}h {2}m"
+msgstr "{0} d {1} h {2} min"
+
+#: mintcare/report.py:128
+msgid " · personal details removed"
+msgstr " · dados pessoais removidos"
+
+#: mintcare/report.py:154
+msgid "check"
+msgstr "verificar"
+
+#: mintcare/report.py:154
+msgid "failing"
+msgstr "falhando"
 
 #: mintcare/runner.py:51
 msgid "Authentication was cancelled or failed."

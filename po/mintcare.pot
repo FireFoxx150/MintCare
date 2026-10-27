@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.12.4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 09:11+0000\n"
+"POT-Creation-Date: 2026-10-27 09:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -975,7 +975,8 @@ msgid "Personal file backup"
 msgstr ""
 
 #: mintcare/checks.py:604 mintcare/checks.py:605 mintcare/gui.py:1363
-#: mintcare/tweaks.py:295 mintcare/tweaks.py:313 mintcare/tweaks.py:319
+#: mintcare/report.py:56 mintcare/tweaks.py:295 mintcare/tweaks.py:313
+#: mintcare/tweaks.py:319
 msgid "Memory"
 msgstr ""
 
@@ -2070,7 +2071,7 @@ msgstr ""
 msgid "Disk"
 msgstr ""
 
-#: mintcare/gui.py:1363
+#: mintcare/gui.py:1363 mintcare/report.py:55
 msgid "Processor"
 msgstr ""
 
@@ -2097,7 +2098,8 @@ msgid ""
 "can be switched off again from the Optimise page."
 msgstr ""
 
-#: mintcare/gui.py:1443 mintcare/tweaks.py:570 mintcare/tweaks.py:576
+#: mintcare/gui.py:1443 mintcare/report.py:53 mintcare/tweaks.py:570
+#: mintcare/tweaks.py:576
 msgid "Desktop"
 msgstr ""
 
@@ -2149,7 +2151,7 @@ msgstr ""
 msgid " Health score {0}, was {1} a week ago."
 msgstr ""
 
-#: mintcare/gui.py:1494
+#: mintcare/gui.py:1494 mintcare/report.py:154
 msgid "healthy"
 msgstr ""
 
@@ -4911,7 +4913,7 @@ msgstr ""
 msgid "Boot loader"
 msgstr ""
 
-#: mintcare/gui.py:5141
+#: mintcare/gui.py:5141 mintcare/report.py:54
 msgid "Kernel"
 msgstr ""
 
@@ -6167,12 +6169,71 @@ msgstr ""
 msgid "A kernel thread — part of Linux itself."
 msgstr ""
 
+#: mintcare/report.py:21
+msgid "Problem"
+msgstr ""
+
+#: mintcare/report.py:21
+msgid "Tip"
+msgstr ""
+
+#: mintcare/report.py:21
+msgid "Warning"
+msgstr ""
+
 #: mintcare/report.py:40
 msgid "Reading drives and sensors…"
 msgstr ""
 
 #: mintcare/report.py:45
 msgid "Reading boot and startup…"
+msgstr ""
+
+#: mintcare/report.py:52
+msgid "Distribution"
+msgstr ""
+
+#: mintcare/report.py:55
+#, python-brace-format
+msgid "{0} ({1} threads)"
+msgstr ""
+
+#: mintcare/report.py:57
+msgid "Root disk"
+msgstr ""
+
+#: mintcare/report.py:57
+#, python-brace-format
+msgid "{0} used of {1} ({2}%)"
+msgstr ""
+
+#: mintcare/report.py:58
+msgid "TCP congestion control"
+msgstr ""
+
+#: mintcare/report.py:60
+msgid "Swappiness"
+msgstr ""
+
+#: mintcare/report.py:61
+msgid "Uptime"
+msgstr ""
+
+#: mintcare/report.py:61
+#, python-brace-format
+msgid "{0}d {1}h {2}m"
+msgstr ""
+
+#: mintcare/report.py:128
+msgid " · personal details removed"
+msgstr ""
+
+#: mintcare/report.py:154
+msgid "check"
+msgstr ""
+
+#: mintcare/report.py:154
+msgid "failing"
 msgstr ""
 
 #: mintcare/runner.py:51

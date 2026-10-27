@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 09:11+0000\n"
+"POT-Creation-Date: 2026-10-27 09:14+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: German\n"
@@ -1023,7 +1023,8 @@ msgid "Personal file backup"
 msgstr "Sicherung persönlicher Dateien"
 
 #: mintcare/checks.py:604 mintcare/checks.py:605 mintcare/gui.py:1363
-#: mintcare/tweaks.py:295 mintcare/tweaks.py:313 mintcare/tweaks.py:319
+#: mintcare/report.py:56 mintcare/tweaks.py:295 mintcare/tweaks.py:313
+#: mintcare/tweaks.py:319
 msgid "Memory"
 msgstr "Arbeitsspeicher"
 
@@ -2146,7 +2147,7 @@ msgstr "Im Dashboard anzeigen:"
 msgid "Disk"
 msgstr "Datenträger"
 
-#: mintcare/gui.py:1363
+#: mintcare/gui.py:1363 mintcare/report.py:55
 msgid "Processor"
 msgstr "Prozessor"
 
@@ -2176,7 +2177,8 @@ msgstr ""
 "protokolliert seine Änderungen in <tt>/var/lib/mintcare</tt>, sodass jede "
 "Optimierung auf der Seite Optimieren wieder abgeschaltet werden kann."
 
-#: mintcare/gui.py:1443 mintcare/tweaks.py:570 mintcare/tweaks.py:576
+#: mintcare/gui.py:1443 mintcare/report.py:53 mintcare/tweaks.py:570
+#: mintcare/tweaks.py:576
 msgid "Desktop"
 msgstr "Arbeitsfläche"
 
@@ -2228,7 +2230,7 @@ msgstr "{0} geplante Prüfung(en)"
 msgid " Health score {0}, was {1} a week ago."
 msgstr " Gesundheitswert {0}, vor einer Woche war er {1}."
 
-#: mintcare/gui.py:1494
+#: mintcare/gui.py:1494 mintcare/report.py:154
 msgid "healthy"
 msgstr "gesund"
 
@@ -4634,7 +4636,9 @@ msgstr "Gespeicherte Unterhaltungen"
 msgid ""
 "\n"
 "— Saved chat. New questions start a fresh conversation."
-msgstr "\n— Gespeicherte Unterhaltung. Neue Fragen beginnen eine neue Unterhaltung."
+msgstr ""
+"\n"
+"— Gespeicherte Unterhaltung. Neue Fragen beginnen eine neue Unterhaltung."
 
 #: mintcare/gui.py:4400
 msgid "MintCare assistant:"
@@ -5067,7 +5071,8 @@ msgstr "Keine Warnzeichen in den SMART-Daten"
 #: mintcare/gui.py:4965
 #, python-brace-format
 msgid "The graphics card has been above {0}°C for a minute — check its cooling"
-msgstr "Die Grafikkarte liegt seit einer Minute über {0} °C – prüfen Sie die Kühlung"
+msgstr ""
+"Die Grafikkarte liegt seit einer Minute über {0} °C – prüfen Sie die Kühlung"
 
 #: mintcare/gui.py:5002
 msgid "no limit reported"
@@ -5171,7 +5176,7 @@ msgstr ""
 msgid "Boot loader"
 msgstr "Bootloader"
 
-#: mintcare/gui.py:5141
+#: mintcare/gui.py:5141 mintcare/report.py:54
 msgid "Kernel"
 msgstr "Kernel"
 
@@ -6517,6 +6522,18 @@ msgstr "kein Pfad gefunden"
 msgid "A kernel thread — part of Linux itself."
 msgstr "Ein Kernel-Thread — Teil von Linux selbst."
 
+#: mintcare/report.py:21
+msgid "Problem"
+msgstr "Problem"
+
+#: mintcare/report.py:21
+msgid "Tip"
+msgstr "Tipp"
+
+#: mintcare/report.py:21
+msgid "Warning"
+msgstr "Warnung"
+
 #: mintcare/report.py:40
 msgid "Reading drives and sensors…"
 msgstr "Laufwerke und Sensoren werden gelesen…"
@@ -6524,6 +6541,53 @@ msgstr "Laufwerke und Sensoren werden gelesen…"
 #: mintcare/report.py:45
 msgid "Reading boot and startup…"
 msgstr "Start und Autostart werden gelesen…"
+
+#: mintcare/report.py:52
+msgid "Distribution"
+msgstr "Distribution"
+
+#: mintcare/report.py:55
+#, python-brace-format
+msgid "{0} ({1} threads)"
+msgstr "{0} ({1} Threads)"
+
+#: mintcare/report.py:57
+msgid "Root disk"
+msgstr "Systemdatenträger"
+
+#: mintcare/report.py:57
+#, python-brace-format
+msgid "{0} used of {1} ({2}%)"
+msgstr "{0} von {1} belegt ({2} %)"
+
+#: mintcare/report.py:58
+msgid "TCP congestion control"
+msgstr "TCP-Überlastungssteuerung"
+
+#: mintcare/report.py:60
+msgid "Swappiness"
+msgstr "Swappiness"
+
+#: mintcare/report.py:61
+msgid "Uptime"
+msgstr "Betriebszeit"
+
+#: mintcare/report.py:61
+#, python-brace-format
+msgid "{0}d {1}h {2}m"
+msgstr "{0} T {1} Std {2} Min"
+
+#: mintcare/report.py:128
+msgid " · personal details removed"
+msgstr " · persönliche Daten entfernt"
+
+#: mintcare/report.py:154
+msgid "check"
+msgstr "prüfen"
+
+#: mintcare/report.py:154
+msgid "failing"
+msgstr "fehlerhaft"
 
 #: mintcare/runner.py:51
 msgid "Authentication was cancelled or failed."
