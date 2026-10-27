@@ -140,6 +140,14 @@ def cmd_maintain(args):
     return 1 if rep["issues"] else 0
 
 
+def cmd_support_bundle(args):
+    from . import report
+    out = args.output or f"MintCare-support-{__import__('time').strftime('%Y-%m-%d')}.zip"
+    report.write_support_bundle(out, progress=lambda m: print(m))
+    print(f"Saved {out}")
+    return 0
+
+
 def cmd_report(args):
     from . import report
     out = args.output or f"MintCare-report-{__import__('time').strftime('%Y-%m-%d')}.html"
@@ -167,6 +175,8 @@ def main(argv):
     g.add_argument("--apply", nargs="+", metavar="ID")
     g.add_argument("--revert", nargs="+", metavar="ID")
     sub.add_parser("hardware", help="disk SMART health, temperatures and boot time")
+    sb = sub.add_parser("support-bundle", help="zip of the health report, hardware and activity for asking for help")
+    sb.add_argument("-o", "--output", help="file to write (default: MintCare-support-<date>.zip)")
     sub.add_parser("backup", help="back up your personal folders now (used by the backup timer)")
     rp = sub.add_parser("report", help="export an HTML health report")
     rp.add_argument("-o", "--output", help="file to write (default: MintCare-report-DATE.html)")
@@ -181,5 +191,5 @@ def main(argv):
     a = ap.parse_args(argv)
     if a.cmd == "clean" and a.run == []:
         a.run = ["default"]
-    return {"scan": cmd_scan, "tweaks": cmd_tweaks, "clean": cmd_clean, "hardware": cmd_hardware, "space": cmd_space,
+    return {"scan": cmd_scan, "tweaks": cmd_tweaks, "clean": cmd_clean, "hardware": cmd_hardware, "support-bundle": cmd_support_bundle, "space": cmd_space,
             "maintain": cmd_maintain, "report": cmd_report, "backup": cmd_backup}[a.cmd](a)

@@ -1085,6 +1085,34 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self._report_saved(path)
         self.in_thread(_("Building health report…"), work, done)
 
+    def export_support_bundle(self):
+        """Zip with the health report, hardware list and recent activity, for asking for help."""
+        d = Gtk.FileChooserDialog(title=_("Save support bundle"), transient_for=self,
+                                  action=Gtk.FileChooserAction.SAVE)
+        css(d, "mintcare")
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("Save"), Gtk.ResponseType.OK)
+        d.set_do_overwrite_confirmation(True)
+        d.set_current_folder(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS) or space.HOME)
+        d.set_current_name(f"MintCare-support-{time.strftime('%Y-%m-%d')}.zip")
+        resp, path = d.run(), d.get_filename()
+        d.destroy()
+        if resp != Gtk.ResponseType.OK or not path:
+            return
+        if not path.lower().endswith(".zip"):
+            path += ".zip"
+        from . import report
+
+        def work():
+            return report.write_support_bundle(path, progress=lambda m: GLib.idle_add(self.set_status, m))
+
+        def done(saved):
+            if saved:
+                self.set_status(_("Support bundle saved to {0}").format(saved))
+                self.log(_("Support bundle saved to {0}").format(saved))
+            else:
+                self.set_status(_("Could not write the support bundle"), bad=True)
+        self.in_thread(_("Building support bundle…"), work, done)
+
     def _print_pdf(self, page, path):
         try:
             gi.require_version("WebKit2", "4.1")
@@ -3526,7 +3554,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(self.page_header(
             "dialog-question-symbolic", _("Troubleshoot"),
             _("Step-by-step checks and one-click fixes for sound, network, printers, Bluetooth and crashing "
-              "programs.")), False, False, 0)
+              "programs."),
+            [self.action_button(_("Support bundle…"), self.export_support_bundle, icon_name="document-save-symbolic")]),
+            False, False, 0)
         self.ts_boxes = {}
         tabs = []
         for key, title in (("sound", _("Sound")), ("network", _("Network")), ("devices", _("Printers & Bluetooth")),

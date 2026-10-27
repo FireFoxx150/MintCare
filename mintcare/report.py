@@ -282,3 +282,27 @@ def save_scheduled(fmt="pdf", folder=None, keep=10, private=True):
     for old in reports[keep:]:
         old.unlink(missing_ok=True)
     return str(path)
+
+
+def write_support_bundle(path, progress=lambda _s: None):
+    """A zip for asking for help: the health report, hardware list and recent activity, all with personal details removed."""
+    import zipfile
+    from . import maintenance
+    page = render_html(collect(True, progress))
+    hw = "\n".join(f"{kind:9} {name}" + (f"  ({detail})" if detail else "")
+                   for kind, name, detail in hardware.inventory())
+    activity = "\n".join(f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(ev.get('ts', 0)))}  {ev.get('kind', '')}  "
+                         f"{'ok' if ev.get('ok', True) else 'failed'}  {ev.get('title', '')}"
+                         for ev in maintenance.history(limit=300)) or "No activity recorded yet."
+    readme = ("MintCare support bundle\n"
+              "Send this file when asking for help. Computer name, user name, home folder paths and drive\n"
+              "serial numbers are removed.\n\n"
+              "MintCare-report.html   health report (open in a web browser)\n"
+              "hardware.txt           the parts MintCare can see\n"
+              "activity.txt           recent cleaning, tweaks and maintenance, newest first\n")
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("MintCare-report.html", _scrub(page, True))
+        z.writestr("hardware.txt", _scrub(hw, True))
+        z.writestr("activity.txt", _scrub(activity, True))
+        z.writestr("README.txt", readme)
+    return path
