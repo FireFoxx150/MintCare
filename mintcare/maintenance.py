@@ -383,3 +383,14 @@ def run_maintenance(notify=True, on_line=None):
         except (OSError, subprocess.TimeoutExpired):
             pass
     return report
+
+
+def weekly_summary(events, points, now=None):
+    """What happened in the last seven days, and how the health score moved over that time."""
+    now = now or time.time()
+    week = [e for e in events if now - e.get("ts", 0) < 7 * 86400]
+    count = lambda kind: sum(1 for e in week if e.get("kind") == kind and e.get("ok", True))
+    recent = [p for p in points if now - p.get("ts", 0) < 7 * 86400]
+    return {"cleaned": count("clean"), "repairs": count("repair"), "checkups": count("scheduled"),
+            "score_now": recent[-1]["score"] if recent else None,
+            "score_then": recent[0]["score"] if recent else None}

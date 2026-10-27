@@ -555,7 +555,7 @@ def _read_inventory():
             elif vram.isdigit() and int(vram) > 0:
                 detail = _("{0} VRAM").format(_gb(int(vram)))
         items.append((kind, name, detail))
-    items += _sound_items() + _wireless_items() + _disk_items()
+    items += _sound_items() + _wireless_items() + _disk_items() + memory_detail_items()
     return items
 
 
@@ -634,3 +634,41 @@ def power_draw():
             if v.isdigit() and int(v) > 0:
                 readings.append(int(v) / 1e6)
     return max(readings) if readings else None
+
+
+MEMORY_FILE = Path("/var/lib/mintcare/memory.txt")
+
+
+def memory_modules(text):
+    """[(type, speed)] for each installed module in `dmidecode -t memory` output."""
+    modules = []
+    for block in text.split("\n\n"):
+        if "Memory Device" not in block:
+            continue
+        fields = dict(l.strip().split(":", 1) for l in block.splitlines() if ":" in l)
+        fields = {k.strip(): v.strip() for k, v in fields.items()}
+        size = fields.get("Size", "")
+        if not size or size.startswith("No Module"):
+            continue
+        speed = fields.get("Configured Memory Speed") or fields.get("Speed") or ""
+        if speed.lower() in ("", "unknown"):
+            speed = ""
+        mtype = fields.get("Type", "")
+        if mtype.lower() in ("", "unknown", "<out of spec>"):
+            mtype = ""
+        modules.append((mtype, speed))
+    return modules
+
+
+def memory_detail_items():
+    """Inventory rows for RAM type and speed, from the file an admin read saved earlier."""
+    try:
+        mods = memory_modules(MEMORY_FILE.read_text())
+    except OSError:
+        return []
+    if not mods:
+        return []
+    types = {t for t, _s in mods if t}
+    speeds = {s for _t, s in mods if s}
+    name = " ".join(filter(None, [f"{len(mods)} x", "/".join(sorted(types)) or "RAM", "/".join(sorted(speeds))]))
+    return [("memory", name, "")]

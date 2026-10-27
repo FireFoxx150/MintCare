@@ -38,6 +38,8 @@ _HEADINGS = (N_("Assistant"), N_("Boot services"), N_("Clean"), N_("Firmware"), 
              N_("Timeshift"), N_("Troubleshoot"), N_("Undo"), N_("Update"))
 STATUS_WORD = {checks.OK: _("OK"), checks.INFO: _("TIP"), checks.WARN: _("WARN"), checks.FAIL: _("FAIL")}
 
+GPU_HOT_C, GPU_HOT_SAMPLES = 85, 30            # warn after 30 polls (about a minute) at 85°C or more
+
 NAV = [
     ("dashboard", _("Dashboard"), "view-grid-symbolic"),
     ("diagnose", _("Diagnose & Fix"), "system-search-symbolic"),
@@ -529,9 +531,20 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._layout_mode = mode
             GLib.idle_add(self._apply_layout, mode)
 
+    def _toggle_dash_card(self, sw, key):
+        st = maintenance.load_settings()
+        hidden = [k for k in st.get("dash_hidden", []) if k != key]
+        if not sw.get_active():
+            hidden.append(key)
+        st["dash_hidden"] = hidden
+        maintenance.save_settings(st)
+        self._apply_layout(self._layout_mode)
+
     def _apply_layout(self, mode):
+        hidden = {self._dash_cards[k] for k in maintenance.load_settings().get("dash_hidden", [])
+                  if k in getattr(self, "_dash_cards", {})}
         for grid, layouts in self._responsive:
-            spec = layouts[mode]
+            spec = [item for item in layouts[mode] if item[0] not in hidden]
             for wdg, *_pos in spec:
                 if wdg.get_parent() is grid:
                     grid.remove(wdg)
@@ -1229,6 +1242,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
         top.pack_start(row, False, False, 0)
         page.pack_start(top, False, False, 0)
 
+        week = card("ecard")
+        wh = hbox(10)
+        wh.pack_start(icon("x-office-calendar-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
+        wh.pack_start(label(_("This week"), ("h3",)), False, False, 0)
+        self.week_lbl = label("", ("faint",), wrap=True)
+        wh.pack_start(self.week_lbl, True, True, 0)
+        week.pack_start(wh, False, False, 0)
+        page.pack_start(week, False, False, 0)
+
         grid = Gtk.Grid(column_spacing=12, row_spacing=12, column_homogeneous=True)
         page.pack_start(grid, False, False, 0)
 
@@ -1263,6 +1285,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.g_gpu, gpu_card, gpu_foot = self._gauge_card(
                 _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), gpu["name"], "info")
             self.gpu_vram, self.gpu_temp = self._tiles(gpu_foot, _("VRAM USED"), _("TEMPERATURE"))
+            self.gpu_chart = LineChart([(_("Temperature"), ORANGE)], points=60, height=44, fixed_max=100, axis=False,
+                                       fmt=lambda v: f"{v:.0f}°C")
+            gpu_foot.pack_start(self.gpu_chart, False, False, 2)
+            self._gpu_hot = []                          # recent temperatures, for the sustained-heat warning
+            self._gpu_alerted = False
 
         # performance chart (2 columns)
         perf = card()
@@ -1328,6 +1355,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.kv_grid = Gtk.Grid(column_spacing=14, row_spacing=6)
         det.pack_start(self.kv_grid, False, False, 10)
         self._fill_details()
+        self._dash_cards = {"cpu": cpu_card, "memory": mem_card, "disk": disk_card, "gpu": gpu_card,
+                            "performance": perf, "health": hc, "network": net, "details": det}
+        self._dash_switches = hbox(6)
+        self._dash_switches.pack_start(label(_("Show on the dashboard:"), ("faint",)), False, False, 0)
+        hidden = maintenance.load_settings().get("dash_hidden", [])
+        for key, text in (("cpu", _("Processor")), ("memory", _("Memory")), ("disk", _("Disk")),
+                          ("gpu", _("Graphics")), ("performance", _("Performance")), ("health", _("Health")),
+                          ("network", _("Network")), ("details", _("Details"))):
+            if key == "gpu" and not gpu_card:
+                continue
+            sw = Gtk.CheckButton(label=text, active=key not in hidden)
+            sw.connect("toggled", self._toggle_dash_card, key)
+            self._dash_switches.pack_start(sw, False, False, 0)
+        page.pack_start(self._dash_switches, False, False, 0)
+        page.reorder_child(self._dash_switches, page.get_children().index(grid))
+
         self._responsive.append((grid, {
             "wide": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 2, 0, 1, 1),
                      (perf, 0, 1, 2, 1), (hc, 2, 1, 1, 2), (net, 0, 2, 1, 1), (det, 1, 2, 1, 1)]
@@ -1434,8 +1477,18 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.goto("diagnose")
         self.run_diagnose()
 
+    def _update_weekly(self):
+        s_ = maintenance.weekly_summary(maintenance.history(800), maintenance.scores(500))
+        parts = [_("{0} cleaning step(s)").format(s_["cleaned"]), _("{0} repair(s)").format(s_["repairs"]),
+                 _("{0} scheduled check-up(s)").format(s_["checkups"])]
+        text = ", ".join(parts) + "."
+        if s_["score_now"] is not None and s_["score_then"] is not None:
+            text += _(" Health score {0}, was {1} a week ago.").format(s_["score_now"], s_["score_then"])
+        self.week_lbl.set_text(text)
+
     def _update_overview(self):
         res = self.check_results
+        self._update_weekly()
         counts = {s: sum(1 for r in res.values() if r.status == s) for s in STATUS_ICON}
         score = max(0, 100 - counts[checks.FAIL] * 15 - counts[checks.WARN] * 5 - counts[checks.INFO])
         color, kind, word = ((EMERALD, "ok", _("healthy")) if score >= 85 else
@@ -2441,6 +2494,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             row = Gtk.ListBoxRow(activatable=False)
             box = hbox(12)
             cb = Gtk.CheckButton(active=item.default, valign=Gtk.Align.CENTER)
+            describe(cb, item.title)
             cb.connect("toggled", lambda *_x: self._update_clean_total())
             self.clean_checks[item.id] = cb
             box.pack_start(cb, False, False, 0)
@@ -2863,6 +2917,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 row = Gtk.ListBoxRow(activatable=False)
                 rb = hbox(10)
                 cb = Gtk.CheckButton(active=self.dup_sel.get(p, False), valign=Gtk.Align.CENTER)
+                describe(cb, p)
                 cb.connect("toggled", self._dup_toggle, p)
                 rb.pack_start(cb, False, False, 0)
                 pl = label(p.replace(space.HOME, "~"), ("mono", "muted"), ellipsize=True)
@@ -4187,6 +4242,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         chat = card()
         ch = hbox(8)
         ch.pack_start(label(_('Model: {0}').format(assistant.MODEL), ("faint", "mono")), True, True, 0)
+        self.ai_saved = Gtk.ComboBoxText()
+        self.ai_saved.connect("changed", self._ai_open_saved)
+        self._refresh_saved_chats()
+        ch.pack_end(self.ai_saved, False, False, 0)
         self.ai_include = Gtk.CheckButton(label=_("Include my system summary (no names or serial numbers)"))
         ch.pack_end(self.ai_include, False, False, 0)
         self.ai_checks = Gtk.CheckButton(label=_("Let Claude run MintCare's checks"))
@@ -4278,9 +4337,32 @@ class MintCareWindow(Gtk.ApplicationWindow):
         maintenance.record("other", _("Assistant: API key saved"))
         self.load_assistant()
 
-    def _ai_clear(self):
+    def _refresh_saved_chats(self):
+        self._saved_loading = True
+        self.ai_saved.remove_all()
+        self.ai_saved.append("", _("Saved chats"))
+        for i, c in enumerate(assistant.load_chats()):
+            self.ai_saved.append(str(i), time.strftime("%d %b %H:%M", time.localtime(c["ts"])) + "  " + c["title"])
+        self.ai_saved.set_active_id("")
+        self._saved_loading = False
+
+    def _ai_open_saved(self, combo):
+        idx = combo.get_active_id()
+        if not idx or getattr(self, "_saved_loading", False):
+            return
+        chat = assistant.load_chats()[int(idx)]
         self.ai_history = []
-        self.ai_view.get_buffer().set_text("")
+        self.ai_view.get_buffer().set_text(chat["text"] + _("\n— Saved chat. New questions start a fresh conversation."))
+        combo.set_active_id("")
+
+    def _ai_clear(self):
+        buf = self.ai_view.get_buffer()
+        text = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
+        if self.ai_history and text.strip():
+            assistant.save_chat(text)
+            self._refresh_saved_chats()
+        self.ai_history = []
+        buf.set_text("")
 
     def _ai_append(self, text, bold=False):
         buf = self.ai_view.get_buffer()
@@ -4558,6 +4640,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         ih = hbox(8)
         ih.pack_start(icon("computer-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
         ih.pack_start(label(_("Your hardware"), ("h2",)), False, False, 0)
+        ih.pack_end(self.action_button(_("Read RAM details…"), self.read_ram_details,
+                                       icon_name="dialog-password-symbolic"), False, False, 0)
         ic.pack_start(ih, False, False, 0)
         self.inv_box = vbox(8)
         self.inv_box.pack_start(label(_("Detecting hardware…"), ("faint",)), False, False, 0)
@@ -4638,6 +4722,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
     INV_ICONS = {"computer": "computer-symbolic", "cpu": "system-run-symbolic", "memory": "media-flash-symbolic",
                  "gpu": "video-display-symbolic", "network": "network-wired-symbolic",
                  "sound": "audio-card-symbolic", "drive": "drive-harddisk-symbolic"}
+
+    def read_ram_details(self):
+        """Admin read of RAM type and speed (dmidecode needs root); the result is kept for the hardware list."""
+        step = ("ram-detail", _("Read RAM type and speed"),
+                f"install -d -m 755 /var/lib/mintcare && dmidecode -t memory > {hardware.MEMORY_FILE} && "
+                f"chmod 644 {hardware.MEMORY_FILE}")
+        self._root_job(_("Reading RAM details…"), [step], "Hardware",
+                       lambda r: (hardware._INVENTORY.update(at=0), self.bg(hardware.inventory, self._render_inventory)))
 
     def _render_inventory(self, items):
         self._clear(self.inv_box)
@@ -4864,6 +4956,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         used, total = g["vram_used"], g["vram_total"]
         self.gpu_vram.set_text(f"{human(used)} / {human(total)}" if used is not None and total else "n/a")
         self.gpu_temp.set_text(f"{g['temp']:.0f}°C" if g["temp"] is not None else "n/a")
+        if g["temp"] is not None:
+            self.gpu_chart.push(g["temp"])
+            self._gpu_hot = (self._gpu_hot + [g["temp"]])[-GPU_HOT_SAMPLES:]
+            hot = len(self._gpu_hot) == GPU_HOT_SAMPLES and all(t >= GPU_HOT_C for t in self._gpu_hot)
+            if hot and not self._gpu_alerted:
+                self._gpu_alerted = True
+                self.set_status(_("The graphics card has been above {0}°C for a minute — check its cooling")
+                                .format(GPU_HOT_C), bad=True)
+            elif not hot:
+                self._gpu_alerted = False
 
     def _poll_sensors(self, force=False):
         visible = self.stack.get_visible_child_name() == "hardware"

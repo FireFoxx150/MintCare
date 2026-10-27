@@ -12,6 +12,7 @@
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from gi.repository import GLib
@@ -255,3 +256,24 @@ def stream_reply(history, on_text, stop=lambda: False, allow_checks=False, effor
         res["error"] = "Couldn't reach the Claude API — check your internet connection."
     res.update(text="".join(text), cost=total, approx=approx)
     return res
+
+
+CHATS_FILE = Path(GLib.get_user_data_dir()) / "mintcare" / "chats.json"
+
+
+def load_chats():
+    """Saved chats, newest first: [{'ts', 'title', 'text'}]. Transcripts only, not resumable."""
+    try:
+        return json.loads(CHATS_FILE.read_text())
+    except (OSError, ValueError):
+        return []
+
+
+def save_chat(text):
+    """Keep the transcript of a finished chat (the last 20 are kept)."""
+    first = next((l[len("You: "):] for l in text.splitlines() if l.startswith("You: ")), "")
+    chats = [{"ts": time.time(), "title": first[:60] or _("Chat"), "text": text}] + load_chats()
+    CHATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(CHATS_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)     # chats can contain your questions
+    with os.fdopen(fd, "w") as f:
+        f.write(json.dumps(chats[:20], indent=1))
