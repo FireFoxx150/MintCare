@@ -617,3 +617,20 @@ def gpu_load():
                     "vram_used": int(used) if used.isdigit() else None,
                     "vram_total": int(total) if total.isdigit() else None, "temp": None}
     return None
+
+
+def power_draw():
+    """Watts being drawn right now, from the kernel's power sensors or the battery, or None."""
+    readings = []
+    for hw in glob("/sys/class/hwmon/hwmon*"):
+        for f in glob(f"{hw}/power*_average") + glob(f"{hw}/power*_input"):
+            v = read(f).strip()
+            if v.isdigit() and int(v) > 0:
+                readings.append(int(v) / 1e6)
+                break
+    if not readings:
+        for b in glob("/sys/class/power_supply/BAT*/power_now"):
+            v = read(b).strip()
+            if v.isdigit() and int(v) > 0:
+                readings.append(int(v) / 1e6)
+    return max(readings) if readings else None

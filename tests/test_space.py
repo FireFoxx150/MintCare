@@ -126,3 +126,12 @@ class ReducedMotion(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FileKinds(unittest.TestCase):
+    def test_kinds_from_extension(self):
+        from mintcare import space
+        self.assertEqual(space.file_kind("/home/x/Holiday.MP4"), "video")
+        self.assertEqual(space.file_kind("/home/x/ubuntu.iso"), "disk")
+        self.assertEqual(space.file_kind("/home/x/backup.tar.gz"), "archive")
+        self.assertEqual(space.file_kind("/home/x/notes.bin"), "other")

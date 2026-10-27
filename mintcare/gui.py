@@ -991,6 +991,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sc = int(self.side_score.get_text() or 0) if self.side_score.get_text().isdigit() else 0
         self.tray.set_tooltip_text(_('MintCare — health {0}/100').format(sc) +
                                    (_(', {0} issue(s) to look at').format(len(issues)) if issues else _(", all good")))
+        # the icon itself shows when something needs attention, not just the tooltip
+        fail = any(r.status == checks.FAIL for r in issues)
+        self.tray.set_icon_name("dialog-error" if fail else "dialog-warning" if issues else
+                                ("mintcare" if Gtk.IconTheme.get_default().has_icon("mintcare") else "applications-system"))
 
     def toggle_visible(self):
         if self.get_visible() and self.is_active():
@@ -2561,8 +2565,18 @@ class MintCareWindow(Gtk.ApplicationWindow):
         tc.pack_start(label(_("Click a folder to look inside it. Hover for details."), ("faint",)), False, False, 0)
         box.pack_start(tc, False, False, 0)
 
+        bigh = hbox(8)
         self.big_head = label(_("LARGEST FILES"), ("kicker",))
-        box.pack_start(self.big_head, False, False, 0)
+        bigh.pack_start(self.big_head, True, True, 0)
+        self.big_type = Gtk.ComboBoxText()
+        for kind, text in (("all", _("All types")), ("video", _("Videos")), ("image", _("Pictures")),
+                           ("audio", _("Music")), ("archive", _("Archives")), ("disk", _("Disk images")),
+                           ("other", _("Other"))):
+            self.big_type.append(kind, text)
+        self.big_type.set_active_id("all")
+        self.big_type.connect("changed", lambda *_x: self._render_big())
+        bigh.pack_end(self.big_type, False, False, 0)
+        box.pack_start(bigh, False, False, 0)
         self.big_card, self.big_list = list_card()
         box.pack_start(self.big_card, False, False, 0)
         self.space_tree = self.space_node = None
@@ -2641,7 +2655,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         for ch in self.big_list.get_children():
             ch.destroy()
         base = self.space_node.path.rstrip("/") + "/"
-        rows = [b for b in self.space_big if b[1].startswith(base) and os.path.exists(b[1])][:25]
+        want = self.big_type.get_active_id() or "all"
+        rows = [b for b in self.space_big if b[1].startswith(base) and os.path.exists(b[1])
+                and (want == "all" or space.file_kind(b[1]) == want)][:25]
         self.big_head.set_text(_('LARGEST FILES IN {0} ({1})').format(self.space_node.name.upper(), len(rows)))
         if not rows:
             r = Gtk.ListBoxRow(activatable=False)
@@ -4853,15 +4869,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
         visible = self.stack.get_visible_child_name() == "hardware"
         if (visible or force) and not self._sensor_busy:
             self._sensor_busy = True
-            self.bg(lambda: (hardware.sensors(), hardware.throttling(), hardware.cpu_freq(), hardware.nvidia()),
-                    self._render_sensors)
+            self.bg(lambda: (hardware.sensors(), hardware.throttling(), hardware.cpu_freq(), hardware.nvidia(),
+                             hardware.power_draw()), self._render_sensors)
         return True
 
     def _render_sensors(self, res):
         self._sensor_busy = False
         if not res:
             return
-        sens, thr, (cur, mx), gpu = res
+        sens, thr, (cur, mx), gpu, watts = res
         for ch in self.throttle_box.get_children():
             ch.destroy()
         for comp, lvl, text in thr:
@@ -4885,6 +4901,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if cur:
             tiles.append(("CPU · clock", f"{cur / 1000:.2f} GHz", checks.INFO,
                           f"max {mx / 1000:.2f} GHz" if mx else "", 100 * cur / mx if mx else 0))
+        if watts:
+            tiles.append(("POWER DRAW", f"{watts:.1f} W", checks.INFO, _("whole system, right now"), 0))
         if gpu and gpu.get("util") is not None:
             extra = [f"{gpu['power']:.0f} W" if gpu.get("power") is not None else "",
                      f"fan {gpu['fan']:.0f}%" if gpu.get("fan") is not None else "",

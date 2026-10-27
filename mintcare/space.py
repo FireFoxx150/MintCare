@@ -333,3 +333,18 @@ def restore_file_script(name, paths, base=None):
 def delete_snapshot_script(name):
     from .util import q
     return f"timeshift --delete --snapshot {q(name)} --scripted --yes"
+
+
+FILE_KINDS = {
+    "video": {".mp4", ".mkv", ".avi", ".mov", ".webm", ".wmv", ".m4v", ".mpg", ".mpeg"},
+    "image": {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tif", ".tiff", ".bmp", ".heic", ".raw", ".cr2", ".nef", ".dng"},
+    "audio": {".mp3", ".flac", ".wav", ".ogg", ".m4a", ".aac", ".opus"},
+    "archive": {".zip", ".tar", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".rar", ".zst"},
+    "disk": {".iso", ".img", ".qcow2", ".vdi", ".vmdk", ".vhd", ".vhdx", ".dmg"},
+}
+
+
+def file_kind(path):
+    """Filter category for a file, from its extension: video, image, audio, archive, disk or other."""
+    ext = os.path.splitext(path)[1].lower()
+    return next((kind for kind, exts in FILE_KINDS.items() if ext in exts), "other")
