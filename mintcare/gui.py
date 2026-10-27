@@ -38,6 +38,29 @@ _HEADINGS = (N_("Assistant"), N_("Boot services"), N_("Clean"), N_("Firmware"), 
              N_("Timeshift"), N_("Troubleshoot"), N_("Undo"), N_("Update"))
 STATUS_WORD = {checks.OK: _("OK"), checks.INFO: _("TIP"), checks.WARN: _("WARN"), checks.FAIL: _("FAIL")}
 
+DASH_ORDER = ("cpu", "memory", "disk", "performance", "health", "network", "details", "gpu")
+DASH_COLS = {"wide": 3, "medium": 2, "narrow": 1}
+DASH_SPAN = {"wide": {"gpu": (2, 1), "performance": (2, 1), "health": (1, 2)},
+             "medium": {"performance": (2, 1), "network": (2, 1), "health": (1, 2)}, "narrow": {}}
+def dash_slots(keys, mode):
+    """Place dashboard cards in order into a grid of DASH_COLS columns: [(key, column, row, width, height)]."""
+    cols, spans, used, out = DASH_COLS[mode], DASH_SPAN[mode], set(), []
+    for key in keys:
+        w, h = spans.get(key, (1, 1))
+        w = min(w, cols)
+        r = 0
+        while True:
+            spot = next(((c, r) for c in range(cols - w + 1)
+                         if not {(r + dr, c + dc) for dr in range(h) for dc in range(w)} & used), None)
+            if spot:
+                c, r = spot
+                used |= {(r + dr, c + dc) for dr in range(h) for dc in range(w)}
+                out.append((key, c, r, w, h))
+                break
+            r += 1
+    return out
+
+
 GPU_HOT_C, GPU_HOT_SAMPLES = 85, 30            # warn after 30 polls (about a minute) at 85°C or more
 
 NAV = [
@@ -531,6 +554,61 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._layout_mode = mode
             GLib.idle_add(self._apply_layout, mode)
 
+    def _dash_names(self):
+        return {"cpu": _("Processor"), "memory": _("Memory"), "disk": _("Disk"), "gpu": _("Graphics"),
+                "performance": _("Performance"), "health": _("Health"), "network": _("Network"),
+                "details": _("Details")}
+
+    def _dash_order(self):
+        """Card keys in the user's order, with any new or missing cards placed in the default order."""
+        saved = [k for k in maintenance.load_settings().get("dash_order", []) if k in self._dash_cards]
+        return saved + [k for k in DASH_ORDER if k in self._dash_cards and k not in saved]
+
+    def _fill_dash_switches(self):
+        for ch in self._dash_switches.get_children():
+            ch.destroy()
+        self._dash_switches.add(label(_("Show on the dashboard:"), ("faint",)))
+        hidden = maintenance.load_settings().get("dash_hidden", [])
+        names = self._dash_names()
+        order = self._dash_order()
+        for i, key in enumerate(order):
+            box = hbox(2)
+            sw = Gtk.CheckButton(label=names[key], active=key not in hidden)
+            sw.connect("toggled", self._toggle_dash_card, key)
+            box.pack_start(sw, False, False, 0)
+            for step, icon_name, word in ((-1, "go-up-symbolic", _("Move {0} earlier")),
+                                          (1, "go-down-symbolic", _("Move {0} later"))):
+                if (step < 0 and i == 0) or (step > 0 and i == len(order) - 1):
+                    continue
+                b = self.action_button("", lambda k=key, st=step: self._move_dash_card(k, st), icon_name=icon_name)
+                b.set_tooltip_text(word.format(names[key]))
+                describe(b, word.format(names[key]))
+                box.pack_start(b, False, False, 0)
+            self._dash_switches.add(box)
+        self._dash_switches.show_all()
+
+    def _move_dash_card(self, key, step):
+        order = self._dash_order()
+        i = order.index(key)
+        order[i], order[i + step] = order[i + step], order[i]
+        st = maintenance.load_settings()
+        st["dash_order"] = order
+        maintenance.save_settings(st)
+        self._fill_dash_switches()
+        self._apply_layout(self._layout_mode or "wide")
+
+    def _layout_dashboard(self, mode):
+        """Pack the visible cards in the user's order into the grid, honouring each card's size."""
+        grid = self._dash_grid
+        hidden = set(maintenance.load_settings().get("dash_hidden", []))
+        for wdg in self._dash_cards.values():
+            if wdg.get_parent() is grid:
+                grid.remove(wdg)
+        for key, c, r, w, h in dash_slots([k for k in self._dash_order() if k not in hidden], mode):
+            grid.attach(self._dash_cards[key], c, r, w, h)
+        grid.set_column_homogeneous(True)
+        grid.show_all()
+
     def _toggle_dash_card(self, sw, key):
         st = maintenance.load_settings()
         hidden = [k for k in st.get("dash_hidden", []) if k != key]
@@ -538,13 +616,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
             hidden.append(key)
         st["dash_hidden"] = hidden
         maintenance.save_settings(st)
-        self._apply_layout(self._layout_mode)
+        self._apply_layout(self._layout_mode or "wide")
 
     def _apply_layout(self, mode):
-        hidden = {self._dash_cards[k] for k in maintenance.load_settings().get("dash_hidden", [])
-                  if k in getattr(self, "_dash_cards", {})}
+        if getattr(self, "_dash_grid", None) is not None:
+            self._layout_dashboard(mode)
         for grid, layouts in self._responsive:
-            spec = [item for item in layouts[mode] if item[0] not in hidden]
+            spec = layouts[mode]
             for wdg, *_pos in spec:
                 if wdg.get_parent() is grid:
                     grid.remove(wdg)
@@ -1357,30 +1435,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._fill_details()
         self._dash_cards = {"cpu": cpu_card, "memory": mem_card, "disk": disk_card, "gpu": gpu_card,
                             "performance": perf, "health": hc, "network": net, "details": det}
-        self._dash_switches = hbox(6)
-        self._dash_switches.pack_start(label(_("Show on the dashboard:"), ("faint",)), False, False, 0)
-        hidden = maintenance.load_settings().get("dash_hidden", [])
-        for key, text in (("cpu", _("Processor")), ("memory", _("Memory")), ("disk", _("Disk")),
-                          ("gpu", _("Graphics")), ("performance", _("Performance")), ("health", _("Health")),
-                          ("network", _("Network")), ("details", _("Details"))):
-            if key == "gpu" and not gpu_card:
-                continue
-            sw = Gtk.CheckButton(label=text, active=key not in hidden)
-            sw.connect("toggled", self._toggle_dash_card, key)
-            self._dash_switches.pack_start(sw, False, False, 0)
+        self._dash_switches = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=4)
         page.pack_start(self._dash_switches, False, False, 0)
         page.reorder_child(self._dash_switches, page.get_children().index(grid))
+        self._fill_dash_switches()
 
-        self._responsive.append((grid, {
-            "wide": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 2, 0, 1, 1),
-                     (perf, 0, 1, 2, 1), (hc, 2, 1, 1, 2), (net, 0, 2, 1, 1), (det, 1, 2, 1, 1)]
-                    + ([(gpu_card, 0, 3, 2, 1)] if gpu_card else []),
-            "medium": [(cpu_card, 0, 0, 1, 1), (mem_card, 1, 0, 1, 1), (disk_card, 0, 1, 1, 1),
-                       (hc, 1, 1, 1, 2), (det, 0, 2, 1, 1), (perf, 0, 3, 2, 1), (net, 0, 4, 2, 1)]
-                      + ([(gpu_card, 1, 2, 1, 1)] if gpu_card else []),
-            "narrow": [(w, 0, i, 1, 1) for i, w in enumerate(
-                [hc, cpu_card, mem_card, disk_card] + ([gpu_card] if gpu_card else []) + [perf, net, det])],
-        }))
+        self._dash_grid = grid
 
         note = label(_("MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and records what "
                      "it changed in <tt>/var/lib/mintcare</tt>, so every optimisation can be switched off again "
