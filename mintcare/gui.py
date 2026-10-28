@@ -719,6 +719,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.nav_rows[key] = row
         self.nav.connect("row-selected", lambda _lb, row: row and self.stack.set_visible_child_name(row.page))
         nav_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        nav_scroll.set_overlay_scrolling(False)       # the scrollbar stays visible: it shows the list continues
         nav_scroll.add(self.nav)                      # 17 pages don't fit a short window
         side.pack_start(nav_scroll, True, True, 0)
 
@@ -2700,6 +2701,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.big_head = label(_("LARGEST FILES"), ("kicker",))
         bigh.pack_start(self.big_head, True, True, 0)
         self.big_type = Gtk.ComboBoxText()
+        describe(self.big_type, _("File type"))
         for kind, text in (("all", _("All types")), ("video", _("Videos")), ("image", _("Pictures")),
                            ("audio", _("Music")), ("archive", _("Archives")), ("disk", _("Disk images")),
                            ("other", _("Other"))):
@@ -2868,6 +2870,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         r2 = hbox(12)
         r2.pack_start(label(_("Ignore files smaller than"), ("muted",)), False, False, 0)
         self.dup_min = Gtk.ComboBoxText()
+        describe(self.dup_min, _("Smallest file to compare"))
         for t in ("1 MB", "10 MB", "100 MB"):
             self.dup_min.append(t, t)
         self.dup_min.set_active(0)
@@ -3372,6 +3375,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         inst = vbox(10)
         bar = hbox(8)
         self.pkg_mode = Gtk.ComboBoxText()
+        describe(self.pkg_mode, _("Which packages to show"))
         for k, t in (("largest", _("Largest packages")), ("mine", _("Installed by you")), ("held", _("Held back"))):
             self.pkg_mode.append(k, t)
         self.pkg_mode.set_active_id("largest")
@@ -3631,6 +3635,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
               "that's stuck.")), False, False, 0)
         bar = hbox(8)
         self.proc_sort = Gtk.ComboBoxText()
+        describe(self.proc_sort, _("Sort processes by"))
         self.proc_sort.append("cpu", _("Sort by CPU"))
         self.proc_sort.append("rss", _("Sort by memory"))
         self.proc_sort.set_active_id("cpu")
@@ -4091,12 +4096,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.bk_switch.connect("notify::active", self._bk_toggle)
         sh.pack_start(self.bk_switch, False, False, 0)
         self.bk_freq = Gtk.ComboBoxText()
+        describe(self.bk_freq, _("How often to back up"))
         for k, t in (("daily", _("Every day")), ("weekly", _("Every Sunday")), ("monthly", _("Monthly"))):
             self.bk_freq.append(k, t)
         self.bk_freq.connect("changed", lambda *_x: self._bk_save())
         sh.pack_start(self.bk_freq, False, False, 0)
         sh.pack_start(label(_("Keep"), ("muted",)), False, False, 0)
         self.bk_keep = Gtk.SpinButton.new_with_range(2, 60, 1)
+        describe(self.bk_keep, _("Number of backups to keep"))
         self.bk_keep.connect("value-changed", lambda *_x: self._bk_save())
         sh.pack_start(self.bk_keep, False, False, 0)
         sh.pack_start(label(_("snapshots"), ("muted",)), False, False, 0)
@@ -4822,6 +4829,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         bh.pack_start(icon("power-profile-performance-symbolic", Gtk.IconSize.BUTTON, "info"), False, False, 0)
         bh.pack_start(label(_("Benchmarks"), ("h2",)), True, True, 0)
         self.bench_target = Gtk.ComboBoxText()
+        describe(self.bench_target, _("Folder to test"))
         for mp, dev, fs, free in bench.targets():
             self.bench_target.append(mp, f"{mp.replace(str(Path.home()), '~')} ({fs}, {human(free)} free)")
         self.bench_target.set_active(0)
@@ -5477,12 +5485,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
         g = Gtk.Grid(column_spacing=12, row_spacing=8)
         g.attach(label(_("How often"), ("muted",)), 0, 0, 1, 1)
         self.sched_freq = Gtk.ComboBoxText()
+        describe(self.sched_freq, _("How often to check up"))
         for k, t in (("daily", _("Every day")), ("weekly", _("Every Monday")), ("monthly", _("1st of each month"))):
             self.sched_freq.append(k, t)
         self.sched_freq.connect("changed", lambda *_x: self._save_maint_settings())
         g.attach(self.sched_freq, 1, 0, 1, 1)
         g.attach(label(_("Notify me"), ("muted",)), 0, 1, 1, 1)
         self.sched_notify = Gtk.ComboBoxText()
+        describe(self.sched_notify, _("When to notify you"))
         self.sched_notify.append("issues", _("Only when something needs attention"))
         self.sched_notify.append("always", _("After every check-up"))
         self.sched_notify.connect("changed", lambda *_x: self._save_maint_settings())
@@ -5503,6 +5513,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.sched_report.connect("toggled", lambda *_x: self._save_maint_settings())
         rh.pack_start(self.sched_report, False, False, 0)
         self.sched_report_fmt = Gtk.ComboBoxText()
+        describe(self.sched_report_fmt, _("Report format"))
         self.sched_report_fmt.append("pdf", _("PDF"))
         self.sched_report_fmt.append("html", _("HTML"))
         self.sched_report_fmt.connect("changed", lambda *_x: self._save_maint_settings())
@@ -5530,6 +5541,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         r = hbox(10)
         r.pack_start(label(_("Before big changes"), ("muted",)), False, False, 0)
         self.snap_pref = Gtk.ComboBoxText()
+        describe(self.snap_pref, _("Snapshot before repairs"))
         for k, t in (("ask", _("Ask me")), ("always", _("Always take a snapshot")), ("never", _("Never"))):
             self.snap_pref.append(k, t)
         self.snap_pref.connect("changed", lambda *_x: self._save_maint_settings())
