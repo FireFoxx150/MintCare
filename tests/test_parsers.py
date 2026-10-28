@@ -97,7 +97,7 @@ class ReportPrivacy(unittest.TestCase):
         from types import SimpleNamespace as R
         from mintcare import report
         sc, n = report.score([R(status="fail"), R(status="warn"), R(status="info"), R(status="ok")])
-        self.assertEqual(sc, 100 - 15 - 5 - 1)
+        self.assertEqual(sc, 100 - 15 - 5)  # tips do not count
         self.assertEqual(n, {"fail": 1, "warn": 1, "info": 1})
 
 

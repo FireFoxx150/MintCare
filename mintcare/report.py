@@ -23,7 +23,7 @@ STATUS_TEXT = {"ok": "OK", "info": _("Tip"), "warn": _("Warning"), "fail": _("Pr
 
 def score(results):
     n = {s: sum(1 for r in results if r.status == s) for s in ("fail", "warn", "info")}
-    return max(0, 100 - n["fail"] * 15 - n["warn"] * 5 - n["info"]), n
+    return max(0, 100 - n["fail"] * 15 - n["warn"] * 5), n  # tips do not count
 
 
 def collect(private=True, progress=lambda _s: None):

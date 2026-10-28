@@ -1559,7 +1559,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         res = self.check_results
         self._update_weekly()
         counts = {s: sum(1 for r in res.values() if r.status == s) for s in STATUS_ICON}
-        score = max(0, 100 - counts[checks.FAIL] * 15 - counts[checks.WARN] * 5 - counts[checks.INFO])
+        score = max(0, 100 - counts[checks.FAIL] * 15 - counts[checks.WARN] * 5)  # tips do not count
         color, kind, word = ((EMERALD, "ok", _("healthy")) if score >= 85 else
                              ("#f59e0b", "warn", _("needs care")) if score >= 60 else ("#ef4444", "fail", _("at risk")))
         self.g_health.color = color

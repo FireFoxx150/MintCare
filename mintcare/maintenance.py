@@ -332,7 +332,7 @@ def run_maintenance(notify=True, on_line=None):
     issues = [(c.title, r.summary) for c, r in results if r.status in (checks.WARN, checks.FAIL)]
     tips = sum(1 for _c, r in results if r.status == checks.INFO)
     counts = {st: sum(1 for _c, r in results if r.status == st) for st in ("fail", "warn", "info")}
-    record_score(max(0, 100 - counts["fail"] * 15 - counts["warn"] * 5 - counts["info"]), counts)
+    record_score(max(0, 100 - counts["fail"] * 15 - counts["warn"] * 5), counts)  # tips do not count
 
     wanted = set(s.get("clean", []))
     items = [i for i in cleaner.ITEMS if i.user_script and not i.root_script and i.available()
