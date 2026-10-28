@@ -479,3 +479,15 @@ def cache_growth(days=30, now=None):
         return None
     (t0, b0), (t1, b1) = window[0], window[-1]
     return b1 - b0, (t1 - t0) / 86400
+
+
+def hidden_tips():
+    return list(load_settings().get("hidden_tips", []))
+
+
+def set_tip_hidden(check_id, hidden):
+    """Hide or show one tip (an info-level check). Warnings and problems are never hidden."""
+    st = load_settings()
+    ids = [c for c in st.get("hidden_tips", []) if c != check_id]
+    st["hidden_tips"] = ids + [check_id] if hidden else ids
+    save_settings(st)

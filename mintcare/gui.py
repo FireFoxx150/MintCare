@@ -62,6 +62,13 @@ def dash_slots(keys, mode):
     return out
 
 
+TIPS = {
+    _("TCP congestion"): _("How the computer paces network traffic. BBR is a good, modern choice."),
+    _("Swap"): _("Disk space used as extra memory when RAM is full. Some swap use is normal."),
+    _("Firewall"): _("Blocks unwanted connections into your PC. Keep it enabled."),
+    _("Load average"): _("How busy the processor has been over the last 1, 5 and 15 minutes. "
+                         "Higher than the number of threads means it is overloaded."),
+}
 GPU_HOT_C, GPU_HOT_SAMPLES = 85, 30            # warn after 30 polls (about a minute) at 85°C or more
 
 NAV = [
@@ -587,7 +594,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 describe(b, word.format(names[key]))
                 box.pack_start(b, False, False, 0)
             self._dash_switches.add(box)
-        self._dash_switches.show_all()
+        for ch in self._dash_switches.get_children():
+            ch.show_all()
 
     def _move_dash_card(self, key, step):
         order = self._dash_order()
@@ -668,10 +676,26 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if self._theme_name == "system":
             self.apply_theme("system")
 
+    def _dismiss_start(self):
+        st = maintenance.load_settings()
+        st["start_dismissed"] = True
+        maintenance.save_settings(st)
+        self.start_card.set_visible(False)
+
     def apply_level(self, level):
         self.level = level
         for key, row in self.nav_rows.items():
             row.set_visible(level != "beginner" or key in BEGINNER_PAGES)
+        if getattr(self, "start_card", None) is not None:
+            on = level == "beginner" and not maintenance.load_settings().get("start_dismissed")
+            if on:                                  # show_all() skips a widget marked no_show_all, so show its contents
+                for ch in self.start_card.get_children():
+                    ch.show_all()
+            self.start_card.set_visible(on)
+        # 4. Beginner: the card-order and show/hide row is an advanced control, so it is left out
+        if getattr(self, "_dash_switches", None) is not None:
+            self._dash_switches.set_no_show_all(True)
+            self._dash_switches.set_visible(level != "beginner")
 
         def shown(t):
             if level == "beginner":
@@ -1300,6 +1324,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.update_banner.add(ub)
         page.pack_start(self.update_banner, False, False, 0)
 
+        # Start here: three steps for new users; Beginner level only, until dismissed
+        self.start_card = card("ecard")
+        self.start_card.set_no_show_all(True)
+        sc = hbox(10)
+        st_text = vbox(2)
+        st_text.pack_start(label(_("Start here"), ("h2",)), False, False, 0)
+        st_text.pack_start(label(_("Three steps to a healthy PC. You can do them in any order."), ("muted",),
+                                 wrap=True), False, False, 0)
+        sc.pack_start(st_text, True, True, 0)
+        sc.pack_end(self.action_button(_("Got it"), self._dismiss_start), False, False, 0)
+        sc.pack_end(self.action_button(_("Free up space"), self.quick_clean), False, False, 0)
+        sc.pack_end(self.action_button(_("Fix what it finds"), self.fix_all), False, False, 0)
+        sc.pack_end(self.action_button(_("Scan your PC"), self._health_scan, primary=True), False, False, 0)
+        self.start_card.pack_start(sc, False, False, 0)
+        page.pack_start(self.start_card, False, False, 0)
+
         # upper bar
         top = card("ecard")
         row = hbox(12)
@@ -1344,7 +1384,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             _("Processor Activity"), "speedometer-symbolic", EMERALD, _("CPU load"), _('{0} threads').format(os.cpu_count()), "ok")
         cpu_foot.pack_start(label(cpu_model, ("faint", "mono"), xalign=0.5, ellipsize=True), False, False, 0)
         lr = hbox(0)
-        lr.pack_start(label(_("Load average"), ("faint", "mono")), False, False, 0)
+        load_name = label(_("Load average"), ("faint", "mono"))
+        load_name.set_tooltip_text(TIPS[_("Load average")])
+        lr.pack_start(load_name, False, False, 0)
         self.load_lbl = label("–", ("stat-val",), xalign=1.0)
         lr.pack_end(self.load_lbl, False, False, 0)
         cpu_foot.pack_start(lr, False, False, 0)
@@ -1516,7 +1558,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
              else "…"),
         ]
         for i, (k, v) in enumerate(rows):
-            self.kv_grid.attach(label(k, ("kv-key",)), 0, i, 1, 1)
+            key_lbl = label(k, ("kv-key",))
+            if k in TIPS:
+                key_lbl.set_tooltip_text(TIPS[k])
+            self.kv_grid.attach(key_lbl, 0, i, 1, 1)
             self.kv_grid.attach(label(v, ("kv-val",), ellipsize=True), 1, i, 1, 1)
         self.kv_grid.show_all()
         self.chip_vals["TCP"].set_text(sysctl("net.ipv4.tcp_congestion_control").upper())
@@ -1562,6 +1607,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         res = self.check_results
         self._update_weekly()
         counts = {s: sum(1 for r in res.values() if r.status == s) for s in STATUS_ICON}
+        hidden = set(maintenance.hidden_tips())
+        counts[checks.INFO] = sum(1 for cid, r in res.items() if r.status == checks.INFO and cid not in hidden)
         score = max(0, 100 - counts[checks.FAIL] * 15 - counts[checks.WARN] * 5)  # tips do not count
         st = theme.STATUS[self._theme_eff]
         color, kind, word = ((st["ok"], "ok", _("healthy")) if score >= 85 else
@@ -2102,8 +2149,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
             ch.destroy()
         order = {checks.FAIL: 0, checks.WARN: 1, checks.INFO: 2, checks.OK: 3}
         cats = list(dict.fromkeys(c.category for c in checks.CHECKS))
+        hidden = set(maintenance.hidden_tips())
         for cat in cats:
             items = [c for c in checks.CHECKS if c.category == cat and c.id in self.check_results]
+            if not getattr(self, "_show_hidden", False):
+                items = [c for c in items if c.id not in hidden or self.check_results[c.id].status != checks.INFO]
             items.sort(key=lambda c: order[self.check_results[c.id].status])
             ok = sum(1 for c in items if self.check_results[c.id].status == checks.OK)
             head = hbox(8)
@@ -2115,11 +2165,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
             for chk in items:
                 lb.add(self._check_row(chk, self.check_results[chk.id]))
             self.diag_box.pack_start(c, False, False, 0)
+        n_hidden = sum(1 for cid in hidden if cid in self.check_results and self.check_results[cid].status == checks.INFO)
+        if n_hidden:
+            text = _("Hide hidden tips") if getattr(self, "_show_hidden", False) else \
+                ngettext("Show {0} hidden tip", "Show {0} hidden tips", n_hidden).format(n_hidden)
+            tb = self.action_button(text, self._toggle_hidden_tips, icon_name="view-reveal-symbolic")
+            self._diag_buttons.append(tb)
+            self.diag_box.pack_start(tb, False, False, 0)
         self.diag_box.show_all()
         for cid in list(getattr(self, "_open_details", set())):
             row = self.check_rows.get(cid)
             if row is not None and hasattr(row, "toggle_details"):
                 row.toggle_details(force=True)
+
+    def _toggle_hidden_tips(self):
+        self._show_hidden = not getattr(self, "_show_hidden", False)
+        self._render_diagnose()
 
     def _check_row(self, check, res):
         has_details = check.id in checks.DETAIL_COMMANDS
@@ -2139,6 +2200,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                    primary=res.status in (checks.WARN, checks.FAIL))
             self._diag_buttons.append(b)
             box.pack_end(b, False, False, 0)
+        if res.status == checks.INFO:                  # tips can be hidden; warnings and problems never are
+            hiding = check.id not in set(maintenance.hidden_tips())
+            tb = self.action_button(_("Hide this tip") if hiding else _("Show again"),
+                                    lambda cid=check.id, h=hiding: (maintenance.set_tip_hidden(cid, h),
+                                                                    self._render_diagnose()), icon_name=None)
+            self._diag_buttons.append(tb)
+            box.pack_end(tb, False, False, 0)
         box.pack_end(pill(STATUS_WORD[res.status], cls), False, False, 0)
         outer.pack_start(box, False, False, 0)
         if has_details:
