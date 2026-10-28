@@ -21,7 +21,7 @@ class SupportBundle(unittest.TestCase):
             report.write_support_bundle(out)
             z = zipfile.ZipFile(out)
             self.assertEqual(sorted(z.namelist()),
-                             ["MintCare-report.html", "README.txt", "activity.txt", "hardware.txt"])
+                             ["MintCare-report.html", "README.txt", "activity.txt", "hardware.txt", "journal.txt"])
             everything = "".join(z.read(n).decode() for n in z.namelist())
             self.assertNotIn(home, everything)
             self.assertIn("Test CPU", z.read("hardware.txt").decode())

@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .i18n import _, current_language
 from . import __version__, autostart, boot, checks, flatpaks, hardware, maintenance, tweaks
-from .util import human, read, sysctl
+from .util import human, out, read, sysctl
 
 STATUS_TEXT = {"ok": "OK", "info": _("Tip"), "warn": _("Warning"), "fail": _("Problem")}
 
@@ -283,6 +283,13 @@ def save_scheduled(fmt="pdf", folder=None, keep=10, private=True):
     return str(path)
 
 
+def _scrub_log(text):
+    """Log text with names removed, plus IP and hardware (MAC) addresses."""
+    text = _scrub(text, True)
+    text = re.sub(r"\b\d{1,3}(\.\d{1,3}){3}\b", "[ip]", text)
+    return re.sub(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b", "[mac]", text)
+
+
 def write_support_bundle(path, progress=lambda _s: None):
     """A zip for asking for help: the health report, hardware list and recent activity, all with personal details removed."""
     import zipfile
@@ -293,15 +300,18 @@ def write_support_bundle(path, progress=lambda _s: None):
     activity = "\n".join(f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(ev.get('ts', 0)))}  {ev.get('kind', '')}  "
                          f"{'ok' if ev.get('ok', True) else 'failed'}  {ev.get('title', '')}"
                          for ev in maintenance.history(limit=300)) or "No activity recorded yet."
+    journal = _scrub_log(out(["journalctl", "-b", "-p", "warning", "--no-pager", "-n", "300"], timeout=30))
     readme = ("MintCare support bundle\n"
               "Send this file when asking for help. Computer name, user name, home folder paths and drive\n"
               "serial numbers are removed.\n\n"
               "MintCare-report.html   health report (open in a web browser)\n"
               "hardware.txt           the parts MintCare can see\n"
-              "activity.txt           recent cleaning, tweaks and maintenance, newest first\n")
+              "activity.txt           recent cleaning, tweaks and maintenance, newest first\n"
+              "journal.txt            warnings and errors from this start-up (last 300), addresses removed\n")
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("MintCare-report.html", _scrub(page, True))
         z.writestr("hardware.txt", _scrub(hw, True))
         z.writestr("activity.txt", _scrub(activity, True))
+        z.writestr("journal.txt", journal or "No warnings or errors recorded in this start-up.")
         z.writestr("README.txt", readme)
     return path
