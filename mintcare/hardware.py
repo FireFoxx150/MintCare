@@ -459,6 +459,16 @@ def parse_lspci(text):
     return found
 
 
+def _link_speed(slot):
+    """'1 Gb/s link' for the network interface on this PCI slot, or ''."""
+    for iface in glob("/sys/class/net/*"):
+        if os.path.realpath(f"{iface}/device").endswith(slot):
+            mbps = read(f"{iface}/speed").strip()
+            if mbps.lstrip("-").isdigit() and int(mbps) > 0:
+                return _("{0} link").format(f"{int(mbps) / 1000:g} Gb/s" if int(mbps) >= 1000 else f"{mbps} Mb/s")
+    return ""
+
+
 def _nvidia_cards():
     """{pci slot: (name, VRAM MiB, driver)} from nvidia-smi."""
     if not has_cmd("nvidia-smi"):
@@ -544,7 +554,7 @@ def _read_inventory():
     nv = _nvidia_cards()
     rc, o = run(["lspci", "-Dmm", "-nn"], timeout=5) if has_cmd("lspci") else (1, "")
     for kind, slot, name in parse_lspci(o if rc == 0 else ""):
-        detail = ""
+        detail = _link_speed(slot) if kind == "network" else ""
         if kind == "gpu":
             card = nv.get(slot.lower()[-12:])
             vram = read(f"/sys/bus/pci/devices/{slot}/mem_info_vram_total").strip()

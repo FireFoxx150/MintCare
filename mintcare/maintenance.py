@@ -385,12 +385,12 @@ def run_maintenance(notify=True, on_line=None):
     return report
 
 
-def weekly_summary(events, points, now=None):
-    """What happened in the last seven days, and how the health score moved over that time."""
+def weekly_summary(events, points, now=None, days=7):
+    """What happened in the last few days (a week by default), and how the health score moved over that time."""
     now = now or time.time()
-    week = [e for e in events if now - e.get("ts", 0) < 7 * 86400]
+    week = [e for e in events if now - e.get("ts", 0) < days * 86400]
     count = lambda kind: sum(1 for e in week if e.get("kind") == kind and e.get("ok", True))
-    recent = [p for p in points if now - p.get("ts", 0) < 7 * 86400]
+    recent = [p for p in points if now - p.get("ts", 0) < days * 86400]
     return {"cleaned": count("clean"), "repairs": count("repair"), "checkups": count("scheduled"),
             "score_now": recent[-1]["score"] if recent else None,
             "score_then": recent[0]["score"] if recent else None}
@@ -412,3 +412,70 @@ def save_gpu_temps(temps):
         GPU_TEMPS_FILE.write_text(json.dumps(temps[-60:]))
     except OSError:
         pass
+
+
+DRIVE_TEMPS_FILE = STATE / "drive-temps.json"
+
+
+def record_drive_temp(device, temp, now=None):
+    """Keep one reading per drive every ten minutes, for the last 1000 readings."""
+    now = now or time.time()
+    try:
+        data = json.loads(DRIVE_TEMPS_FILE.read_text())
+    except (OSError, ValueError):
+        data = {}
+    series = data.setdefault(device, [])
+    if series and now - series[-1][0] < 600:
+        return
+    series.append([now, round(temp, 1)])
+    data[device] = series[-1000:]
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        DRIVE_TEMPS_FILE.write_text(json.dumps(data))
+    except OSError:
+        pass
+
+
+def drive_temp_range(device, days=7, now=None):
+    """(lowest, highest, readings) for a drive over the last few days, or None."""
+    now = now or time.time()
+    try:
+        series = json.loads(DRIVE_TEMPS_FILE.read_text()).get(device, [])
+    except (OSError, ValueError):
+        return None
+    temps = [t for ts, t in series if now - ts < days * 86400]
+    return (min(temps), max(temps), len(temps)) if temps else None
+
+
+CACHE_SIZES_FILE = STATE / "cache-sizes.json"
+
+
+def record_cache_size(total, now=None):
+    """Keep the total size of the cleanable junk, one reading every six hours, for the last 500 readings."""
+    now = now or time.time()
+    try:
+        series = json.loads(CACHE_SIZES_FILE.read_text())
+    except (OSError, ValueError):
+        series = []
+    if series and now - series[-1][0] < 6 * 3600:
+        return
+    series.append([now, total])
+    try:
+        STATE.mkdir(parents=True, exist_ok=True)
+        CACHE_SIZES_FILE.write_text(json.dumps(series[-500:]))
+    except OSError:
+        pass
+
+
+def cache_growth(days=30, now=None):
+    """(bytes now minus bytes at the oldest reading in the window, days between them), or None."""
+    now = now or time.time()
+    try:
+        series = json.loads(CACHE_SIZES_FILE.read_text())
+    except (OSError, ValueError):
+        return None
+    window = [(ts, n) for ts, n in series if now - ts < days * 86400]
+    if len(window) < 2:
+        return None
+    (t0, b0), (t1, b1) = window[0], window[-1]
+    return b1 - b0, (t1 - t0) / 86400

@@ -1543,13 +1543,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.run_diagnose()
 
     def _update_weekly(self):
-        s_ = maintenance.weekly_summary(maintenance.history(800), maintenance.scores(500))
-        parts = [_("{0} cleaning step(s)").format(s_["cleaned"]), _("{0} repair(s)").format(s_["repairs"]),
-                 _("{0} scheduled check-up(s)").format(s_["checkups"])]
-        text = ", ".join(parts) + "."
-        if s_["score_now"] is not None and s_["score_then"] is not None:
-            text += _(" Health score {0}, was {1} a week ago.").format(s_["score_now"], s_["score_then"])
-        self.week_lbl.set_text(text)
+        events, points = maintenance.history(800), maintenance.scores(500)
+
+        def line(days):
+            s_ = maintenance.weekly_summary(events, points, days=days)
+            parts = [_("{0} cleaning step(s)").format(s_["cleaned"]), _("{0} repair(s)").format(s_["repairs"]),
+                     _("{0} scheduled check-up(s)").format(s_["checkups"])]
+            text = ", ".join(parts) + "."
+            if s_["score_now"] is not None and s_["score_then"] is not None:
+                text += _(" Health score {0}, was {1}.").format(s_["score_now"], s_["score_then"])
+            return text
+        self.week_lbl.set_text(_("Week: ") + line(7) + "\n" + _("Month: ") + line(30))
 
     def _update_overview(self):
         res = self.check_results
@@ -2596,6 +2600,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self.clean_sizes[iid].set_text(human(size) if size else ("—" if size is None else "0 B"))
                 self.clean_details[iid].set_text(f"{item.description} {detail}.")
             self._update_clean_total()
+            maintenance.record_cache_size(sum(self.clean_bytes.values()))
+            grown = maintenance.cache_growth()
+            if grown and grown[0] > 1 << 20:
+                self.clean_total.set_text(self.clean_total.get_text() + "\n" + _(
+                    "Junk has grown by {0} in the last {1:.0f} days.").format(human(grown[0]), grown[1]))
         self.in_thread(_("Measuring junk…"), work, done)
         return False
 
@@ -2985,6 +2994,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 describe(cb, p)
                 cb.connect("toggled", self._dup_toggle, p)
                 rb.pack_start(cb, False, False, 0)
+                if space.file_kind(p) == "image":           # thumbnail, so copies can be told apart
+                    # shortcut: decodes the full image on the UI thread, move to a worker if large pictures lag
+                    try:
+                        thumb = GdkPixbuf.Pixbuf.new_from_file_at_scale(p, 48, 48, True)
+                        rb.pack_start(Gtk.Image.new_from_pixbuf(thumb), False, False, 0)
+                    except GLib.Error:
+                        pass                                # unreadable or unusual image: no thumbnail
                 pl = label(p.replace(space.HOME, "~"), ("mono", "muted"), ellipsize=True)
                 pl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                 rb.pack_start(pl, True, True, 0)
@@ -5025,6 +5041,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
             if d["serial"]:
                 meta += f"  •  S/N {d['serial']}"
             t.pack_start(label(meta, ("faint", "mono"), selectable=True), False, False, 0)
+            if d.get("temp") is not None and d["device"]:
+                maintenance.record_drive_temp(d["device"], d["temp"])
+                rng = maintenance.drive_temp_range(d["device"])
+                if rng:
+                    t.pack_start(label(_("Temperature over the last week: {0:.0f}–{1:.0f} °C ({2} readings)")
+                                       .format(rng[0], rng[1], rng[2]), ("faint",)), False, False, 0)
             h.pack_start(t, True, True, 0)
             w, k = word[d["health"]]
             h.pack_end(pill(w, k), False, False, 0)

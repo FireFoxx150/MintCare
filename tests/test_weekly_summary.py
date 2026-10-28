@@ -26,3 +26,10 @@ class WeeklySummary(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MonthlySummary(unittest.TestCase):
+    def test_a_month_includes_events_older_than_a_week(self):
+        events = [{"ts": NOW - 20 * 86400, "kind": "clean", "ok": True}]
+        self.assertEqual(maintenance.weekly_summary(events, [], now=NOW, days=30)["cleaned"], 1)
+        self.assertEqual(maintenance.weekly_summary(events, [], now=NOW)["cleaned"], 0)

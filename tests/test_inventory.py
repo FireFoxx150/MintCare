@@ -96,3 +96,16 @@ class PowerReading(unittest.TestCase):
                                ["/sys/class/power_supply/BAT0/power_now"]), \
                 mock.patch.object(hardware, "read", return_value="12500000\n"):
             self.assertEqual(hardware.power_draw(), 12.5)
+
+
+class LinkSpeed(unittest.TestCase):
+    def test_gigabit_and_megabit_links(self):
+        from unittest import mock
+        with mock.patch.object(hardware, "glob", return_value=["/sys/class/net/enp4s0"]), \
+                mock.patch.object(hardware.os.path, "realpath", return_value="/sys/devices/pci0000:00/0000:04:00.0"), \
+                mock.patch.object(hardware, "read", return_value="1000\n"):
+            self.assertEqual(hardware._link_speed("0000:04:00.0"), "1 Gb/s link")
+        with mock.patch.object(hardware, "glob", return_value=["/sys/class/net/eth1"]), \
+                mock.patch.object(hardware.os.path, "realpath", return_value="/sys/devices/0000:05:00.0"), \
+                mock.patch.object(hardware, "read", return_value="100\n"):
+            self.assertEqual(hardware._link_speed("0000:05:00.0"), "100 Mb/s link")
