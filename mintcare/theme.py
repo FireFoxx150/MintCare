@@ -66,6 +66,8 @@ image.faint { color: @slate5; }
 .mintcare entry { background-color: @checkbg; color: @slate2; border: 1px solid @line; border-radius: 8px;
   background-image: none; box-shadow: none; }
 .mintcare entry:focus { border-color: @emerald; }
+/* keyboard focus is always drawn, in every theme (the high-contrast theme overrides the colour) */
+*:focus { outline: 2px solid @emerald; outline-offset: 1px; }
 .mintcare popover list { background: transparent; }
 .mintcare popover list row { border-radius: 8px; }
 .mintcare popover list row:selected { background-color: alpha(@emerald, 0.15); }.mintcare, .mintcare .main { background-color: @bg; color: @slate3;

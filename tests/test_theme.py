@@ -26,3 +26,11 @@ class Themes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FocusRing(unittest.TestCase):
+    def test_every_theme_draws_a_focus_outline(self):
+        for name in theme.PALETTES:
+            with self.subTest(theme=name):
+                css = theme.css(name).decode()
+                self.assertIn("*:focus { outline: 2px solid", css)
