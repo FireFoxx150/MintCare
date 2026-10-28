@@ -13,7 +13,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.12.6_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.12.7_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```

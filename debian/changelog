@@ -1,3 +1,20 @@
+mintcare (1.12.7) noble; urgency=medium
+
+  * Health check for pending Flatpak app and runtime updates, included in the
+    scheduled check-up's notification.
+  * Held-back packages say why they are held and what would unlock them.
+  * Assistant: "Copy command" buttons for commands in an answer (copies only).
+  * Backup: "Verify latest backup" reads a sample of the newest snapshot.
+  * Hardware: power history where the machine reports power; Wi-Fi signal and
+    driver; Ethernet link speed; drive temperature range over the last week.
+  * Dashboard: monthly line in the summary; cache growth on the cleaning page.
+  * Duplicates: thumbnails for picture copies.
+  * Support bundle includes warnings and errors from this start-up, with
+    addresses removed.
+  * Health score: tips no longer lower it; problems and warnings still do.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 28 Oct 2026 12:00:00 +0100
+
 mintcare (1.12.6) noble; urgency=medium
 
   * Dashboard: the GPU temperature history is kept across restarts.
