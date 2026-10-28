@@ -51,7 +51,7 @@ def pump():
 
 
 def main(mode):
-    import cairo
+    cairo = __import__("cairo") if mode == "pages" else None
     with mock.patch.object(hardware, "gpu_load", return_value=None):   # no graphics card must still lay out
         app = gui.MintCareApp()
         app.do_activate()
