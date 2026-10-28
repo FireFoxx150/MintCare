@@ -4766,6 +4766,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                        column_spacing=10, row_spacing=10)
         tc.pack_start(self.sensor_flow, False, False, 0)
         self.sensor_tiles = {}
+        # power history only where the machine reports power (see hardware.power_draw)
+        self.power_chart = None
+        if hardware.power_draw() is not None:
+            tc.pack_start(label(_("POWER DRAW, LAST 4 MINUTES"), ("kicker",)), False, False, 0)
+            self.power_chart = LineChart([(_("Power"), ORANGE)], points=120, height=70, axis=False,
+                                         fmt=lambda v: f"{v:.1f} W")
+            tc.pack_start(self.power_chart, False, False, 6)
         page.pack_start(tc, False, False, 0)
 
         fwc = card()
@@ -5114,6 +5121,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                           f"max {mx / 1000:.2f} GHz" if mx else "", 100 * cur / mx if mx else 0))
         if watts:
             tiles.append(("POWER DRAW", f"{watts:.1f} W", checks.INFO, _("whole system, right now"), 0))
+            if self.power_chart is not None:
+                self.power_chart.push(watts)
         if gpu and gpu.get("util") is not None:
             extra = [f"{gpu['power']:.0f} W" if gpu.get("power") is not None else "",
                      f"fan {gpu['fan']:.0f}%" if gpu.get("fan") is not None else "",

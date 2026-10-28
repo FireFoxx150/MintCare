@@ -82,3 +82,17 @@ class WirelessDetail(unittest.TestCase):
         with mock.patch.object(hardware, "read", return_value=table):
             self.assertEqual(hardware._signal("wlp3s0"), "-52 dBm")
             self.assertEqual(hardware._signal("eth0"), "")
+
+
+class PowerReading(unittest.TestCase):
+    def test_no_power_sensor_means_no_reading(self):
+        from unittest import mock
+        with mock.patch("glob.glob", return_value=[]):
+            self.assertIsNone(hardware.power_draw())
+
+    def test_battery_reading_is_in_watts(self):
+        from unittest import mock
+        with mock.patch.object(hardware, "glob", side_effect=lambda pat: [] if "hwmon" in pat else
+                               ["/sys/class/power_supply/BAT0/power_now"]), \
+                mock.patch.object(hardware, "read", return_value="12500000\n"):
+            self.assertEqual(hardware.power_draw(), 12.5)
