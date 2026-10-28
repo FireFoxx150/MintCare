@@ -282,3 +282,22 @@ def import_settings(path):
         except (OSError, FileNotFoundError):
             pass
     return [i for i in data.get("tweaks", []) if i in tweaks.BY_ID and tweaks.BY_ID[i].available()]
+
+
+def verify(snapshot, sample=300):
+    """Read a random sample of files in a snapshot. Returns (files read, unreadable paths).
+
+    Checks that the copies can be read, not that they match the originals: a full comparison would
+    read everything again. shortcut: a damaged file outside the sample is missed; raise `sample` or compare fully.
+    """
+    import random
+    files = [p for p in Path(snapshot).rglob("*") if p.is_file() and not p.is_symlink()]
+    picked = random.sample(files, min(sample, len(files)))
+    bad = []
+    for f in picked:
+        try:
+            with open(f, "rb") as fh:
+                fh.read(1 << 16)
+        except OSError:
+            bad.append(str(f))
+    return len(picked), bad

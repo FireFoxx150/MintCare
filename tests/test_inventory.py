@@ -71,3 +71,14 @@ class Inventory(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WirelessDetail(unittest.TestCase):
+    def test_signal_from_proc_net_wireless(self):
+        from unittest import mock
+        table = ("Inter-| sta-|   Quality        |\n"
+                 " face | tus | link level noise |\n"
+                 " wlp3s0: 0000   70.  -52.  -256        0      0      0      0      0        0\n")
+        with mock.patch.object(hardware, "read", return_value=table):
+            self.assertEqual(hardware._signal("wlp3s0"), "-52 dBm")
+            self.assertEqual(hardware._signal("eth0"), "")

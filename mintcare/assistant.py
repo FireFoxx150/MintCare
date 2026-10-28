@@ -11,6 +11,7 @@
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -277,3 +278,8 @@ def save_chat(text):
     fd = os.open(CHATS_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)     # chats can contain your questions
     with os.fdopen(fd, "w") as f:
         f.write(json.dumps(chats[:20], indent=1))
+
+
+def commands_in(text):
+    """The code blocks in an answer, stripped: the commands the user can copy."""
+    return [b.strip() for b in re.findall(r"```[^\n]*\n(.*?)```", text, re.S) if b.strip()]

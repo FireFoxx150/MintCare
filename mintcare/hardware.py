@@ -577,8 +577,20 @@ def _wireless_items():
         name = _("Wireless adapter")
         if ids:
             name = _usb_name(run(["lsusb"], timeout=5)[1], ids.group(1), ids.group(2)) or name
-        items.append(("network", name, iface))
+        driver = Path(f"/sys/class/net/{iface}/device/driver").resolve().name if Path(
+            f"/sys/class/net/{iface}/device/driver").exists() else ""
+        items.append(("network", name, " · ".join(x for x in (iface, _signal(iface), _("driver {0}").format(driver)
+                                                             if driver else "") if x)))
     return items
+
+
+def _signal(iface):
+    """Wi-Fi signal as '-52 dBm' from /proc/net/wireless, or ''."""
+    for line in read("/proc/net/wireless").splitlines():
+        if line.strip().startswith(iface + ":"):
+            level = line.split()[3].rstrip(".")
+            return f"{level} dBm" if level.lstrip("-").isdigit() else ""
+    return ""
 
 
 def _disk_items():

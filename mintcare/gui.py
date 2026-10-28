@@ -1,6 +1,7 @@
 """GTK 3 interface, styled after MintCare Companion (dark, emerald accent, live gauges)."""
 
 import os
+import re
 import platform
 import shutil
 import socket
@@ -3425,7 +3426,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         def work():
             pk = packages.installed()
             h = packages.history()
-            return {"pk": pk, "hist": h, "mine": packages.user_installed(pk, h), "held": packages.held(),
+            held = packages.held()
+            return {"pk": pk, "hist": h, "mine": packages.user_installed(pk, h), "held": held,
+                    "held_why": {n: packages.hold_explanation(n) for n in held[:80]},
                     "kernels": packages.kernels(pk)}
 
         def done(d):
@@ -3466,7 +3469,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             elif not prot:
                 btns.append(self._btn(_("Remove…"), lambda n=n: self.remove_packages([n]), tag="pkg_row"))
             pills = [(_("system"), "dim")] if prot else []
-            self.pkg_list.add(self._row(n, v["desc"], f"{v['version']} · {v['section']}", None, pills, btns,
+            desc = self.pkg_data.get("held_why", {}).get(n, v["desc"]) if mode == "held" else v["desc"]
+            self.pkg_list.add(self._row(n, desc, f"{v['version']} · {v['section']}", None, pills, btns,
                                         human(v["size"])))
         if not names:
             self.pkg_list.add(self._row(_("Nothing to show"), _("No packages match.")))
@@ -4015,13 +4019,33 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     # ------------------------------------------------------------ backup
 
+    def verify_backup(self):
+        """Read a sample of the newest snapshot; reports whether the copies can be read."""
+        from . import backup as backup_mod
+        b = backup_mod.config()
+        snaps = backup_mod.snapshots(b["dest"]) if b.get("dest") else []
+        if not snaps:
+            self.set_status(_("No backup found yet"), bad=True)
+            return
+
+        def done(res):
+            checked, bad = res
+            if bad:
+                self.set_status(_("{0} of {1} sampled files could not be read — back up again").format(
+                    len(bad), checked), bad=True)
+            else:
+                self.set_status(_("Verified: {0} sampled files can be read").format(checked))
+        self.in_thread(_("Verifying backup…"), lambda: backup_mod.verify(snaps[0]), done)
+
     def _build_backup(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
             "document-save-symbolic", _("Backup"),
             _("Copies your personal folders to another drive. Each backup is a dated snapshot; files that didn't "
               "change are hard-linked, so extra snapshots cost almost no space. Timeshift covers the system; this "
-              "covers your files.")), False, False, 0)
+              "covers your files."),
+            [self.action_button(_("Verify latest backup"), self.verify_backup,
+                                icon_name="emblem-ok-symbolic")]), False, False, 0)
         dc = card("ecard")
         h = hbox(8)
         h.pack_start(label(_("Destination"), ("h2",)), False, False, 0)
@@ -4326,6 +4350,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sw = Gtk.ScrolledWindow(min_content_height=360)
         sw.add(self.ai_view)
         chat.pack_start(sw, True, True, 8)
+        self.ai_copy_row = hbox(6)                  # "Copy command" buttons for the commands in the last answer
+        chat.pack_start(self.ai_copy_row, False, False, 0)
         ih = hbox(8)
         self.ai_entry = Gtk.Entry(placeholder_text=_("Ask anything about your PC…"))
         self.ai_entry.connect("activate", lambda *_x: self.ai_send())
@@ -4483,7 +4509,22 @@ class MintCareWindow(Gtk.ApplicationWindow):
                     res["cost"]) + f" · {res.get('model') or assistant.MODEL}\n")
                 self.set_status(_("Answered"))
             self._ai_append("\n")
+            self._ai_copy_buttons(res.get("text", ""))
         self.bg(work, done)
+
+    def _ai_copy_buttons(self, text):
+        """Copy buttons for the commands in an answer. They copy to the clipboard and never run anything."""
+        for ch in self.ai_copy_row.get_children():
+            ch.destroy()
+        for cmd in assistant.commands_in(text):
+            b = self._btn(_("Copy command"), lambda c=cmd: self._copy_text(c), icon_name="edit-copy-symbolic")
+            b.set_tooltip_text(cmd.splitlines()[0][:80])
+            self.ai_copy_row.pack_start(b, False, False, 0)
+        self.ai_copy_row.show_all()
+
+    def _copy_text(self, text):
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
+        self.set_status(_("Copied. Check the command before you paste it into a terminal."))
 
     # ------------------------------------------------------------ flatpak
 

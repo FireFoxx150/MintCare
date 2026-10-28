@@ -347,3 +347,23 @@ def upgrade_readiness():
         items.append(("ok" if mains else "fail", _("Plugged in to power") if mains else
                       _("Running on battery — plug in before upgrading")))
     return items
+
+
+def hold_status(policy):
+    """(installed, candidate) from `apt-cache policy <pkg>` text; '' where apt doesn't say."""
+    fields = {}
+    for line in policy.splitlines():
+        k, _x, v = line.strip().partition(":")
+        if k in ("Installed", "Candidate"):
+            fields.setdefault(k, v.strip())
+    return fields.get("Installed", ""), fields.get("Candidate", "")
+
+
+def hold_explanation(name):
+    """Plain-English reason for a held package, from the installed and newest available versions."""
+    installed, candidate = hold_status(out(["apt-cache", "policy", name], timeout=30))
+    if not candidate or candidate == "(none)":
+        return _("Held, and no newer version is available from your sources.")
+    if candidate == installed:
+        return _("Held at {0}; the newest version is already installed, so the hold has no effect yet.").format(installed)
+    return _("Held at {0}; {1} is available. Releasing the hold lets it update.").format(installed, candidate)
