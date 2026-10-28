@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import socket
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
@@ -137,6 +138,26 @@ def c_updates():
           "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade"
     return Result(WARN, ngettext('{0} update available', '{0} updates available', n).format(n),
                   Fix("root", upd, _("Install updates")))
+
+
+_FLATPAK_CACHE = {"at": 0.0, "n": None}
+
+
+def c_flatpak_updates():
+    """Pending Flatpak app and runtime updates. Asks the network at most every six hours (shortcut: the
+    count can be up to six hours stale, so the Flatpak page is the place to act on it)."""
+    from . import flatpaks, maintenance
+    if not has_cmd("flatpak"):
+        return Result(OK, _("Flatpak is not installed"))
+    if not maintenance.load_settings().get("check_updates", True):
+        return Result(OK, _("Update checks for MintCare are turned off"))
+    if _FLATPAK_CACHE["n"] is None or time.time() - _FLATPAK_CACHE["at"] > 6 * 3600:
+        _FLATPAK_CACHE.update(at=time.time(), n=flatpaks.updates_available())
+    n = _FLATPAK_CACHE["n"]
+    if n == 0:
+        return Result(OK, _("Flatpak apps are up to date"))
+    return Result(WARN, ngettext('{0} Flatpak update available', '{0} Flatpak updates available', n).format(n),
+                  Fix("page", "flatpak", _("Open Flatpak apps")))
 
 
 def c_reboot():
@@ -590,6 +611,7 @@ CHECKS = [
     Check("dpkg", _("Interrupted package installs"), _("Packages"), c_dpkg_audit),
     Check("aptbroken", _("Broken dependencies"), _("Packages"), c_apt_broken),
     Check("updates", _("Pending updates"), _("Packages"), c_updates),
+    Check("flatpak-updates", _("Flatpak app updates"), _("Packages"), c_flatpak_updates),
     Check("reboot", _("Restart needed"), _("Packages"), c_reboot),
     Check("kernels", _("Installed kernels"), _("Packages"), c_kernels),
     Check("residual", _("Leftover package config"), _("Packages"), c_residual),
@@ -637,6 +659,7 @@ DETAIL_COMMANDS = {
     "dpkg": "dpkg --audit || true",
     "aptbroken": "apt-get -s -o Debug::NoLocking=1 check",
     "updates": "apt list --upgradable 2>/dev/null",
+    "flatpak-updates": "flatpak remote-ls --updates --columns=application,version 2>/dev/null || true",
     "reboot": "uname -r; echo; ls -1 /boot/vmlinuz-*; echo; cat /run/reboot-required.pkgs 2>/dev/null || true",
     "kernels": "dpkg -l 'linux-image-[0-9]*' | awk '/^ii/{print $2, $3}'; echo; echo \"Running: $(uname -r)\"",
     "residual": "dpkg -l | awk '/^rc/{print $2, $3}'",

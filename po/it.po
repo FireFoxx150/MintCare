@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-27 09:17+0000\n"
+"POT-Creation-Date: 2026-10-28 21:21+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: Italian\n"
@@ -217,404 +217,427 @@ msgstr "Già disattivato, ma viene comunque avviato perché "
 msgid "another service"
 msgstr "un altro servizio"
 
-#: mintcare/checks.py:52
+#: mintcare/checks.py:53
 #, python-brace-format
 msgid "Could not check: {0}"
 msgstr "Impossibile controllare: {0}"
 
-#: mintcare/checks.py:66
+#: mintcare/checks.py:67
 #, python-brace-format
 msgid "BBR is enabled (qdisc {0})"
 msgstr "BBR è attivo (qdisc {0})"
 
-#: mintcare/checks.py:67
+#: mintcare/checks.py:68
 #, python-brace-format
 msgid "BBR is on but qdisc is '{0}'; 'fq' gives proper pacing"
 msgstr "BBR è attivo ma la qdisc è '{0}'; 'fq' regola meglio il ritmo"
 
-#: mintcare/checks.py:70
+#: mintcare/checks.py:71
 #, python-brace-format
 msgid "Using '{0}'; this kernel has no BBR module"
 msgstr "Usa '{0}'; questo kernel non ha il modulo BBR"
 
-#: mintcare/checks.py:71
+#: mintcare/checks.py:72
 #, python-brace-format
 msgid "Using '{0}' congestion control; BBR is faster on most links"
 msgstr ""
 "Usa il controllo di congestione '{0}'; BBR è più veloce sulla maggior parte "
 "delle connessioni"
 
-#: mintcare/checks.py:79
+#: mintcare/checks.py:80
 msgid "Internet connection is working"
 msgstr "La connessione a Internet funziona"
 
-#: mintcare/checks.py:82
+#: mintcare/checks.py:83
 msgid "No internet connection (could not reach 1.1.1.1, 9.9.9.9 or 8.8.8.8)"
 msgstr ""
 "Nessuna connessione a Internet (1.1.1.1, 9.9.9.9 e 8.8.8.8 irraggiungibili)"
 
-#: mintcare/checks.py:83
+#: mintcare/checks.py:84
 msgid "Restart networking"
 msgstr "Riavvia la rete"
 
-#: mintcare/checks.py:90
+#: mintcare/checks.py:91
 msgid "Skipped: no internet connection"
 msgstr "Saltato: nessuna connessione a Internet"
 
-#: mintcare/checks.py:93
+#: mintcare/checks.py:94
 msgid "DNS name resolution is working"
 msgstr "La risoluzione DNS funziona"
 
-#: mintcare/checks.py:95
+#: mintcare/checks.py:96
 msgid "Internet works but DNS lookups fail"
 msgstr "Internet funziona ma le richieste DNS falliscono"
 
-#: mintcare/checks.py:98
+#: mintcare/checks.py:99
 msgid "Repair DNS"
 msgstr "Ripara DNS"
 
-#: mintcare/checks.py:107
+#: mintcare/checks.py:108
 #, python-brace-format
 msgid "Hostname '{0}' is in /etc/hosts"
 msgstr "Il nome host '{0}' è in /etc/hosts"
 
-#: mintcare/checks.py:108
+#: mintcare/checks.py:109
 #, python-brace-format
 msgid "Hostname '{0}' missing from /etc/hosts (sudo can be slow)"
 msgstr "Il nome host '{0}' manca da /etc/hosts (sudo può essere lento)"
 
-#: mintcare/checks.py:109
+#: mintcare/checks.py:110
 msgid "Add entry"
 msgstr "Aggiungi voce"
 
-#: mintcare/checks.py:117
+#: mintcare/checks.py:118
 msgid "No half-installed or unconfigured packages"
 msgstr "Nessun pacchetto installato a metà o non configurato"
 
-#: mintcare/checks.py:118
+#: mintcare/checks.py:119
 msgid "Some packages were left half-installed (interrupted update?)"
 msgstr ""
 "Alcuni pacchetti sono rimasti installati a metà (aggiornamento interrotto?)"
 
-#: mintcare/checks.py:120
+#: mintcare/checks.py:121
 msgid "Repair packages"
 msgstr "Ripara pacchetti"
 
-#: mintcare/checks.py:126
+#: mintcare/checks.py:127
 msgid "No broken package dependencies"
 msgstr "Nessuna dipendenza dei pacchetti rotta"
 
-#: mintcare/checks.py:127
+#: mintcare/checks.py:128
 msgid "Broken package dependencies detected"
 msgstr "Rilevate dipendenze dei pacchetti rotte"
 
-#: mintcare/checks.py:128 mintcare/gui.py:37 mintcare/gui.py:2278
-#: mintcare/gui.py:4494
+#: mintcare/checks.py:129 mintcare/gui.py:37 mintcare/gui.py:2282
+#: mintcare/gui.py:4498
 msgid "Repair"
 msgstr "Ripara"
 
-#: mintcare/checks.py:135
+#: mintcare/checks.py:136
 msgid "System is up to date (per the last package list refresh)"
 msgstr ""
 "Il sistema è aggiornato (secondo l'ultimo aggiornamento dell'elenco "
 "pacchetti)"
 
-#: mintcare/checks.py:138
+#: mintcare/checks.py:139
 #, python-brace-format
 msgid "{0} update available"
 msgid_plural "{0} updates available"
 msgstr[0] "{0} aggiornamento disponibile"
 msgstr[1] "{0} aggiornamenti disponibili"
 
-#: mintcare/checks.py:139 mintcare/gui.py:4730
+#: mintcare/checks.py:140 mintcare/gui.py:4734
 msgid "Install updates"
 msgstr "Installa aggiornamenti"
 
-#: mintcare/checks.py:146
+#: mintcare/checks.py:151
+msgid "Flatpak is not installed"
+msgstr "Flatpak non è installato"
+
+#: mintcare/checks.py:153 mintcare/checks.py:517
+msgid "Update checks for MintCare are turned off"
+msgstr "Il controllo degli aggiornamenti di MintCare è disattivato"
+
+#: mintcare/checks.py:158
+msgid "Flatpak apps are up to date"
+msgstr "Le app Flatpak sono aggiornate"
+
+#: mintcare/checks.py:159
+#, python-brace-format
+msgid "{0} Flatpak update available"
+msgid_plural "{0} Flatpak updates available"
+msgstr[0] "{0} aggiornamento Flatpak disponibile"
+msgstr[1] "{0} aggiornamenti Flatpak disponibili"
+
+#: mintcare/checks.py:160
+msgid "Open Flatpak apps"
+msgstr "Apri app Flatpak"
+
+#: mintcare/checks.py:167
 msgid "A restart is required to finish updates"
 msgstr "Serve un riavvio per completare gli aggiornamenti"
 
-#: mintcare/checks.py:151
+#: mintcare/checks.py:172
 #, python-brace-format
 msgid "Newer kernel {0} installed; running {1}. Restart to use it"
 msgstr "Installato un kernel più recente {0}; in uso {1}. Riavvia per usarlo"
 
-#: mintcare/checks.py:152
+#: mintcare/checks.py:173
 #, python-brace-format
 msgid "Running the newest installed kernel ({0})"
 msgstr "In uso il kernel installato più recente ({0})"
 
-#: mintcare/checks.py:159
+#: mintcare/checks.py:180
 #, python-brace-format
 msgid "{0} kernel installed"
 msgid_plural "{0} kernels installed"
 msgstr[0] "{0} kernel installato"
 msgstr[1] "{0} kernel installati"
 
-#: mintcare/checks.py:160
+#: mintcare/checks.py:181
 #, python-brace-format
 msgid "{0} kernels installed; old ones waste space in /boot"
 msgstr "{0} kernel installati; quelli vecchi sprecano spazio in /boot"
 
-#: mintcare/checks.py:161 mintcare/checks.py:170 mintcare/checks.py:693
+#: mintcare/checks.py:182 mintcare/checks.py:191 mintcare/checks.py:716
 msgid "Open cleaner"
 msgstr "Apri la pulizia"
 
-#: mintcare/checks.py:168
+#: mintcare/checks.py:189
 msgid "No leftover config from removed packages"
 msgstr "Nessuna configurazione residua di pacchetti rimossi"
 
-#: mintcare/checks.py:169
+#: mintcare/checks.py:190
 #, python-brace-format
 msgid "{0} removed package left config files behind"
 msgid_plural "{0} removed packages left config files behind"
 msgstr[0] "{0} pacchetto rimosso ha lasciato file di configurazione"
 msgstr[1] "{0} pacchetti rimossi hanno lasciato file di configurazione"
 
-#: mintcare/checks.py:179
+#: mintcare/checks.py:200
 #, no-python-format, python-brace-format
 msgid "Root filesystem {0}% full ({1} free of {2})"
 msgstr "File system root pieno al {0}% ({1} liberi su {2})"
 
-#: mintcare/checks.py:181 mintcare/checks.py:183
+#: mintcare/checks.py:202 mintcare/checks.py:204
 msgid "Free space"
 msgstr "Libera spazio"
 
-#: mintcare/checks.py:189
+#: mintcare/checks.py:210
 msgid "/boot is part of the root filesystem"
 msgstr "/boot fa parte del file system root"
 
-#: mintcare/checks.py:193
+#: mintcare/checks.py:214
 #, no-python-format, python-brace-format
 msgid "/boot is {0}% full ({1} free)"
 msgstr "/boot è pieno al {0}% ({1} liberi)"
 
-#: mintcare/checks.py:195
+#: mintcare/checks.py:216
 msgid "; kernel updates may fail"
 msgstr "; gli aggiornamenti del kernel potrebbero fallire"
 
-#: mintcare/checks.py:197
+#: mintcare/checks.py:218
 msgid "Remove old kernels"
 msgstr "Rimuovi kernel vecchi"
 
-#: mintcare/checks.py:203
+#: mintcare/checks.py:224
 msgid "No SSD detected; TRIM not needed"
 msgstr "Nessun SSD rilevato; TRIM non necessario"
 
-#: mintcare/checks.py:205
+#: mintcare/checks.py:226
 msgid "Weekly SSD TRIM is enabled"
 msgstr "Il TRIM settimanale dell'SSD è attivo"
 
-#: mintcare/checks.py:206
+#: mintcare/checks.py:227
 msgid "SSD detected but periodic TRIM is disabled"
 msgstr "SSD rilevato ma il TRIM periodico è disattivato"
 
-#: mintcare/checks.py:221
+#: mintcare/checks.py:242
 msgid "Cap logs"
 msgstr "Limita i log"
 
-#: mintcare/checks.py:221 mintcare/checks.py:222
+#: mintcare/checks.py:242 mintcare/checks.py:243
 #, python-brace-format
 msgid "System logs use {0}"
 msgstr "I log di sistema occupano {0}"
 
-#: mintcare/checks.py:222
+#: mintcare/checks.py:243
 msgid "Journal size looks fine"
 msgstr "La dimensione dei log è a posto"
 
-#: mintcare/checks.py:228
+#: mintcare/checks.py:249
 msgid "Timeshift is not set up; you have no system snapshots to roll back to"
 msgstr ""
 "Timeshift non è configurato; non hai snapshot del sistema a cui tornare"
 
-#: mintcare/checks.py:229 mintcare/checks.py:237
+#: mintcare/checks.py:250 mintcare/checks.py:258
 msgid "Set up Timeshift"
 msgstr "Configura Timeshift"
 
-#: mintcare/checks.py:234
+#: mintcare/checks.py:255
 msgid "Timeshift config could not be parsed"
 msgstr "Impossibile leggere la configurazione di Timeshift"
 
-#: mintcare/checks.py:236
+#: mintcare/checks.py:257
 msgid "Timeshift has no backup device selected"
 msgstr "Timeshift non ha un dispositivo di backup selezionato"
 
-#: mintcare/checks.py:240
+#: mintcare/checks.py:261
 msgid "Timeshift is configured but no automatic schedule is set"
 msgstr "Timeshift è configurato ma senza pianificazione automatica"
 
-#: mintcare/checks.py:241 mintcare/gui.py:3127
+#: mintcare/checks.py:262 mintcare/gui.py:3131
 msgid "Open Timeshift"
 msgstr "Apri Timeshift"
 
-#: mintcare/checks.py:242
+#: mintcare/checks.py:263
 #, python-brace-format
 msgid "Timeshift snapshots scheduled ({0})"
 msgstr "Snapshot di Timeshift pianificati ({0})"
 
-#: mintcare/checks.py:250
+#: mintcare/checks.py:271
 msgid "No swap configured; the system may freeze when RAM runs out"
 msgstr ""
 "Nessuno swap configurato; il sistema può bloccarsi quando la RAM finisce"
 
-#: mintcare/checks.py:251 mintcare/checks.py:257 mintcare/journal.py:24
+#: mintcare/checks.py:272 mintcare/checks.py:278 mintcare/journal.py:24
 msgid "Enable zram"
 msgstr "Attiva zram"
 
-#: mintcare/checks.py:255
+#: mintcare/checks.py:276
 #, python-brace-format
 msgid "zram compressed swap active (swappiness {0})"
 msgstr "Swap compresso zram attivo (swappiness {0})"
 
-#: mintcare/checks.py:256
+#: mintcare/checks.py:277
 #, python-brace-format
 msgid "Disk swap only (swappiness {0}); zram is faster"
 msgstr "Solo swap su disco (swappiness {0}); zram è più veloce"
 
-#: mintcare/checks.py:267
+#: mintcare/checks.py:288
 msgid "Could not read memory info"
 msgstr "Impossibile leggere le informazioni sulla memoria"
 
-#: mintcare/checks.py:270
+#: mintcare/checks.py:291
 #, no-python-format, python-brace-format
 msgid "{0}% of {1} RAM in use"
 msgstr "{0}% di {1} di RAM in uso"
 
-#: mintcare/checks.py:279
+#: mintcare/checks.py:300
 msgid "No microcode package needed for this CPU"
 msgstr "Nessun pacchetto di microcodice necessario per questa CPU"
 
-#: mintcare/checks.py:281
+#: mintcare/checks.py:302
 #, python-brace-format
 msgid "{0} is installed"
 msgstr "{0} è installato"
 
-#: mintcare/checks.py:282
+#: mintcare/checks.py:303
 msgid "Install"
 msgstr "Installa"
 
-#: mintcare/checks.py:282
+#: mintcare/checks.py:303
 #, python-brace-format
 msgid "{0} is not installed (CPU security/bug fixes)"
 msgstr "{0} non è installato (correzioni di sicurezza e bug della CPU)"
 
-#: mintcare/checks.py:291
+#: mintcare/checks.py:312
 msgid "NVIDIA proprietary driver is loaded"
 msgstr "Il driver proprietario NVIDIA è caricato"
 
-#: mintcare/checks.py:293
+#: mintcare/checks.py:314
 msgid "NVIDIA GPU is using the open 'nouveau' driver (slow, no CUDA)"
 msgstr "La GPU NVIDIA usa il driver libero 'nouveau' (lento, senza CUDA)"
 
-#: mintcare/checks.py:294 mintcare/checks.py:296
+#: mintcare/checks.py:315 mintcare/checks.py:317
 msgid "Open Driver Manager"
 msgstr "Apri Gestore driver"
 
-#: mintcare/checks.py:295
+#: mintcare/checks.py:316
 msgid "NVIDIA GPU detected but no driver is loaded"
 msgstr "GPU NVIDIA rilevata ma nessun driver caricato"
 
-#: mintcare/checks.py:298
+#: mintcare/checks.py:319
 #, python-brace-format
 msgid "Graphics: {0} (open driver, no action needed)"
 msgstr "Grafica: {0} (driver libero, nulla da fare)"
 
-#: mintcare/checks.py:303
+#: mintcare/checks.py:324
 msgid "Desktop PC; laptop power checks skipped"
 msgstr "PC desktop; controlli energetici da portatile saltati"
 
-#: mintcare/checks.py:305
+#: mintcare/checks.py:326
 msgid "TLP and power-profiles-daemon are both installed and will fight"
 msgstr ""
 "TLP e power-profiles-daemon sono entrambi installati e si ostacoleranno"
 
-#: mintcare/checks.py:306
+#: mintcare/checks.py:327
 msgid "Resolve"
 msgstr "Risolvi"
 
-#: mintcare/checks.py:307
+#: mintcare/checks.py:328
 msgid "Laptop power management looks consistent"
 msgstr "La gestione energetica del portatile è coerente"
 
-#: mintcare/checks.py:316
+#: mintcare/checks.py:337
 msgid "No failed system services"
 msgstr "Nessun servizio di sistema non riuscito"
 
-#: mintcare/checks.py:318
+#: mintcare/checks.py:339
 #, python-brace-format
 msgid "{0} failed service: {1}"
 msgid_plural "{0} failed services: {1}"
 msgstr[0] "{0} servizio non riuscito: {1}"
 msgstr[1] "{0} servizi non riusciti: {1}"
 
-#: mintcare/checks.py:320 mintcare/checks.py:330
+#: mintcare/checks.py:341 mintcare/checks.py:351
 msgid "Restart them"
 msgstr "Riavviali"
 
-#: mintcare/checks.py:327
+#: mintcare/checks.py:348
 msgid "No failed user services"
 msgstr "Nessun servizio utente non riuscito"
 
-#: mintcare/checks.py:328
+#: mintcare/checks.py:349
 #, python-brace-format
 msgid "Failed user service: {0}"
 msgid_plural "Failed user services: {0}"
 msgstr[0] "Servizio utente non riuscito: {0}"
 msgstr[1] "Servizi utente non riusciti: {0}"
 
-#: mintcare/checks.py:337
+#: mintcare/checks.py:358
 msgid "No errors logged since boot"
 msgstr "Nessun errore registrato dall'avvio"
 
-#: mintcare/checks.py:342
+#: mintcare/checks.py:363
 #, python-brace-format
 msgid "{0} program crash"
 msgid_plural "{0} program crashes"
 msgstr[0] "{0} crash di programma"
 msgstr[1] "{0} crash di programmi"
 
-#: mintcare/checks.py:347
+#: mintcare/checks.py:368
 #, python-brace-format
 msgid "{0} to look at"
 msgstr "{0} da controllare"
 
-#: mintcare/checks.py:351
+#: mintcare/checks.py:372
 #, python-brace-format
 msgid "{0} kind(s) of error since boot: "
 msgstr "{0} tipo/i di errore dall'avvio: "
 
-#: mintcare/checks.py:360
+#: mintcare/checks.py:381
 msgid "No Bluetooth daemon installed"
 msgstr "Nessun servizio Bluetooth installato"
 
-#: mintcare/checks.py:362
+#: mintcare/checks.py:383
 msgid "Bluetooth SIM Access plugin is disabled"
 msgstr "Il plugin SIM Access del Bluetooth è disattivato"
 
-#: mintcare/checks.py:365
+#: mintcare/checks.py:386
 msgid "Bluetooth started without plugin errors"
 msgstr "Il Bluetooth si è avviato senza errori dei plugin"
 
-#: mintcare/checks.py:366
+#: mintcare/checks.py:387
 msgid ""
 "Bluetooth logs a SIM Access (SAP) plugin error every boot (harmless, noisy)"
 msgstr ""
 "Il Bluetooth registra un errore del plugin SIM Access (SAP) a ogni avvio "
 "(innocuo, ma fastidioso)"
 
-#: mintcare/checks.py:370
+#: mintcare/checks.py:391
 msgid "Disable SAP"
 msgstr "Disattiva SAP"
 
-#: mintcare/checks.py:375
+#: mintcare/checks.py:396
 msgid "ecryptfs is not installed"
 msgstr "ecryptfs non è installato"
 
-#: mintcare/checks.py:379
+#: mintcare/checks.py:400
 msgid "ecryptfs is installed and in use"
 msgstr "ecryptfs è installato e in uso"
 
-#: mintcare/checks.py:380
+#: mintcare/checks.py:401
 msgid ""
 "ecryptfs is installed but unused; its login module logs 'seteuid error' on "
 "every unlock"
@@ -622,123 +645,123 @@ msgstr ""
 "ecryptfs è installato ma inutilizzato; il suo modulo di accesso registra "
 "'seteuid error' a ogni sblocco"
 
-#: mintcare/checks.py:383 mintcare/journal.py:34
+#: mintcare/checks.py:404 mintcare/journal.py:34
 msgid "Remove ecryptfs"
 msgstr "Rimuovi ecryptfs"
 
-#: mintcare/checks.py:389
+#: mintcare/checks.py:410
 msgid "Clock is synchronised with internet time"
 msgstr "L'orologio è sincronizzato con l'ora di Internet"
 
-#: mintcare/checks.py:390
+#: mintcare/checks.py:411
 msgid "Clock is not synchronised (can break HTTPS and updates)"
 msgstr "L'orologio non è sincronizzato (può rompere HTTPS e gli aggiornamenti)"
 
-#: mintcare/checks.py:391
+#: mintcare/checks.py:412
 msgid "Sync clock"
 msgstr "Sincronizza l'orologio"
 
-#: mintcare/checks.py:396
+#: mintcare/checks.py:417
 msgid "Firewall (UFW) is enabled"
 msgstr "Il firewall (UFW) è attivo"
 
-#: mintcare/checks.py:397 mintcare/checks.py:539 mintcare/gui.py:1842
+#: mintcare/checks.py:418 mintcare/checks.py:560 mintcare/gui.py:1846
 msgid "Enable firewall"
 msgstr "Attiva il firewall"
 
-#: mintcare/checks.py:397
+#: mintcare/checks.py:418
 msgid "Firewall is disabled"
 msgstr "Il firewall è disattivato"
 
-#: mintcare/checks.py:404
+#: mintcare/checks.py:425
 #, python-brace-format
 msgid "Home folder is readable by other users (mode {0:o})"
 msgstr "La cartella home è leggibile da altri utenti (modalità {0:o})"
 
-#: mintcare/checks.py:405
+#: mintcare/checks.py:426
 msgid "Make private"
 msgstr "Rendila privata"
 
-#: mintcare/checks.py:406
+#: mintcare/checks.py:427
 #, python-brace-format
 msgid "Home folder is private (mode {0:o})"
 msgstr "La cartella home è privata (modalità {0:o})"
 
-#: mintcare/checks.py:412
+#: mintcare/checks.py:433
 msgid "File watcher limit is {0:,}"
 msgstr "Il limite di monitoraggio dei file è {0:,}"
 
-#: mintcare/checks.py:413
+#: mintcare/checks.py:434
 msgid "File watcher limit is {0:,}; IDEs may complain on big projects"
 msgstr ""
 "Il limite di monitoraggio dei file è {0:,}; gli IDE possono lamentarsi sui "
 "progetti grandi"
 
-#: mintcare/checks.py:414
+#: mintcare/checks.py:435
 msgid "Raise"
 msgstr "Aumenta"
 
-#: mintcare/checks.py:423
+#: mintcare/checks.py:444
 msgid "Could not read disk health (UDisks2 unavailable)"
 msgstr "Impossibile leggere lo stato dei dischi (UDisks2 non disponibile)"
 
-#: mintcare/checks.py:427
+#: mintcare/checks.py:448
 msgid "needs attention"
 msgstr "richiede attenzione"
 
-#: mintcare/checks.py:429 mintcare/checks.py:434
+#: mintcare/checks.py:450 mintcare/checks.py:455
 msgid "View drives"
 msgstr "Mostra dischi"
 
-#: mintcare/checks.py:433
+#: mintcare/checks.py:454
 #, python-brace-format
 msgid "All {0} drives healthy; {1} ({2}) has {3}"
 msgstr "Tutti i {0} dischi sono sani; {1} ({2}) ha {3}"
 
-#: mintcare/checks.py:435
+#: mintcare/checks.py:456
 #, python-brace-format
 msgid "{0} drive reports healthy SMART data"
 msgid_plural "All {0} drives report healthy SMART data"
 msgstr[0] "{0} disco con dati SMART sani"
 msgstr[1] "Tutti i {0} dischi hanno dati SMART sani"
 
-#: mintcare/checks.py:442
+#: mintcare/checks.py:463
 msgid "No temperature sensors found"
 msgstr "Nessun sensore di temperatura trovato"
 
-#: mintcare/checks.py:446 mintcare/checks.py:450
+#: mintcare/checks.py:467 mintcare/checks.py:471
 msgid "View sensors"
 msgstr "Mostra sensori"
 
-#: mintcare/checks.py:449
+#: mintcare/checks.py:470
 #, python-brace-format
 msgid "{0} is running hot at {1:.0f}°C"
 msgstr "{0} è caldo: {1:.0f} °C"
 
-#: mintcare/checks.py:452
+#: mintcare/checks.py:473
 #, python-brace-format
 msgid "Temperatures normal (hottest: {0} {1:.0f}°C), no throttling"
 msgstr "Temperature normali (la più alta: {0} {1:.0f} °C), nessun throttling"
 
-#: mintcare/checks.py:459
+#: mintcare/checks.py:480
 msgid "Boot timing not available"
 msgstr "Tempi di avvio non disponibili"
 
-#: mintcare/checks.py:462
+#: mintcare/checks.py:483
 #, python-brace-format
 msgid "Last boot took {0:.1f} s"
 msgstr "L'ultimo avvio ha richiesto {0:.1f} s"
 
-#: mintcare/checks.py:465
+#: mintcare/checks.py:486
 #, python-brace-format
 msgid "{0}; {1} delays it by {2:.1f} s and can be disabled"
 msgstr "{0}; {1} lo ritarda di {2:.1f} s e può essere disattivato"
 
-#: mintcare/checks.py:466 mintcare/checks.py:468
+#: mintcare/checks.py:487 mintcare/checks.py:489
 msgid "Review boot"
 msgstr "Esamina l'avvio"
 
-#: mintcare/checks.py:468
+#: mintcare/checks.py:489
 #, python-brace-format
 msgid ""
 "{0}, {1:.1f} s of it in BIOS/UEFI firmware (try Fast Boot in your UEFI setup)"
@@ -746,20 +769,20 @@ msgstr ""
 "{0}, di cui {1:.1f} s nel firmware BIOS/UEFI (prova il Fast Boot nelle "
 "impostazioni UEFI)"
 
-#: mintcare/checks.py:469
+#: mintcare/checks.py:490
 #, python-brace-format
 msgid "{0} (userspace {1:.1f} s)"
 msgstr "{0} (spazio utente {1:.1f} s)"
 
-#: mintcare/checks.py:474
+#: mintcare/checks.py:495
 msgid "GameMode not installed (optional, see Optimise > Gaming)"
 msgstr "GameMode non è installato (facoltativo, vedi Ottimizza › Giochi)"
 
-#: mintcare/checks.py:476
+#: mintcare/checks.py:497
 msgid "GameMode is installed and you can use all of its features"
 msgstr "GameMode è installato e puoi usarne tutte le funzioni"
 
-#: mintcare/checks.py:477
+#: mintcare/checks.py:498
 msgid ""
 "GameMode is installed but you're not in the 'gamemode' group, so it can't "
 "switch CPU governors"
@@ -767,406 +790,406 @@ msgstr ""
 "GameMode è installato ma non sei nel gruppo 'gamemode', quindi non può "
 "cambiare il governor della CPU"
 
-#: mintcare/checks.py:478 mintcare/gui.py:3746 mintcare/gui.py:3799
+#: mintcare/checks.py:499 mintcare/gui.py:3750 mintcare/gui.py:3803
 msgid "Fix"
 msgstr "Correggi"
 
-#: mintcare/checks.py:483
+#: mintcare/checks.py:504
 msgid "Not using GRUB"
 msgstr "GRUB non è in uso"
 
-#: mintcare/checks.py:486
+#: mintcare/checks.py:507
 #, python-brace-format
 msgid "After a crash or power cut GRUB waits {0:.0f} s at its menu"
 msgstr ""
 "Dopo un crash o un'interruzione di corrente GRUB attende {0:.0f} s nel menu"
 
-#: mintcare/checks.py:487
+#: mintcare/checks.py:508
 msgid "Shorten"
 msgstr "Accorcia"
 
-#: mintcare/checks.py:488
+#: mintcare/checks.py:509
 #, python-brace-format
 msgid "GRUB menu timeout {0:.0f} s, {1:.0f} s after a failed boot"
 msgstr "Menu di GRUB {0:.0f} s, {1:.0f} s dopo un avvio non riuscito"
 
-#: mintcare/checks.py:496
-msgid "Update checks for MintCare are turned off"
-msgstr "Il controllo degli aggiornamenti di MintCare è disattivato"
-
-#: mintcare/checks.py:499
+#: mintcare/checks.py:520
 msgid "Couldn't reach GitHub to check for MintCare updates"
 msgstr ""
 "Impossibile raggiungere GitHub per controllare gli aggiornamenti di MintCare"
 
-#: mintcare/checks.py:501
+#: mintcare/checks.py:522
 #, python-brace-format
 msgid "MintCare {0} is available (you have {1})"
 msgstr "MintCare {0} è disponibile (hai {1})"
 
-#: mintcare/checks.py:502 mintcare/gui.py:38
+#: mintcare/checks.py:523 mintcare/gui.py:38
 msgid "Update"
 msgstr "Aggiorna"
 
-#: mintcare/checks.py:503
+#: mintcare/checks.py:524
 #, python-brace-format
 msgid "MintCare {0} is the latest version"
 msgstr "MintCare {0} è l'ultima versione"
 
-#: mintcare/checks.py:509
+#: mintcare/checks.py:530
 msgid ""
 "fwupd is not installed; firmware updates are checked by your vendor's tools"
 msgstr ""
 "fwupd non è installato; il firmware viene aggiornato con gli strumenti del "
 "produttore"
 
-#: mintcare/checks.py:513
+#: mintcare/checks.py:534
 #, python-brace-format
 msgid "{0} firmware update(s) available: {1}"
 msgstr "{0} aggiornamento/i firmware disponibile/i: {1}"
 
-#: mintcare/checks.py:514
+#: mintcare/checks.py:535
 msgid "View firmware"
 msgstr "Mostra firmware"
 
-#: mintcare/checks.py:516
+#: mintcare/checks.py:537
 msgid "Firmware is up to date"
 msgstr "Il firmware è aggiornato"
 
-#: mintcare/checks.py:524
+#: mintcare/checks.py:545
 #, python-brace-format
 msgid "All {0} software sources look healthy"
 msgstr "Tutte le {0} sorgenti software sono a posto"
 
-#: mintcare/checks.py:527
+#: mintcare/checks.py:548
 #, python-brace-format
 msgid "{0} software source(s) need attention — {1}: {2}"
 msgstr "{0} sorgente/i software richiedono attenzione — {1}: {2}"
 
-#: mintcare/checks.py:528
+#: mintcare/checks.py:549
 msgid "Review sources"
 msgstr "Esamina le sorgenti"
 
-#: mintcare/checks.py:538
+#: mintcare/checks.py:559
 #, python-brace-format
 msgid "Reachable from the network with no firewall: {0}"
 msgstr "Raggiungibile dalla rete senza firewall: {0}"
 
-#: mintcare/checks.py:542
+#: mintcare/checks.py:563
 #, python-brace-format
 msgid "Open to the network behind the firewall: {0}"
 msgstr "Aperto alla rete dietro il firewall: {0}"
 
-#: mintcare/checks.py:543
+#: mintcare/checks.py:564
 msgid "Review"
 msgstr "Esamina"
 
-#: mintcare/checks.py:544
+#: mintcare/checks.py:565
 #, python-brace-format
 msgid "{0} network-facing port(s), all expected or blocked by the firewall"
 msgstr ""
 "{0} porta/e esposta/e alla rete, tutte previste o bloccate dal firewall"
 
-#: mintcare/checks.py:545
+#: mintcare/checks.py:566
 msgid "No services are reachable from the network"
 msgstr "Nessun servizio è raggiungibile dalla rete"
 
-#: mintcare/checks.py:553
+#: mintcare/checks.py:574
 msgid ""
 "Your personal files aren't backed up (Timeshift only covers system files)"
 msgstr ""
 "I tuoi file personali non hanno un backup (Timeshift copre solo i file di "
 "sistema)"
 
-#: mintcare/checks.py:554
+#: mintcare/checks.py:575
 msgid "Set up backup"
 msgstr "Configura il backup"
 
-#: mintcare/checks.py:557
+#: mintcare/checks.py:578
 msgid "Open backup"
 msgstr "Apri il backup"
 
-#: mintcare/checks.py:559 mintcare/checks.py:564 mintcare/gui.py:4071
-#: mintcare/gui.py:4073
+#: mintcare/checks.py:580 mintcare/checks.py:585 mintcare/gui.py:4075
+#: mintcare/gui.py:4077
 msgid "Back up now"
 msgstr "Esegui il backup ora"
 
-#: mintcare/checks.py:559
+#: mintcare/checks.py:580
 msgid "Backup is set up but hasn't run yet"
 msgstr "Il backup è configurato ma non è ancora stato eseguito"
 
-#: mintcare/checks.py:564
+#: mintcare/checks.py:585
 #, python-brace-format
 msgid "Last backup was {0:.0f} days ago"
 msgstr "L'ultimo backup risale a {0:.0f} giorni fa"
 
-#: mintcare/checks.py:565
+#: mintcare/checks.py:586
 #, python-brace-format
 msgid "Personal files backed up {0:.0f} day(s) ago to {1}"
 msgstr "File personali salvati {0:.0f} giorno/i fa in {1}"
 
-#: mintcare/checks.py:572
+#: mintcare/checks.py:593
 msgid "No battery (desktop PC)"
 msgstr "Nessuna batteria (PC desktop)"
 
-#: mintcare/checks.py:575
+#: mintcare/checks.py:596
 msgid "Battery health isn't reported by this laptop"
 msgstr "Questo portatile non indica lo stato della batteria"
 
-#: mintcare/checks.py:578
+#: mintcare/checks.py:599
 #, no-python-format, python-brace-format
 msgid "Battery holds only {0}% of its original charge — consider replacing it"
 msgstr ""
 "La batteria trattiene solo il {0}% della carica originale — valuta di "
 "sostituirla"
 
-#: mintcare/checks.py:579
+#: mintcare/checks.py:600
 msgid "View battery"
 msgstr "Mostra batteria"
 
-#: mintcare/checks.py:581
+#: mintcare/checks.py:602
 #, no-python-format, python-brace-format
 msgid "Battery holds {0}% of its original charge"
 msgstr "La batteria trattiene il {0}% della carica originale"
 
-#: mintcare/checks.py:586
+#: mintcare/checks.py:607
 msgid "Internet connection"
 msgstr "Connessione a Internet"
 
-#: mintcare/checks.py:586 mintcare/checks.py:587 mintcare/checks.py:588
-#: mintcare/checks.py:589 mintcare/gui.py:559 mintcare/gui.py:3712
+#: mintcare/checks.py:607 mintcare/checks.py:608 mintcare/checks.py:609
+#: mintcare/checks.py:610 mintcare/gui.py:559 mintcare/gui.py:3716
 #: mintcare/tweaks.py:256 mintcare/tweaks.py:266 mintcare/tweaks.py:277
 msgid "Network"
 msgstr "Rete"
 
-#: mintcare/checks.py:587
+#: mintcare/checks.py:608
 msgid "DNS resolution"
 msgstr "Risoluzione DNS"
 
-#: mintcare/checks.py:588 mintcare/tweaks.py:256
+#: mintcare/checks.py:609 mintcare/tweaks.py:256
 msgid "TCP BBR congestion control"
 msgstr "Controllo di congestione TCP BBR"
 
-#: mintcare/checks.py:589
+#: mintcare/checks.py:610
 msgid "Hostname resolution"
 msgstr "Risoluzione del nome host"
 
-#: mintcare/checks.py:590
+#: mintcare/checks.py:611
 msgid "Interrupted package installs"
 msgstr "Installazioni di pacchetti interrotte"
 
-#: mintcare/checks.py:590 mintcare/checks.py:591 mintcare/checks.py:592
-#: mintcare/checks.py:593 mintcare/checks.py:594 mintcare/checks.py:595
-#: mintcare/checks.py:596 mintcare/checks.py:597 mintcare/gui.py:36
-#: mintcare/gui.py:73 mintcare/gui.py:3344
+#: mintcare/checks.py:611 mintcare/checks.py:612 mintcare/checks.py:613
+#: mintcare/checks.py:614 mintcare/checks.py:615 mintcare/checks.py:616
+#: mintcare/checks.py:617 mintcare/checks.py:618 mintcare/checks.py:619
+#: mintcare/gui.py:36 mintcare/gui.py:73 mintcare/gui.py:3348
 msgid "Packages"
 msgstr "Pacchetti"
 
-#: mintcare/checks.py:591
+#: mintcare/checks.py:612
 msgid "Broken dependencies"
 msgstr "Dipendenze rotte"
 
-#: mintcare/checks.py:592
+#: mintcare/checks.py:613
 msgid "Pending updates"
 msgstr "Aggiornamenti in sospeso"
 
-#: mintcare/checks.py:593
+#: mintcare/checks.py:614
+msgid "Flatpak app updates"
+msgstr "Aggiornamenti app Flatpak"
+
+#: mintcare/checks.py:615
 msgid "Restart needed"
 msgstr "Riavvio necessario"
 
-#: mintcare/checks.py:594
+#: mintcare/checks.py:616
 msgid "Installed kernels"
 msgstr "Kernel installati"
 
-#: mintcare/checks.py:595
+#: mintcare/checks.py:617
 msgid "Leftover package config"
 msgstr "Configurazione residua dei pacchetti"
 
-#: mintcare/checks.py:596
+#: mintcare/checks.py:618
 msgid "Software sources"
 msgstr "Sorgenti software"
 
-#: mintcare/checks.py:597 mintcare/gui.py:1672
+#: mintcare/checks.py:619 mintcare/gui.py:1676
 msgid "MintCare updates"
 msgstr "Aggiornamenti di MintCare"
 
-#: mintcare/checks.py:598 mintcare/gui.py:71 mintcare/gui.py:2635
+#: mintcare/checks.py:620 mintcare/gui.py:71 mintcare/gui.py:2639
 msgid "Disk space"
 msgstr "Spazio su disco"
 
-#: mintcare/checks.py:598 mintcare/checks.py:599 mintcare/checks.py:600
-#: mintcare/checks.py:601 mintcare/checks.py:602 mintcare/checks.py:603
+#: mintcare/checks.py:620 mintcare/checks.py:621 mintcare/checks.py:622
+#: mintcare/checks.py:623 mintcare/checks.py:624 mintcare/checks.py:625
 #: mintcare/tweaks.py:327 mintcare/tweaks.py:334 mintcare/tweaks.py:349
 #: mintcare/tweaks.py:407
 msgid "Storage"
 msgstr "Archiviazione"
 
-#: mintcare/checks.py:599
+#: mintcare/checks.py:621
 msgid "/boot space"
 msgstr "Spazio in /boot"
 
-#: mintcare/checks.py:600
+#: mintcare/checks.py:622
 msgid "SSD TRIM"
 msgstr "TRIM dell'SSD"
 
-#: mintcare/checks.py:601
+#: mintcare/checks.py:623
 msgid "Log size"
 msgstr "Dimensione dei log"
 
-#: mintcare/checks.py:602
+#: mintcare/checks.py:624
 msgid "System snapshots"
 msgstr "Snapshot del sistema"
 
-#: mintcare/checks.py:603
+#: mintcare/checks.py:625
 msgid "Personal file backup"
 msgstr "Backup dei file personali"
 
-#: mintcare/checks.py:604 mintcare/checks.py:605 mintcare/gui.py:558
+#: mintcare/checks.py:626 mintcare/checks.py:627 mintcare/gui.py:558
 #: mintcare/report.py:56 mintcare/tweaks.py:295 mintcare/tweaks.py:313
 #: mintcare/tweaks.py:319
 msgid "Memory"
 msgstr "Memoria"
 
-#: mintcare/checks.py:604
+#: mintcare/checks.py:626
 msgid "Swap / zram"
 msgstr "Swap / zram"
 
-#: mintcare/checks.py:605
+#: mintcare/checks.py:627
 msgid "Memory usage"
 msgstr "Uso della memoria"
 
-#: mintcare/checks.py:606
+#: mintcare/checks.py:628
 msgid "CPU microcode"
 msgstr "Microcodice della CPU"
 
-#: mintcare/checks.py:606 mintcare/checks.py:607 mintcare/checks.py:608
-#: mintcare/checks.py:609 mintcare/checks.py:610 mintcare/checks.py:611
-#: mintcare/checks.py:612 mintcare/gui.py:76
+#: mintcare/checks.py:628 mintcare/checks.py:629 mintcare/checks.py:630
+#: mintcare/checks.py:631 mintcare/checks.py:632 mintcare/checks.py:633
+#: mintcare/checks.py:634 mintcare/gui.py:76
 msgid "Hardware"
 msgstr "Hardware"
 
-#: mintcare/checks.py:607
+#: mintcare/checks.py:629
 msgid "Graphics driver"
 msgstr "Driver grafico"
 
-#: mintcare/checks.py:608
+#: mintcare/checks.py:630
 msgid "Laptop power management"
 msgstr "Gestione energetica del portatile"
 
-#: mintcare/checks.py:609
+#: mintcare/checks.py:631
 msgid "Disk health (SMART)"
 msgstr "Salute dei dischi (SMART)"
 
-#: mintcare/checks.py:610
+#: mintcare/checks.py:632
 msgid "Temperatures & throttling"
 msgstr "Temperature e throttling"
 
-#: mintcare/checks.py:611
+#: mintcare/checks.py:633
 msgid "Firmware updates"
 msgstr "Aggiornamenti firmware"
 
-#: mintcare/checks.py:612
+#: mintcare/checks.py:634
 msgid "Battery health"
 msgstr "Salute della batteria"
 
-#: mintcare/checks.py:613 mintcare/gui.py:1506 mintcare/gui.py:2036
+#: mintcare/checks.py:635 mintcare/gui.py:1510 mintcare/gui.py:2040
 msgid "Firewall"
 msgstr "Firewall"
 
-#: mintcare/checks.py:613 mintcare/checks.py:614 mintcare/checks.py:615
-#: mintcare/gui.py:37 mintcare/gui.py:77 mintcare/gui.py:1824
+#: mintcare/checks.py:635 mintcare/checks.py:636 mintcare/checks.py:637
+#: mintcare/gui.py:37 mintcare/gui.py:77 mintcare/gui.py:1828
 #: mintcare/tweaks.py:381 mintcare/tweaks.py:391 mintcare/tweaks.py:399
 msgid "Security"
 msgstr "Sicurezza"
 
-#: mintcare/checks.py:614
+#: mintcare/checks.py:636
 msgid "Home folder privacy"
 msgstr "Privacy della cartella home"
 
-#: mintcare/checks.py:615
+#: mintcare/checks.py:637
 msgid "Open network ports"
 msgstr "Porte di rete aperte"
 
-#: mintcare/checks.py:616
+#: mintcare/checks.py:638
 msgid "Clock sync"
 msgstr "Sincronizzazione dell'orologio"
 
-#: mintcare/checks.py:616 mintcare/checks.py:617 mintcare/checks.py:618
-#: mintcare/checks.py:619 mintcare/checks.py:620 mintcare/checks.py:621
-#: mintcare/checks.py:622 mintcare/checks.py:623 mintcare/checks.py:624
-#: mintcare/checks.py:625
+#: mintcare/checks.py:638 mintcare/checks.py:639 mintcare/checks.py:640
+#: mintcare/checks.py:641 mintcare/checks.py:642 mintcare/checks.py:643
+#: mintcare/checks.py:644 mintcare/checks.py:645 mintcare/checks.py:646
+#: mintcare/checks.py:647
 msgid "System"
 msgstr "Sistema"
 
-#: mintcare/checks.py:617
+#: mintcare/checks.py:639
 msgid "Failed services"
 msgstr "Servizi non riusciti"
 
-#: mintcare/checks.py:618
+#: mintcare/checks.py:640
 msgid "Failed user services"
 msgstr "Servizi utente non riusciti"
 
-#: mintcare/checks.py:619
+#: mintcare/checks.py:641
 msgid "Boot time"
 msgstr "Tempo di avvio"
 
-#: mintcare/checks.py:620
+#: mintcare/checks.py:642
 msgid "Boot menu timeout"
 msgstr "Attesa del menu di avvio"
 
-#: mintcare/checks.py:621
+#: mintcare/checks.py:643
 msgid "GameMode permissions"
 msgstr "Permessi di GameMode"
 
-#: mintcare/checks.py:622
+#: mintcare/checks.py:644
 msgid "Errors since boot"
 msgstr "Errori dall'avvio"
 
-#: mintcare/checks.py:623
+#: mintcare/checks.py:645
 msgid "Bluetooth plugin errors"
 msgstr "Errori dei plugin Bluetooth"
 
-#: mintcare/checks.py:624
+#: mintcare/checks.py:646
 msgid "Unused ecryptfs login module"
 msgstr "Modulo ecryptfs inutilizzato"
 
-#: mintcare/checks.py:625
+#: mintcare/checks.py:647
 msgid "File watcher limit"
 msgstr "Limite di monitoraggio dei file"
 
-#: mintcare/checks.py:686
+#: mintcare/checks.py:709
 msgid "(no output)"
 msgstr "(nessun output)"
 
-#: mintcare/checks.py:692
+#: mintcare/checks.py:715
 msgid "Manage kernels"
 msgstr "Gestisci kernel"
 
-#: mintcare/checks.py:695
+#: mintcare/checks.py:718
 msgid "Find big files"
 msgstr "Trova file grandi"
 
-#: mintcare/checks.py:698
+#: mintcare/checks.py:721
 msgid "Open process explorer"
 msgstr "Apri l'esploratore dei processi"
 
-#: mintcare/checks.py:700
+#: mintcare/checks.py:723
 msgid "Open drive details"
 msgstr "Apri i dettagli del disco"
 
-#: mintcare/checks.py:701
+#: mintcare/checks.py:724
 msgid "Open sensors"
 msgstr "Apri i sensori"
 
-#: mintcare/checks.py:702
+#: mintcare/checks.py:725
 msgid "Open firmware"
 msgstr "Apri il firmware"
 
-#: mintcare/checks.py:703
+#: mintcare/checks.py:726
 msgid "Open Security page"
 msgstr "Apri la pagina Sicurezza"
 
-#: mintcare/checks.py:706 mintcare/checks.py:707
+#: mintcare/checks.py:729 mintcare/checks.py:730
 msgid "Network troubleshooter"
 msgstr "Risoluzione problemi di rete"
 
@@ -1299,7 +1322,7 @@ msgstr "Log compressi e ruotati in /var/log."
 msgid "Rotated log files"
 msgstr "File di log ruotati"
 
-#: mintcare/cleaner.py:264 mintcare/gui.py:3713
+#: mintcare/cleaner.py:264 mintcare/gui.py:3717
 msgid "Crash reports"
 msgstr "Rapporti di crash"
 
@@ -1319,7 +1342,7 @@ msgstr "Runtime Flatpak inutilizzati"
 msgid "Cached file previews."
 msgstr "Anteprime dei file in cache."
 
-#: mintcare/cleaner.py:271 mintcare/gui.py:5408
+#: mintcare/cleaner.py:271 mintcare/gui.py:5416
 msgid "Thumbnail cache"
 msgstr "Cache delle miniature"
 
@@ -1386,7 +1409,7 @@ msgstr "Internet e rete locale"
 msgid "Network access"
 msgstr "Accesso alla rete"
 
-#: mintcare/flatpaks.py:22 mintcare/gui.py:2655
+#: mintcare/flatpaks.py:22 mintcare/gui.py:2659
 msgid "Home folder"
 msgstr "Cartella home"
 
@@ -1452,19 +1475,19 @@ msgstr "Ripara l'installazione Flatpak di sistema"
 msgid "Repair your Flatpak installation"
 msgstr "Ripara la tua installazione Flatpak"
 
-#: mintcare/gui.py:35 mintcare/gui.py:82 mintcare/gui.py:4297
+#: mintcare/gui.py:35 mintcare/gui.py:82 mintcare/gui.py:4301
 msgid "Assistant"
 msgstr "Assistente"
 
-#: mintcare/gui.py:35 mintcare/gui.py:5667
+#: mintcare/gui.py:35 mintcare/gui.py:5675
 msgid "Boot services"
 msgstr "Servizi di avvio"
 
-#: mintcare/gui.py:35 mintcare/gui.py:70 mintcare/gui.py:2526
+#: mintcare/gui.py:35 mintcare/gui.py:70 mintcare/gui.py:2530
 msgid "Clean"
 msgstr "Pulisci"
 
-#: mintcare/gui.py:35 mintcare/gui.py:4729 mintcare/gui.py:5200
+#: mintcare/gui.py:35 mintcare/gui.py:4733 mintcare/gui.py:5208
 msgid "Firmware"
 msgstr "Firmware"
 
@@ -1480,19 +1503,19 @@ msgstr "Riparazione Flatpak"
 msgid "Flatpak update"
 msgstr "Aggiornamento Flatpak"
 
-#: mintcare/gui.py:36 mintcare/gui.py:69 mintcare/gui.py:2317
+#: mintcare/gui.py:36 mintcare/gui.py:69 mintcare/gui.py:2321
 msgid "Optimise"
 msgstr "Ottimizza"
 
-#: mintcare/gui.py:36 mintcare/gui.py:75 mintcare/gui.py:3602
+#: mintcare/gui.py:36 mintcare/gui.py:75 mintcare/gui.py:3606
 msgid "Processes"
 msgstr "Processi"
 
-#: mintcare/gui.py:37 mintcare/gui.py:5112
+#: mintcare/gui.py:37 mintcare/gui.py:5120
 msgid "SMART report"
 msgstr "Rapporto SMART"
 
-#: mintcare/gui.py:37 mintcare/gui.py:5640
+#: mintcare/gui.py:37 mintcare/gui.py:5648
 msgid "Snapshot"
 msgstr "Snapshot"
 
@@ -1504,11 +1527,11 @@ msgstr "Sorgenti"
 msgid "Timeshift"
 msgstr "Timeshift"
 
-#: mintcare/gui.py:38 mintcare/gui.py:78 mintcare/gui.py:3705
+#: mintcare/gui.py:38 mintcare/gui.py:78 mintcare/gui.py:3709
 msgid "Troubleshoot"
 msgstr "Risoluzione problemi"
 
-#: mintcare/gui.py:38 mintcare/gui.py:5712
+#: mintcare/gui.py:38 mintcare/gui.py:5720
 msgid "Undo"
 msgstr "Annulla"
 
@@ -1532,31 +1555,31 @@ msgstr "AVVISO"
 msgid "Dashboard"
 msgstr "Pannello"
 
-#: mintcare/gui.py:68 mintcare/gui.py:2059
+#: mintcare/gui.py:68 mintcare/gui.py:2063
 msgid "Diagnose & Fix"
 msgstr "Diagnostica e ripara"
 
-#: mintcare/gui.py:72 mintcare/gui.py:1663
+#: mintcare/gui.py:72 mintcare/gui.py:1667
 msgid "Software & updates"
 msgstr "Software e aggiornamenti"
 
-#: mintcare/gui.py:74 mintcare/gui.py:4489
+#: mintcare/gui.py:74 mintcare/gui.py:4493
 msgid "Flatpak apps"
 msgstr "App Flatpak"
 
-#: mintcare/gui.py:79 mintcare/gui.py:5121
+#: mintcare/gui.py:79 mintcare/gui.py:5129
 msgid "Boot & Startup"
 msgstr "Avvio"
 
-#: mintcare/gui.py:80 mintcare/gui.py:4017
+#: mintcare/gui.py:80 mintcare/gui.py:4021
 msgid "Backup"
 msgstr "Backup"
 
-#: mintcare/gui.py:81 mintcare/gui.py:5373
+#: mintcare/gui.py:81 mintcare/gui.py:5381
 msgid "Maintenance"
 msgstr "Manutenzione"
 
-#: mintcare/gui.py:83 mintcare/gui.py:5726
+#: mintcare/gui.py:83 mintcare/gui.py:5734
 msgid "Activity log"
 msgstr "Registro attività"
 
@@ -1642,7 +1665,7 @@ msgstr "Mostra MintCare nell'area di notifica"
 msgid "Start in the tray when I log in"
 msgstr "Avvia nell'area di notifica all'accesso"
 
-#: mintcare/gui.py:374 mintcare/gui.py:4501
+#: mintcare/gui.py:374 mintcare/gui.py:4505
 msgid "UPDATES"
 msgstr "AGGIORNAMENTI"
 
@@ -1740,7 +1763,7 @@ msgstr "NAVIGAZIONE"
 msgid "SYSTEM HEALTH"
 msgstr "STATO DEL SISTEMA"
 
-#: mintcare/gui.py:727 mintcare/gui.py:1388
+#: mintcare/gui.py:727 mintcare/gui.py:1391
 msgid "scanning"
 msgstr "scansione"
 
@@ -1803,7 +1826,7 @@ msgstr ""
 "Mappa dello spazio su disco — le frecce si spostano tra le cartelle, Invio "
 "ne apre una"
 
-#: mintcare/gui.py:857 mintcare/gui.py:3801
+#: mintcare/gui.py:857 mintcare/gui.py:3805
 msgid "Working…"
 msgstr "In corso…"
 
@@ -1846,10 +1869,10 @@ msgid "Remember my choice"
 msgstr "Ricorda la scelta"
 
 #: mintcare/gui.py:990 mintcare/gui.py:1134 mintcare/gui.py:1188
-#: mintcare/gui.py:2704 mintcare/gui.py:2862 mintcare/gui.py:2913
-#: mintcare/gui.py:3196 mintcare/gui.py:3680 mintcare/gui.py:4063
-#: mintcare/gui.py:4202 mintcare/gui.py:4259 mintcare/gui.py:4272
-#: mintcare/gui.py:5657
+#: mintcare/gui.py:2708 mintcare/gui.py:2866 mintcare/gui.py:2917
+#: mintcare/gui.py:3200 mintcare/gui.py:3684 mintcare/gui.py:4067
+#: mintcare/gui.py:4206 mintcare/gui.py:4263 mintcare/gui.py:4276
+#: mintcare/gui.py:5665
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -1884,11 +1907,11 @@ msgstr "Icona nell'area di notifica non disponibile su questo desktop"
 msgid "Open MintCare"
 msgstr "Apri MintCare"
 
-#: mintcare/gui.py:1057 mintcare/gui.py:5432
+#: mintcare/gui.py:1057 mintcare/gui.py:5440
 msgid "Run check-up now"
 msgstr "Esegui ora il controllo"
 
-#: mintcare/gui.py:1058 mintcare/gui.py:1413
+#: mintcare/gui.py:1058 mintcare/gui.py:1416
 msgid "Quick clean"
 msgstr "Pulizia rapida"
 
@@ -1926,7 +1949,7 @@ msgstr "Avvio nell'area di notifica all'accesso: disattivato"
 msgid "Start in tray at login: on"
 msgstr "Avvio nell'area di notifica all'accesso: attivato"
 
-#: mintcare/gui.py:1134 mintcare/gui.py:4259
+#: mintcare/gui.py:1134 mintcare/gui.py:4263
 msgid "Export"
 msgstr "Esporta"
 
@@ -1934,7 +1957,7 @@ msgstr "Esporta"
 msgid "Format:"
 msgstr "Formato:"
 
-#: mintcare/gui.py:1142 mintcare/gui.py:5421
+#: mintcare/gui.py:1142 mintcare/gui.py:5429
 msgid "PDF"
 msgstr "PDF"
 
@@ -2012,7 +2035,7 @@ msgstr "Rapporto salvato: {0}"
 msgid "Clean, optimise and repair Linux Mint."
 msgstr "Pulisci, ottimizza e ripara Linux Mint."
 
-#: mintcare/gui.py:1292 mintcare/gui.py:1673
+#: mintcare/gui.py:1292 mintcare/gui.py:1677
 msgid "Update now"
 msgstr "Aggiorna ora"
 
@@ -2025,8 +2048,8 @@ msgstr "Novità"
 msgid "● {0} ({1}) • {2} • Kernel {3}"
 msgstr "● {0} ({1}) • {2} • Kernel {3}"
 
-#: mintcare/gui.py:1310 mintcare/gui.py:2210 mintcare/gui.py:4492
-#: mintcare/gui.py:4694 mintcare/gui.py:5123
+#: mintcare/gui.py:1310 mintcare/gui.py:2214 mintcare/gui.py:4496
+#: mintcare/gui.py:4698 mintcare/gui.py:5131
 msgid "Refresh"
 msgstr "Aggiorna"
 
@@ -2111,63 +2134,63 @@ msgstr "VRAM USATA"
 msgid "Temperature"
 msgstr "Temperatura"
 
-#: mintcare/gui.py:1376
+#: mintcare/gui.py:1379
 msgid "Live Performance"
 msgstr "Prestazioni in tempo reale"
 
-#: mintcare/gui.py:1387
+#: mintcare/gui.py:1390
 msgid "Health Score"
 msgstr "Punteggio di stato"
 
-#: mintcare/gui.py:1391
+#: mintcare/gui.py:1394
 msgid "of 100"
 msgstr "su 100"
 
-#: mintcare/gui.py:1395
+#: mintcare/gui.py:1398
 msgid "0 problems"
 msgstr "0 problemi"
 
-#: mintcare/gui.py:1395
+#: mintcare/gui.py:1398
 msgid "0 warnings"
 msgstr "0 avvisi"
 
-#: mintcare/gui.py:1396
+#: mintcare/gui.py:1399
 msgid "0 tips"
 msgstr "0 suggerimenti"
 
-#: mintcare/gui.py:1400
+#: mintcare/gui.py:1403
 msgid "Score"
 msgstr "Punteggio"
 
-#: mintcare/gui.py:1405 mintcare/gui.py:2541
+#: mintcare/gui.py:1408 mintcare/gui.py:2545
 msgid "Scanning…"
 msgstr "Scansione…"
 
-#: mintcare/gui.py:1409
+#: mintcare/gui.py:1412
 msgid "Fix all issues"
 msgstr "Correggi tutto"
 
-#: mintcare/gui.py:1412
+#: mintcare/gui.py:1415
 msgid "Recommended tweaks"
 msgstr "Ottimizzazioni consigliate"
 
-#: mintcare/gui.py:1420
+#: mintcare/gui.py:1423
 msgid "Network Throughput"
 msgstr "Traffico di rete"
 
-#: mintcare/gui.py:1424
+#: mintcare/gui.py:1427
 msgid "Down"
 msgstr "Ricezione"
 
-#: mintcare/gui.py:1424 mintcare/gui.py:2669
+#: mintcare/gui.py:1427 mintcare/gui.py:2673
 msgid "Up"
 msgstr "Invio"
 
-#: mintcare/gui.py:1431
+#: mintcare/gui.py:1434
 msgid "System Details"
 msgstr "Dettagli del sistema"
 
-#: mintcare/gui.py:1445
+#: mintcare/gui.py:1449
 msgid ""
 "MintCare only writes its own drop-in files (named <tt>*mintcare*</tt>) and "
 "records what it changed in <tt>/var/lib/mintcare</tt>, so every optimisation "
@@ -2177,164 +2200,164 @@ msgstr ""
 "cosa ha cambiato in <tt>/var/lib/mintcare</tt>, quindi ogni ottimizzazione "
 "può essere disattivata dalla pagina Ottimizza."
 
-#: mintcare/gui.py:1503 mintcare/report.py:53 mintcare/tweaks.py:570
+#: mintcare/gui.py:1507 mintcare/report.py:53 mintcare/tweaks.py:570
 #: mintcare/tweaks.py:576
 msgid "Desktop"
 msgstr "Desktop"
 
-#: mintcare/gui.py:1503
+#: mintcare/gui.py:1507
 msgid "unknown"
 msgstr "sconosciuto"
 
-#: mintcare/gui.py:1504
+#: mintcare/gui.py:1508
 msgid "TCP congestion"
 msgstr "Congestione TCP"
 
-#: mintcare/gui.py:1505
+#: mintcare/gui.py:1509
 msgid "Swap"
 msgstr "Swap"
 
-#: mintcare/gui.py:1506 mintcare/gui.py:5236
+#: mintcare/gui.py:1510 mintcare/gui.py:5244
 msgid "disabled"
 msgstr "disattivato"
 
-#: mintcare/gui.py:1506
+#: mintcare/gui.py:1510
 msgid "enabled"
 msgstr "attivato"
 
-#: mintcare/gui.py:1507
+#: mintcare/gui.py:1511
 msgid "Tweaks active"
 msgstr "Ottimizzazioni attive"
 
-#: mintcare/gui.py:1525
+#: mintcare/gui.py:1529
 msgid "no swap"
 msgstr "nessuno swap"
 
-#: mintcare/gui.py:1542
+#: mintcare/gui.py:1546
 #, python-brace-format
 msgid "{0} cleaning step(s)"
 msgstr "{0} passaggio/i di pulizia"
 
-#: mintcare/gui.py:1542
+#: mintcare/gui.py:1546
 #, python-brace-format
 msgid "{0} repair(s)"
 msgstr "{0} riparazione/i"
 
-#: mintcare/gui.py:1543
+#: mintcare/gui.py:1547
 #, python-brace-format
 msgid "{0} scheduled check-up(s)"
 msgstr "{0} controllo/i programmato/i"
 
-#: mintcare/gui.py:1546
+#: mintcare/gui.py:1550
 #, python-brace-format
 msgid " Health score {0}, was {1} a week ago."
 msgstr " Punteggio di salute {0}, una settimana fa era {1}."
 
-#: mintcare/gui.py:1554 mintcare/report.py:154
+#: mintcare/gui.py:1558 mintcare/report.py:154
 msgid "healthy"
 msgstr "in salute"
 
-#: mintcare/gui.py:1555
+#: mintcare/gui.py:1559
 msgid "at risk"
 msgstr "a rischio"
 
-#: mintcare/gui.py:1555
+#: mintcare/gui.py:1559
 msgid "needs care"
 msgstr "richiede cura"
 
-#: mintcare/gui.py:1558
+#: mintcare/gui.py:1562
 #, python-brace-format
 msgid "Health score: {0} of 100, {1}"
 msgstr "Punteggio di stato: {0} su 100, {1}"
 
-#: mintcare/gui.py:1564
+#: mintcare/gui.py:1568
 #, python-brace-format
 msgid "{0} problem"
 msgid_plural "{0} problems"
 msgstr[0] "{0} problema"
 msgstr[1] "{0} problemi"
 
-#: mintcare/gui.py:1565
+#: mintcare/gui.py:1569
 #, python-brace-format
 msgid "{0} warning"
 msgid_plural "{0} warnings"
 msgstr[0] "{0} avviso"
 msgstr[1] "{0} avvisi"
 
-#: mintcare/gui.py:1566
+#: mintcare/gui.py:1570
 #, python-brace-format
 msgid "{0} tip"
 msgid_plural "{0} tips"
 msgstr[0] "{0} suggerimento"
 msgstr[1] "{0} suggerimenti"
 
-#: mintcare/gui.py:1570
+#: mintcare/gui.py:1574
 #, python-brace-format
 msgid "{0} checks run. "
 msgstr "{0} controlli eseguiti. "
 
-#: mintcare/gui.py:1571
+#: mintcare/gui.py:1575
 #, python-brace-format
 msgid "{0} issue(s) can be fixed automatically."
 msgstr "{0} problema/i possono essere corretti automaticamente."
 
-#: mintcare/gui.py:1572
+#: mintcare/gui.py:1576
 msgid "Nothing needs fixing — tips have their own buttons on Diagnose & Fix."
 msgstr ""
 "Niente da correggere — i suggerimenti hanno i propri pulsanti in Diagnostica "
 "e ripara."
 
-#: mintcare/gui.py:1587
+#: mintcare/gui.py:1591
 msgid "The health trend appears after a few scans."
 msgstr "L'andamento dello stato compare dopo alcune scansioni."
 
-#: mintcare/gui.py:1594
+#: mintcare/gui.py:1598
 #, python-brace-format
 msgid "Health over time: {0} {1} since {2} ({3} scans)"
 msgstr "Stato nel tempo: {0} {1} dal {2} ({3} scansioni)"
 
-#: mintcare/gui.py:1614 mintcare/gui.py:1620
+#: mintcare/gui.py:1618 mintcare/gui.py:1624
 #, python-brace-format
 msgid "MintCare {0} is available"
 msgstr "MintCare {0} è disponibile"
 
-#: mintcare/gui.py:1615
+#: mintcare/gui.py:1619
 #, python-brace-format
 msgid "You have {0}. "
 msgstr "Hai {0}. "
 
-#: mintcare/gui.py:1616
+#: mintcare/gui.py:1620
 msgid "Update installs the verified package from GitHub."
 msgstr "Aggiorna installa il pacchetto verificato da GitHub."
 
-#: mintcare/gui.py:1617
+#: mintcare/gui.py:1621
 msgid "You're running from source — update with 'git pull'."
 msgstr "Stai usando il codice sorgente — aggiorna con 'git pull'."
 
-#: mintcare/gui.py:1621
+#: mintcare/gui.py:1625
 #, python-brace-format
 msgid "MintCare {0} is up to date"
 msgstr "MintCare {0} è aggiornato"
 
-#: mintcare/gui.py:1622
+#: mintcare/gui.py:1626
 msgid "Couldn't reach GitHub to check for updates"
 msgstr "Impossibile raggiungere GitHub per controllare gli aggiornamenti"
 
-#: mintcare/gui.py:1631
+#: mintcare/gui.py:1635
 msgid "No newer MintCare version found"
 msgstr "Nessuna versione più recente di MintCare"
 
-#: mintcare/gui.py:1634
+#: mintcare/gui.py:1638
 msgid "Running from source: update with 'git pull' in the project folder"
 msgstr ""
 "Esecuzione dal sorgente: aggiorna con 'git pull' nella cartella del progetto"
 
-#: mintcare/gui.py:1636
+#: mintcare/gui.py:1640
 #, python-brace-format
 msgid "Update MintCare to {0}?"
 msgstr "Aggiornare MintCare alla {0}?"
 
-#: mintcare/gui.py:1637
+#: mintcare/gui.py:1641
 #, python-brace-format
 msgid ""
 "Downloads <tt>{0}</tt> ({1}) from GitHub, checks its SHA-256 checksum, then "
@@ -2343,7 +2366,7 @@ msgstr ""
 "Scarica <tt>{0}</tt> ({1}) da GitHub, ne verifica il checksum SHA-256 e lo "
 "installa. Poi MintCare si riavvia."
 
-#: mintcare/gui.py:1641
+#: mintcare/gui.py:1645
 #, python-brace-format
 msgid ""
 "\n"
@@ -2352,61 +2375,61 @@ msgstr ""
 "\n"
 "━━━ Aggiornamento di MintCare alla {0} ━━━"
 
-#: mintcare/gui.py:1644
+#: mintcare/gui.py:1648
 #, python-brace-format
 msgid "Downloaded and verified {0} (sha256 {1}…)"
 msgstr "{0} scaricato e verificato (sha256 {1}…)"
 
-#: mintcare/gui.py:1649
+#: mintcare/gui.py:1653
 msgid "The update didn't install — see Activity log"
 msgstr "L'aggiornamento non è stato installato — vedi il Registro attività"
 
-#: mintcare/gui.py:1651
+#: mintcare/gui.py:1655
 #, python-brace-format
 msgid "Updated MintCare to {0}"
 msgstr "MintCare aggiornato alla {0}"
 
-#: mintcare/gui.py:1652
+#: mintcare/gui.py:1656
 #, python-brace-format
 msgid "MintCare {0} is installed"
 msgstr "MintCare {0} è installato"
 
-#: mintcare/gui.py:1652
+#: mintcare/gui.py:1656
 msgid "Restart MintCare now to use it?"
 msgstr "Riavviare ora MintCare per usarlo?"
 
-#: mintcare/gui.py:1656
+#: mintcare/gui.py:1660
 msgid "Updating MintCare…"
 msgstr "Aggiornamento di MintCare…"
 
-#: mintcare/gui.py:1664
+#: mintcare/gui.py:1668
 msgid ""
 "MintCare's own updates and the health of the software sources apt installs "
 "from."
 msgstr ""
 "Gli aggiornamenti di MintCare e lo stato delle sorgenti da cui installa apt."
 
-#: mintcare/gui.py:1665
+#: mintcare/gui.py:1669
 msgid "Open Software Sources"
 msgstr "Apri Sorgenti software"
 
-#: mintcare/gui.py:1667
+#: mintcare/gui.py:1671
 msgid "Test sources"
 msgstr "Verifica sorgenti"
 
-#: mintcare/gui.py:1676
+#: mintcare/gui.py:1680
 msgid "Release notes"
 msgstr "Note di rilascio"
 
-#: mintcare/gui.py:1678
+#: mintcare/gui.py:1682
 msgid "Check now"
 msgstr "Controlla ora"
 
-#: mintcare/gui.py:1687
+#: mintcare/gui.py:1691
 msgid "SOFTWARE SOURCES"
 msgstr "SORGENTI SOFTWARE"
 
-#: mintcare/gui.py:1689
+#: mintcare/gui.py:1693
 msgid ""
 "Official Mint and Ubuntu sources can't be switched off here — use Software "
 "Sources for mirrors. Test sources runs apt-get update and records any errors."
@@ -2415,63 +2438,63 @@ msgstr ""
 "Sorgenti software per i mirror. Verifica sorgenti esegue apt-get update e "
 "registra gli errori."
 
-#: mintcare/gui.py:1700
+#: mintcare/gui.py:1704
 #, python-brace-format
 msgid "You have MintCare {0}. "
 msgstr "Hai MintCare {0}. "
 
-#: mintcare/gui.py:1701
+#: mintcare/gui.py:1705
 msgid "Press Check now to look for a newer version on GitHub."
 msgstr "Premi Controlla ora per cercare una versione più recente su GitHub."
 
-#: mintcare/gui.py:1709
+#: mintcare/gui.py:1713
 #, python-brace-format
 msgid "<b>MintCare {0} is available</b> (released {1}). You have {2}."
 msgstr "<b>MintCare {0} è disponibile</b> (pubblicato il {1}). Hai {2}."
 
-#: mintcare/gui.py:1710
+#: mintcare/gui.py:1714
 #, python-brace-format
 msgid "  <small>Checked at {0}.</small>"
 msgstr "  <small>Controllato alle {0}.</small>"
 
-#: mintcare/gui.py:1710
+#: mintcare/gui.py:1714
 #, python-brace-format
 msgid "You have the latest version, <b>{0}</b>."
 msgstr "Hai l'ultima versione, <b>{0}</b>."
 
-#: mintcare/gui.py:1728
+#: mintcare/gui.py:1732
 #, python-brace-format
 msgid " · last tested {0}"
 msgstr " · ultima verifica {0}"
 
-#: mintcare/gui.py:1729
+#: mintcare/gui.py:1733
 #, python-brace-format
 msgid "SOFTWARE SOURCES ({0}, {1} with problems){2}"
 msgstr "SORGENTI SOFTWARE ({0}, {1} con problemi){2}"
 
-#: mintcare/gui.py:1757 mintcare/gui.py:5244
+#: mintcare/gui.py:1761 mintcare/gui.py:5252
 msgid "Disable"
 msgstr "Disattiva"
 
-#: mintcare/gui.py:1757 mintcare/gui.py:5244
+#: mintcare/gui.py:1761 mintcare/gui.py:5252
 msgid "Enable"
 msgstr "Attiva"
 
-#: mintcare/gui.py:1767 mintcare/gui.py:5353
+#: mintcare/gui.py:1771 mintcare/gui.py:5361
 #, python-brace-format
 msgid "Disable {0}?"
 msgstr "Disattivare {0}?"
 
-#: mintcare/gui.py:1767 mintcare/gui.py:5353
+#: mintcare/gui.py:1771 mintcare/gui.py:5361
 #, python-brace-format
 msgid "Enable {0}?"
 msgstr "Attivare {0}?"
 
-#: mintcare/gui.py:1768
+#: mintcare/gui.py:1772
 msgid "Packages from this source will get updates again."
 msgstr "I pacchetti di questa sorgente riceveranno di nuovo aggiornamenti."
 
-#: mintcare/gui.py:1769
+#: mintcare/gui.py:1773
 msgid ""
 "apt will stop installing and updating packages from this source. Installed "
 "packages stay installed. You can enable it again here."
@@ -2479,7 +2502,7 @@ msgstr ""
 "apt smetterà di installare e aggiornare i pacchetti di questa sorgente. I "
 "pacchetti installati restano installati. Puoi riattivarla qui."
 
-#: mintcare/gui.py:1771
+#: mintcare/gui.py:1775
 #, python-brace-format
 msgid ""
 "\n"
@@ -2490,15 +2513,15 @@ msgstr ""
 "\n"
 "Prima viene fatta una copia di <tt>{0}</tt> in /var/lib/mintcare."
 
-#: mintcare/gui.py:1777
+#: mintcare/gui.py:1781
 msgid "Software source"
 msgstr "Sorgente software"
 
-#: mintcare/gui.py:1780
+#: mintcare/gui.py:1784
 msgid "Updating software sources…"
 msgstr "Aggiornamento delle sorgenti software…"
 
-#: mintcare/gui.py:1784
+#: mintcare/gui.py:1788
 msgid ""
 "\n"
 "━━━ Testing software sources (apt-get update) ━━━"
@@ -2506,39 +2529,39 @@ msgstr ""
 "\n"
 "━━━ Verifica delle sorgenti software (apt-get update) ━━━"
 
-#: mintcare/gui.py:1797
+#: mintcare/gui.py:1801
 msgid "Source test was cancelled or failed"
 msgstr "La verifica delle sorgenti è stata annullata o non è riuscita"
 
-#: mintcare/gui.py:1800
+#: mintcare/gui.py:1804
 msgid "All software sources downloaded fine"
 msgstr "Tutte le sorgenti software sono state scaricate correttamente"
 
-#: mintcare/gui.py:1800
+#: mintcare/gui.py:1804
 #, python-brace-format
 msgid "Tested sources: {0} error(s)"
 msgstr "Sorgenti verificate: {0} errore/i"
 
-#: mintcare/gui.py:1802
+#: mintcare/gui.py:1806
 #, python-brace-format
 msgid "Tested software sources: {0} error(s)"
 msgstr "Sorgenti software verificate: {0} errore/i"
 
-#: mintcare/gui.py:1805
+#: mintcare/gui.py:1809
 msgid "Testing software sources…"
 msgstr "Verifica delle sorgenti software…"
 
-#: mintcare/gui.py:1811 mintcare/gui.py:2265
+#: mintcare/gui.py:1815 mintcare/gui.py:2269
 #, python-brace-format
 msgid "Could not start {0}: {1}"
 msgstr "Impossibile avviare {0}: {1}"
 
-#: mintcare/gui.py:1817
+#: mintcare/gui.py:1821
 #, python-brace-format
 msgid "Could not open {0}: {1}"
 msgstr "Impossibile aprire {0}: {1}"
 
-#: mintcare/gui.py:1825
+#: mintcare/gui.py:1829
 msgid ""
 "What other computers can reach on this PC, and whether the firewall is in "
 "front of it."
@@ -2546,39 +2569,39 @@ msgstr ""
 "Cosa possono raggiungere gli altri computer su questo PC, e se il firewall "
 "lo protegge."
 
-#: mintcare/gui.py:1826
+#: mintcare/gui.py:1830
 msgid "Identify programs"
 msgstr "Identifica programmi"
 
-#: mintcare/gui.py:1835 mintcare/tweaks.py:381
+#: mintcare/gui.py:1839 mintcare/tweaks.py:381
 msgid "Firewall (UFW)"
 msgstr "Firewall (UFW)"
 
-#: mintcare/gui.py:1852
+#: mintcare/gui.py:1856
 msgid "LISTENING SERVICES"
 msgstr "SERVIZI IN ASCOLTO"
 
-#: mintcare/gui.py:1854
+#: mintcare/gui.py:1858
 msgid "Show local-only services"
 msgstr "Mostra servizi solo locali"
 
-#: mintcare/gui.py:1861
+#: mintcare/gui.py:1865
 msgid "LOGIN SECURITY"
 msgstr "SICUREZZA DEGLI ACCESSI"
 
-#: mintcare/gui.py:1865
+#: mintcare/gui.py:1869
 msgid "MALWARE SCAN"
 msgstr "SCANSIONE MALWARE"
 
-#: mintcare/gui.py:1894
+#: mintcare/gui.py:1898
 msgid "Harden SSH"
 msgstr "Rafforza SSH"
 
-#: mintcare/gui.py:1895
+#: mintcare/gui.py:1899
 msgid "Harden the SSH server?"
 msgstr "Rafforzare il server SSH?"
 
-#: mintcare/gui.py:1895
+#: mintcare/gui.py:1899
 msgid ""
 "Turns off root login, limits password attempts to 3 and shortens the login "
 "window. Your own logins keep working."
@@ -2586,19 +2609,19 @@ msgstr ""
 "Disattiva l'accesso di root, limita i tentativi di password a 3 e accorcia "
 "la finestra di accesso. I tuoi accessi continuano a funzionare."
 
-#: mintcare/gui.py:1897
+#: mintcare/gui.py:1901
 msgid "Hardening SSH…"
 msgstr "Rafforzamento di SSH…"
 
-#: mintcare/gui.py:1900
+#: mintcare/gui.py:1904
 msgid "Turn on screen lock"
 msgstr "Attiva il blocco schermo"
 
-#: mintcare/gui.py:1901
+#: mintcare/gui.py:1905
 msgid "Screen lock turned on"
 msgstr "Blocco schermo attivato"
 
-#: mintcare/gui.py:1910
+#: mintcare/gui.py:1914
 msgid ""
 "ClamAV is installed. Scanning your home folder takes a while (minutes to "
 "hours, depending on how many files you have)."
@@ -2606,11 +2629,11 @@ msgstr ""
 "ClamAV è installato. La scansione della cartella home richiede tempo (da "
 "minuti a ore, a seconda di quanti file hai)."
 
-#: mintcare/gui.py:1912
+#: mintcare/gui.py:1916
 msgid "Scan home folder"
 msgstr "Scansiona la cartella home"
 
-#: mintcare/gui.py:1915
+#: mintcare/gui.py:1919
 msgid ""
 "Linux malware is rare, but a scan can catch Windows malware in downloads you "
 "might pass on. ClamAV isn't installed."
@@ -2618,75 +2641,75 @@ msgstr ""
 "Il malware per Linux è raro, ma una scansione può trovare malware per "
 "Windows nei download che potresti condividere. ClamAV non è installato."
 
-#: mintcare/gui.py:1917
+#: mintcare/gui.py:1921
 msgid "Install ClamAV"
 msgstr "Installa ClamAV"
 
-#: mintcare/gui.py:1918
+#: mintcare/gui.py:1922
 msgid "Installing ClamAV…"
 msgstr "Installazione di ClamAV…"
 
-#: mintcare/gui.py:1921
+#: mintcare/gui.py:1925
 msgid "Rootkit check"
 msgstr "Controllo rootkit"
 
-#: mintcare/gui.py:1922
+#: mintcare/gui.py:1926
 msgid "Checking for rootkits…"
 msgstr "Ricerca di rootkit…"
 
-#: mintcare/gui.py:1923
+#: mintcare/gui.py:1927
 msgid "Rootkit check done — warnings (if any) are in the Activity log"
 msgstr ""
 "Controllo rootkit completato — gli eventuali avvisi sono nel Registro "
 "attività"
 
-#: mintcare/gui.py:1926
+#: mintcare/gui.py:1930
 msgid "Install rkhunter"
 msgstr "Installa rkhunter"
 
-#: mintcare/gui.py:1927
+#: mintcare/gui.py:1931
 msgid "Installing rkhunter…"
 msgstr "Installazione di rkhunter…"
 
-#: mintcare/gui.py:1949 mintcare/gui.py:2952
+#: mintcare/gui.py:1953 mintcare/gui.py:2956
 msgid "Cancelled."
 msgstr "Annullato."
 
-#: mintcare/gui.py:1950
+#: mintcare/gui.py:1954
 #, python-brace-format
 msgid "Scan finished: {0} infected file(s)."
 msgstr "Scansione completata: {0} file infetto/i."
 
-#: mintcare/gui.py:1951
+#: mintcare/gui.py:1955
 msgid "The scanner reported an error — see the Activity log."
 msgstr "Lo scanner ha segnalato un errore — vedi il Registro attività."
 
-#: mintcare/gui.py:1956
+#: mintcare/gui.py:1960
 msgid "Quarantine these files"
 msgstr "Metti in quarantena questi file"
 
-#: mintcare/gui.py:1957
+#: mintcare/gui.py:1961
 msgid "Quarantining…"
 msgstr "Messa in quarantena…"
 
-#: mintcare/gui.py:1959
+#: mintcare/gui.py:1963
 #, python-brace-format
 msgid "Malware scan: {0} infected file(s)"
 msgstr "Scansione malware: {0} file infetto/i"
 
-#: mintcare/gui.py:1961
+#: mintcare/gui.py:1965
 msgid "Scanning… press the button again to cancel"
 msgstr "Scansione… premi di nuovo il pulsante per annullare"
 
-#: mintcare/gui.py:1968
+#: mintcare/gui.py:1972
 msgid "off"
 msgstr "disattivato"
 
-#: mintcare/gui.py:1968
+#: mintcare/gui.py:1972
 msgid "on"
 msgstr "attivato"
 
-#: mintcare/gui.py:1969
+#: mintcare/gui.py:1973
 msgid ""
 "Incoming connections are blocked unless you allowed them. Outgoing traffic "
 "is unaffected."
@@ -2694,71 +2717,71 @@ msgstr ""
 "Le connessioni in entrata sono bloccate se non le hai consentite. Il "
 "traffico in uscita non è interessato."
 
-#: mintcare/gui.py:1971
+#: mintcare/gui.py:1975
 msgid "Anything listening on the network can be reached by other computers."
 msgstr ""
 "Tutto ciò che è in ascolto sulla rete è raggiungibile da altri computer."
 
-#: mintcare/gui.py:1978
+#: mintcare/gui.py:1982
 #, python-brace-format
 msgid "LISTENING SERVICES ({0} open to the network, {1} local only)"
 msgstr "SERVIZI IN ASCOLTO ({0} aperti alla rete, {1} solo locali)"
 
-#: mintcare/gui.py:1981
+#: mintcare/gui.py:1985
 msgid "Nothing is listening for connections from other computers."
 msgstr "Niente è in attesa di connessioni da altri computer."
 
-#: mintcare/gui.py:1984
+#: mintcare/gui.py:1988
 msgid "local network"
 msgstr "rete locale"
 
-#: mintcare/gui.py:1984
+#: mintcare/gui.py:1988
 msgid "network"
 msgstr "rete"
 
-#: mintcare/gui.py:1984
+#: mintcare/gui.py:1988
 msgid "this PC only"
 msgstr "solo questo PC"
 
-#: mintcare/gui.py:1997
+#: mintcare/gui.py:2001
 msgid "firewalled"
 msgstr "dietro il firewall"
 
-#: mintcare/gui.py:1999
+#: mintcare/gui.py:2003
 msgid "(owned by a system service — use Identify programs)"
 msgstr "(appartiene a un servizio di sistema — usa Identifica programmi)"
 
-#: mintcare/gui.py:2005
+#: mintcare/gui.py:2009
 msgid "Turn off"
 msgstr "Disattiva"
 
-#: mintcare/gui.py:2021
+#: mintcare/gui.py:2025
 msgid "Identify was cancelled or failed"
 msgstr "L'identificazione è stata annullata o non è riuscita"
 
-#: mintcare/gui.py:2025
+#: mintcare/gui.py:2029
 msgid "No firewall rules reported."
 msgstr "Nessuna regola del firewall segnalata."
 
-#: mintcare/gui.py:2027
+#: mintcare/gui.py:2031
 #, python-brace-format
 msgid "Identified {0} listening program(s)"
 msgstr "{0} programma/i in ascolto identificato/i"
 
-#: mintcare/gui.py:2029
+#: mintcare/gui.py:2033
 msgid "Reading services and firewall rules…"
 msgstr "Lettura dei servizi e delle regole del firewall…"
 
-#: mintcare/gui.py:2040
+#: mintcare/gui.py:2044
 msgid "Enabling the firewall…"
 msgstr "Attivazione del firewall…"
 
-#: mintcare/gui.py:2043
+#: mintcare/gui.py:2047
 #, python-brace-format
 msgid "Turn off {0}?"
 msgstr "Disattivare {0}?"
 
-#: mintcare/gui.py:2044
+#: mintcare/gui.py:2048
 #, python-brace-format
 msgid ""
 "Stops <tt>{0}</tt> now and at boot. Undo it from Maintenance › Undo, or with "
@@ -2767,17 +2790,17 @@ msgstr ""
 "Ferma <tt>{0}</tt> ora e a ogni avvio. Annulla da Manutenzione › Annulla, o "
 "con Attiva nella pagina Avvio."
 
-#: mintcare/gui.py:2049
+#: mintcare/gui.py:2053
 #, python-brace-format
 msgid "Turn off {0}"
 msgstr "Disattiva {0}"
 
-#: mintcare/gui.py:2052
+#: mintcare/gui.py:2056
 #, python-brace-format
 msgid "Turning off {0}…"
 msgstr "Disattivazione di {0}…"
 
-#: mintcare/gui.py:2060
+#: mintcare/gui.py:2064
 msgid ""
 "Checks networking (incl. TCP BBR), packages, disks, memory, drivers, "
 "security and services."
@@ -2785,57 +2808,57 @@ msgstr ""
 "Controlla rete (incluso TCP BBR), pacchetti, dischi, memoria, driver, "
 "sicurezza e servizi."
 
-#: mintcare/gui.py:2061 mintcare/gui.py:2528
+#: mintcare/gui.py:2065 mintcare/gui.py:2532
 msgid "Rescan"
 msgstr "Nuova scansione"
 
-#: mintcare/gui.py:2062
+#: mintcare/gui.py:2066
 msgid "Fix all"
 msgstr "Correggi tutto"
 
-#: mintcare/gui.py:2079
+#: mintcare/gui.py:2083
 msgid "Scan complete: all good"
 msgstr "Scansione completata: tutto a posto"
 
-#: mintcare/gui.py:2079
+#: mintcare/gui.py:2083
 #, python-brace-format
 msgid "Scan complete: {0} issue(s)"
 msgstr "Scansione completata: {0} problema/i"
 
-#: mintcare/gui.py:2082
+#: mintcare/gui.py:2086
 msgid "Scanning system…"
 msgstr "Scansione del sistema…"
 
-#: mintcare/gui.py:2098
+#: mintcare/gui.py:2102
 #, python-brace-format
 msgid "{0}/{1} passing"
 msgstr "{0}/{1} superati"
 
-#: mintcare/gui.py:2134
+#: mintcare/gui.py:2138
 msgid "Click to see what MintCare checked, and the command behind it"
 msgstr "Fai clic per vedere cosa ha controllato MintCare e il comando usato"
 
-#: mintcare/gui.py:2180 mintcare/gui.py:2181
+#: mintcare/gui.py:2184 mintcare/gui.py:2185
 msgid "Running…"
 msgstr "In esecuzione…"
 
-#: mintcare/gui.py:2185
+#: mintcare/gui.py:2189
 msgid "(could not run the command)"
 msgstr "(impossibile eseguire il comando)"
 
-#: mintcare/gui.py:2211
+#: mintcare/gui.py:2215
 msgid "Open in terminal"
 msgstr "Apri nel terminale"
 
-#: mintcare/gui.py:2213
+#: mintcare/gui.py:2217
 msgid "Copy"
 msgstr "Copia"
 
-#: mintcare/gui.py:2214
+#: mintcare/gui.py:2218
 msgid "Ask the assistant"
 msgstr "Chiedi all'assistente"
 
-#: mintcare/gui.py:2215
+#: mintcare/gui.py:2219
 #, python-brace-format
 msgid ""
 "MintCare's check “{0}” says: {1}. What does this mean on my PC, and what "
@@ -2844,172 +2867,172 @@ msgstr ""
 "Il controllo “{0}” di MintCare dice: {1}. Cosa significa sul mio PC e cosa "
 "devo fare?"
 
-#: mintcare/gui.py:2226
+#: mintcare/gui.py:2230
 msgid "Command copied to the clipboard"
 msgstr "Comando copiato negli appunti"
 
-#: mintcare/gui.py:2238
+#: mintcare/gui.py:2242
 msgid "No terminal app found"
 msgstr "Nessun terminale trovato"
 
-#: mintcare/gui.py:2261
+#: mintcare/gui.py:2265
 #, python-brace-format
 msgid "Opening {0} for: {1}"
 msgstr "Apertura di {0} per: {1}"
 
-#: mintcare/gui.py:2271
+#: mintcare/gui.py:2275
 msgid "system repairs"
 msgstr "riparazioni di sistema"
 
-#: mintcare/gui.py:2281
+#: mintcare/gui.py:2285
 msgid "Fixing…"
 msgstr "Correzione…"
 
-#: mintcare/gui.py:2287
+#: mintcare/gui.py:2291
 #, python-brace-format
 msgid "Before and after: {0} fixed, {1} still open, {2} new"
 msgstr "Prima e dopo: {0} risolti, {1} ancora aperti, {2} nuovi"
 
-#: mintcare/gui.py:2290
+#: mintcare/gui.py:2294
 #, python-brace-format
 msgid "  Fixed: {0}"
 msgstr "  Risolto: {0}"
 
-#: mintcare/gui.py:2292
+#: mintcare/gui.py:2296
 #, python-brace-format
 msgid "  Still open: {0}"
 msgstr "  Ancora aperto: {0}"
 
-#: mintcare/gui.py:2294
+#: mintcare/gui.py:2298
 #, python-brace-format
 msgid "  New: {0}"
 msgstr "  Nuovo: {0}"
 
-#: mintcare/gui.py:2305
+#: mintcare/gui.py:2309
 msgid "Nothing to fix automatically"
 msgstr "Niente da correggere automaticamente"
 
-#: mintcare/gui.py:2309
+#: mintcare/gui.py:2313
 #, python-brace-format
 msgid "Apply {0} fix(es)?"
 msgstr "Applicare {0} correzione/i?"
 
-#: mintcare/gui.py:2318 mintcare/gui.py:2482
+#: mintcare/gui.py:2322 mintcare/gui.py:2486
 msgid "Toggle tweaks, then press Apply. Switching a tweak off reverts it."
 msgstr ""
 "Attiva o disattiva le ottimizzazioni, poi premi Applica. Disattivarne una la "
 "annulla."
 
-#: mintcare/gui.py:2319
+#: mintcare/gui.py:2323
 msgid "Undo all…"
 msgstr "Annulla tutto…"
 
-#: mintcare/gui.py:2320
+#: mintcare/gui.py:2324
 msgid "Select recommended"
 msgstr "Seleziona le consigliate"
 
-#: mintcare/gui.py:2321
+#: mintcare/gui.py:2325
 msgid "Apply changes"
 msgstr "Applica modifiche"
 
-#: mintcare/gui.py:2326
+#: mintcare/gui.py:2330
 msgid "PROFILES"
 msgstr "PROFILI"
 
-#: mintcare/gui.py:2344
+#: mintcare/gui.py:2348
 msgid "Select"
 msgstr "Seleziona"
 
-#: mintcare/gui.py:2376
+#: mintcare/gui.py:2380
 msgid "recommended"
 msgstr "consigliata"
 
-#: mintcare/gui.py:2423
+#: mintcare/gui.py:2427
 msgid "n/a on this PC"
 msgstr "non applicabile su questo PC"
 
-#: mintcare/gui.py:2426
+#: mintcare/gui.py:2430
 msgid "already active"
 msgstr "già attiva"
 
-#: mintcare/gui.py:2429
+#: mintcare/gui.py:2433
 msgid "applied"
 msgstr "applicata"
 
-#: mintcare/gui.py:2444
+#: mintcare/gui.py:2448
 #, python-brace-format
 msgid "{0}/{1} active"
 msgstr "{0}/{1} attive"
 
-#: mintcare/gui.py:2456
+#: mintcare/gui.py:2460
 #, python-brace-format
 msgid "{0}: {1} tweak(s) selected — press Apply changes"
 msgstr "{0}: {1} ottimizzazione/i selezionata/e — premi Applica modifiche"
 
-#: mintcare/gui.py:2457
+#: mintcare/gui.py:2461
 #, python-brace-format
 msgid "Profile '{0}' selected: "
 msgstr "Profilo '{0}' selezionato: "
 
-#: mintcare/gui.py:2459
+#: mintcare/gui.py:2463
 #, python-brace-format
 msgid "Everything in the {0} profile is already active"
 msgstr "Tutto il profilo {0} è già attivo"
 
-#: mintcare/gui.py:2480
+#: mintcare/gui.py:2484
 #, python-brace-format
 msgid "<b>{0}</b> to apply, <b>{1}</b> to revert — press <b>Apply changes</b>."
 msgstr ""
 "<b>{0}</b> da applicare, <b>{1}</b> da annullare — premi <b>Applica "
 "modifiche</b>."
 
-#: mintcare/gui.py:2493
+#: mintcare/gui.py:2497
 msgid "No changes to apply"
 msgstr "Nessuna modifica da applicare"
 
-#: mintcare/gui.py:2499
+#: mintcare/gui.py:2503
 #, python-brace-format
 msgid "{0} optimisation change(s)"
 msgstr "{0} modifica/che di ottimizzazione"
 
-#: mintcare/gui.py:2504
+#: mintcare/gui.py:2508
 msgid "Optimisation"
 msgstr "Ottimizzazione"
 
-#: mintcare/gui.py:2507
+#: mintcare/gui.py:2511
 msgid "Applying tweaks…"
 msgstr "Applicazione delle ottimizzazioni…"
 
-#: mintcare/gui.py:2513
+#: mintcare/gui.py:2517
 msgid "All recommended tweaks are already active"
 msgstr "Tutte le ottimizzazioni consigliate sono già attive"
 
-#: mintcare/gui.py:2516
+#: mintcare/gui.py:2520
 #, python-brace-format
 msgid "Apply {0} recommended tweak(s)?"
 msgstr "Applicare {0} ottimizzazione/i consigliata/e?"
 
-#: mintcare/gui.py:2527
+#: mintcare/gui.py:2531
 msgid "Measures junk first, then removes only what you select."
 msgstr "Prima misura i file superflui, poi rimuove solo ciò che selezioni."
 
-#: mintcare/gui.py:2529
+#: mintcare/gui.py:2533
 msgid "Clean selected"
 msgstr "Pulisci selezionati"
 
-#: mintcare/gui.py:2535
+#: mintcare/gui.py:2539
 msgid "RECLAIMABLE"
 msgstr "RECUPERABILE"
 
-#: mintcare/gui.py:2565
+#: mintcare/gui.py:2569
 msgid "admin"
 msgstr "admin"
 
-#: mintcare/gui.py:2594
+#: mintcare/gui.py:2598
 msgid "Measuring junk…"
 msgstr "Misurazione dei file superflui…"
 
-#: mintcare/gui.py:2602
+#: mintcare/gui.py:2606
 #, python-brace-format
 msgid ""
 "{0} of {1} items selected. Items shown as “—” can't be measured in advance "
@@ -3018,33 +3041,33 @@ msgstr ""
 "{0} di {1} elementi selezionati. Gli elementi indicati con “—” non si "
 "possono misurare in anticipo e possono liberare di più."
 
-#: mintcare/gui.py:2610
+#: mintcare/gui.py:2614
 msgid "Empty the Trash?"
 msgstr "Svuotare il cestino?"
 
-#: mintcare/gui.py:2610
+#: mintcare/gui.py:2614
 msgid "Files in the Trash will be permanently deleted."
 msgstr "I file nel cestino verranno eliminati definitivamente."
 
-#: mintcare/gui.py:2618
+#: mintcare/gui.py:2622
 msgid "Clean-up"
 msgstr "Pulizia"
 
-#: mintcare/gui.py:2620
+#: mintcare/gui.py:2624
 #, python-brace-format
 msgid "Freed {0}"
 msgstr "{0} liberati"
 
-#: mintcare/gui.py:2621 mintcare/gui.py:3249
+#: mintcare/gui.py:2625 mintcare/gui.py:3253
 #, python-brace-format
 msgid "Freed {0} on /"
 msgstr "{0} liberati su /"
 
-#: mintcare/gui.py:2624
+#: mintcare/gui.py:2628
 msgid "Cleaning…"
 msgstr "Pulizia…"
 
-#: mintcare/gui.py:2636
+#: mintcare/gui.py:2640
 msgid ""
 "Find what's using your space: big folders and files, duplicate copies and "
 "old system snapshots. Files go to the Trash, so nothing is lost until you "
@@ -3054,136 +3077,136 @@ msgstr ""
 "vecchi snapshot del sistema. I file vanno nel cestino, quindi non si perde "
 "nulla finché non lo svuoti."
 
-#: mintcare/gui.py:2641
+#: mintcare/gui.py:2645
 msgid "Folders & large files"
 msgstr "Cartelle e file grandi"
 
-#: mintcare/gui.py:2642
+#: mintcare/gui.py:2646
 msgid "Duplicates"
 msgstr "Duplicati"
 
-#: mintcare/gui.py:2643
+#: mintcare/gui.py:2647
 msgid "Timeshift snapshots"
 msgstr "Snapshot di Timeshift"
 
-#: mintcare/gui.py:2644
+#: mintcare/gui.py:2648
 msgid "Old downloads"
 msgstr "Download vecchi"
 
-#: mintcare/gui.py:2657
+#: mintcare/gui.py:2661
 msgid "Whole system"
 msgstr "Intero sistema"
 
-#: mintcare/gui.py:2659
+#: mintcare/gui.py:2663
 msgid "Choose folder…"
 msgstr "Scegli cartella…"
 
-#: mintcare/gui.py:2679
+#: mintcare/gui.py:2683
 msgid "Click a folder to look inside it. Hover for details."
 msgstr ""
 "Fai clic su una cartella per vederne il contenuto. Passa sopra per i "
 "dettagli."
 
-#: mintcare/gui.py:2683
+#: mintcare/gui.py:2687
 msgid "LARGEST FILES"
 msgstr "FILE PIÙ GRANDI"
 
-#: mintcare/gui.py:2686
+#: mintcare/gui.py:2690
 msgid "All types"
 msgstr "Tutti i tipi"
 
-#: mintcare/gui.py:2686
+#: mintcare/gui.py:2690
 msgid "Pictures"
 msgstr "Immagini"
 
-#: mintcare/gui.py:2686
+#: mintcare/gui.py:2690
 msgid "Videos"
 msgstr "Video"
 
-#: mintcare/gui.py:2687
+#: mintcare/gui.py:2691
 msgid "Archives"
 msgstr "Archivi compressi"
 
-#: mintcare/gui.py:2687
+#: mintcare/gui.py:2691
 msgid "Disk images"
 msgstr "Immagini disco"
 
-#: mintcare/gui.py:2687
+#: mintcare/gui.py:2691
 msgid "Music"
 msgstr "Musica"
 
-#: mintcare/gui.py:2688
+#: mintcare/gui.py:2692
 msgid "Other"
 msgstr "Altro"
 
-#: mintcare/gui.py:2701
+#: mintcare/gui.py:2705
 msgid "Choose a folder to analyse"
 msgstr "Scegli una cartella da analizzare"
 
-#: mintcare/gui.py:2704
+#: mintcare/gui.py:2708
 msgid "Analyse"
 msgstr "Analizza"
 
-#: mintcare/gui.py:2714
+#: mintcare/gui.py:2718
 #, python-brace-format
 msgid "Scanning {0} …"
 msgstr "Scansione di {0} …"
 
-#: mintcare/gui.py:2718
+#: mintcare/gui.py:2722
 msgid "{0:,} files · {1}"
 msgstr "{0:,} file · {1}"
 
-#: mintcare/gui.py:2723
+#: mintcare/gui.py:2727
 msgid "Scan failed"
 msgstr "Scansione non riuscita"
 
-#: mintcare/gui.py:2727
+#: mintcare/gui.py:2731
 msgid " (unreadable system folders skipped)"
 msgstr " (cartelle di sistema illeggibili saltate)"
 
-#: mintcare/gui.py:2728
+#: mintcare/gui.py:2732
 msgid "{0:,} files · {1}{2}"
 msgstr "{0:,} file · {1}{2}"
 
-#: mintcare/gui.py:2742
+#: mintcare/gui.py:2746
 msgid "file"
 msgstr "file"
 
-#: mintcare/gui.py:2742
+#: mintcare/gui.py:2746
 msgid "{0:,} files"
 msgstr "{0:,} file"
 
-#: mintcare/gui.py:2747
+#: mintcare/gui.py:2751
 msgid "(smaller items)"
 msgstr "(elementi più piccoli)"
 
-#: mintcare/gui.py:2775
+#: mintcare/gui.py:2779
 #, python-brace-format
 msgid "LARGEST FILES IN {0} ({1})"
 msgstr "FILE PIÙ GRANDI IN {0} ({1})"
 
-#: mintcare/gui.py:2778
+#: mintcare/gui.py:2782
 msgid "No files over 50 MB here."
 msgstr "Nessun file sopra i 50 MB qui."
 
-#: mintcare/gui.py:2791
+#: mintcare/gui.py:2795
 #, python-brace-format
 msgid "Modified {0} · {1}"
 msgstr "Modificato {0} · {1}"
 
-#: mintcare/gui.py:2793 mintcare/gui.py:3094
+#: mintcare/gui.py:2797 mintcare/gui.py:3098
 msgid "Trash"
 msgstr "Cestino"
 
-#: mintcare/gui.py:2795 mintcare/gui.py:3093
+#: mintcare/gui.py:2799 mintcare/gui.py:3097
 msgid "Show"
 msgstr "Mostra"
 
-#: mintcare/gui.py:2805 mintcare/gui.py:3100
+#: mintcare/gui.py:2809 mintcare/gui.py:3104
 msgid "Move to Trash?"
 msgstr "Spostare nel cestino?"
 
-#: mintcare/gui.py:2806 mintcare/gui.py:3100
+#: mintcare/gui.py:2810 mintcare/gui.py:3104
 #, python-brace-format
 msgid ""
 "<tt>{0}</tt>\n"
@@ -3194,50 +3217,50 @@ msgstr ""
 "\n"
 "{1} — puoi ripristinarlo dal cestino finché non lo svuoti."
 
-#: mintcare/gui.py:2811 mintcare/gui.py:3106
+#: mintcare/gui.py:2815 mintcare/gui.py:3110
 #, python-brace-format
 msgid "Could not trash {0}: {1}"
 msgstr "Impossibile spostare {0} nel cestino: {1}"
 
-#: mintcare/gui.py:2812 mintcare/gui.py:3107
+#: mintcare/gui.py:2816 mintcare/gui.py:3111
 msgid "Could not move to Trash"
 msgstr "Impossibile spostare nel cestino"
 
-#: mintcare/gui.py:2814
+#: mintcare/gui.py:2818
 #, python-brace-format
 msgid "Moved to Trash: {0} ({1})"
 msgstr "Spostato nel cestino: {0} ({1})"
 
-#: mintcare/gui.py:2816 mintcare/gui.py:3109 mintcare/gui.py:3110
+#: mintcare/gui.py:2820 mintcare/gui.py:3113 mintcare/gui.py:3114
 #, python-brace-format
 msgid "Moved {0} to the Trash"
 msgstr "{0} spostato nel cestino"
 
-#: mintcare/gui.py:2843
+#: mintcare/gui.py:2847
 msgid "Search in:"
 msgstr "Cerca in:"
 
-#: mintcare/gui.py:2847
+#: mintcare/gui.py:2851
 msgid "Reset"
 msgstr "Ripristina"
 
-#: mintcare/gui.py:2848 mintcare/gui.py:4036
+#: mintcare/gui.py:2852 mintcare/gui.py:4040
 msgid "Add folder…"
 msgstr "Aggiungi cartella…"
 
-#: mintcare/gui.py:2852
+#: mintcare/gui.py:2856
 msgid "Ignore files smaller than"
 msgstr "Ignora i file più piccoli di"
 
-#: mintcare/gui.py:2858
+#: mintcare/gui.py:2862
 msgid "Include hidden files and folders"
 msgstr "Includi file e cartelle nascosti"
 
-#: mintcare/gui.py:2871 mintcare/gui.py:2873
+#: mintcare/gui.py:2875 mintcare/gui.py:2877
 msgid "Find duplicates"
 msgstr "Trova duplicati"
 
-#: mintcare/gui.py:2882
+#: mintcare/gui.py:2886
 msgid ""
 "Duplicates are compared by content (BLAKE2 hash), not by name. The oldest "
 "copy in each group is kept by default."
@@ -3245,54 +3268,54 @@ msgstr ""
 "I duplicati vengono confrontati per contenuto (hash BLAKE2), non per nome. "
 "Per impostazione predefinita si conserva la copia più vecchia di ogni gruppo."
 
-#: mintcare/gui.py:2890
+#: mintcare/gui.py:2894
 msgid "Move selected to Trash"
 msgstr "Sposta la selezione nel cestino"
 
-#: mintcare/gui.py:2910
+#: mintcare/gui.py:2914
 msgid "Add a folder to search"
 msgstr "Aggiungi una cartella in cui cercare"
 
-#: mintcare/gui.py:2913
+#: mintcare/gui.py:2917
 msgid "Add"
 msgstr "Aggiungi"
 
-#: mintcare/gui.py:2930
+#: mintcare/gui.py:2934
 msgid "Listing files…"
 msgstr "Elenco dei file…"
 
-#: mintcare/gui.py:2939
+#: mintcare/gui.py:2943
 msgid "Listing files… {0:,} candidates"
 msgstr "Elenco dei file… {0:,} candidati"
 
-#: mintcare/gui.py:2942
+#: mintcare/gui.py:2946
 #, python-brace-format
 msgid "Comparing contents… {0} of up to {1}"
 msgstr "Confronto dei contenuti… {0} su un massimo di {1}"
 
-#: mintcare/gui.py:2957
+#: mintcare/gui.py:2961
 msgid "Found {0:,} groups of identical files — {1} could be freed."
 msgstr "Trovati {0:,} gruppi di file identici — si potrebbero liberare {1}."
 
-#: mintcare/gui.py:2958
+#: mintcare/gui.py:2962
 msgid "No duplicate files found."
 msgstr "Nessun file duplicato trovato."
 
-#: mintcare/gui.py:2970
+#: mintcare/gui.py:2974
 #, python-brace-format
 msgid "{0} copies · {1} each"
 msgstr "{0} copie · {1} ciascuna"
 
-#: mintcare/gui.py:2971
+#: mintcare/gui.py:2975
 #, python-brace-format
 msgid "{0} wasted"
 msgstr "{0} sprecati"
 
-#: mintcare/gui.py:2987
+#: mintcare/gui.py:2991
 msgid "oldest"
 msgstr "il più vecchio"
 
-#: mintcare/gui.py:2993
+#: mintcare/gui.py:2997
 msgid ""
 "Showing the {0} groups that waste the most space (of {1:,}). Trash these, "
 "then scan again for the rest."
@@ -3300,19 +3323,19 @@ msgstr ""
 "Sono mostrati i {0} gruppi che sprecano più spazio (su {1:,}). Spostali nel "
 "cestino, poi scansiona di nuovo per il resto."
 
-#: mintcare/gui.py:3012
+#: mintcare/gui.py:3016
 msgid "{0:,} files selected · {1}"
 msgstr "{0:,} file selezionati · {1}"
 
-#: mintcare/gui.py:3024
+#: mintcare/gui.py:3028
 msgid " (a group can't have every copy selected)"
 msgstr " (un gruppo non può avere tutte le copie selezionate)"
 
-#: mintcare/gui.py:3024
+#: mintcare/gui.py:3028
 msgid "Nothing selected"
 msgstr "Nulla selezionato"
 
-#: mintcare/gui.py:3027
+#: mintcare/gui.py:3031
 #, python-brace-format
 msgid ""
 "\n"
@@ -3323,38 +3346,38 @@ msgstr ""
 "\n"
 "{0} gruppo/i avevano tutte le copie spuntate e verranno saltati."
 
-#: mintcare/gui.py:3028
+#: mintcare/gui.py:3032
 msgid "Move {0:,} duplicate file(s) to the Trash?"
 msgstr "Spostare {0:,} file duplicato/i nel cestino?"
 
-#: mintcare/gui.py:3029
+#: mintcare/gui.py:3033
 #, python-brace-format
 msgid "Frees {0} once you empty the Trash. One copy of each file is kept."
 msgstr "Libera {0} quando svuoti il cestino. Di ogni file resta una copia."
 
-#: mintcare/gui.py:3046
+#: mintcare/gui.py:3050
 #, python-brace-format
 msgid "Moved duplicate to Trash: {0}"
 msgstr "Duplicato spostato nel cestino: {0}"
 
-#: mintcare/gui.py:3048
+#: mintcare/gui.py:3052
 msgid "Moved {0:,} duplicate file(s) to the Trash ({1})"
 msgstr "{0:,} file duplicato/i spostato/i nel cestino ({1})"
 
-#: mintcare/gui.py:3050
+#: mintcare/gui.py:3054
 #, python-brace-format
 msgid "Could not trash {0}"
 msgstr "Impossibile spostare {0} nel cestino"
 
-#: mintcare/gui.py:3058
+#: mintcare/gui.py:3062
 msgid "Moved {0:,} duplicates ({1}) to the Trash"
 msgstr "{0:,} duplicati ({1}) spostati nel cestino"
 
-#: mintcare/gui.py:3062
+#: mintcare/gui.py:3066
 msgid "Moving duplicates to the Trash…"
 msgstr "Spostamento dei duplicati nel cestino…"
 
-#: mintcare/gui.py:3068 mintcare/gui.py:3087
+#: mintcare/gui.py:3072 mintcare/gui.py:3091
 msgid ""
 "Big files in Downloads that you haven't opened or changed for 3 months. They "
 "go to the Trash, so you can still get them back."
@@ -3362,31 +3385,31 @@ msgstr ""
 "File grandi in Scaricati che non apri né modifichi da 3 mesi. Vanno nel "
 "cestino, quindi puoi ancora recuperarli."
 
-#: mintcare/gui.py:3083
+#: mintcare/gui.py:3087
 msgid "Nothing old and big in Downloads."
 msgstr "Niente di vecchio e grande in Scaricati."
 
-#: mintcare/gui.py:3088
+#: mintcare/gui.py:3092
 #, python-brace-format
 msgid "{0} file, {1}."
 msgid_plural "{0} files, {1}."
 msgstr[0] "{0} file, {1}."
 msgstr[1] "{0} file, {1}."
 
-#: mintcare/gui.py:3095
+#: mintcare/gui.py:3099
 #, python-brace-format
 msgid "Last used {0}"
 msgstr "Ultimo uso {0}"
 
-#: mintcare/gui.py:3118 mintcare/gui.py:4079
+#: mintcare/gui.py:3122 mintcare/gui.py:4083
 msgid "SNAPSHOTS"
 msgstr "SNAPSHOT"
 
-#: mintcare/gui.py:3125
+#: mintcare/gui.py:3129
 msgid "Delete selected"
 msgstr "Elimina selezionati"
 
-#: mintcare/gui.py:3132
+#: mintcare/gui.py:3136
 msgid ""
 "Snapshots share unchanged files, so deleting one frees only what changed "
 "around it. The newest snapshot is always kept, and snapshots you gave a "
@@ -3396,59 +3419,59 @@ msgstr ""
 "ciò che è cambiato intorno a esso. Il più recente viene sempre conservato e "
 "quelli con un commento non sono mai preselezionati."
 
-#: mintcare/gui.py:3151
+#: mintcare/gui.py:3155
 msgid "Schedule: "
 msgstr "Pianificazione: "
 
-#: mintcare/gui.py:3151
+#: mintcare/gui.py:3155
 #, python-brace-format
 msgid "{0} (keeps {1})"
 msgstr "{0} (ne conserva {1})"
 
-#: mintcare/gui.py:3154
+#: mintcare/gui.py:3158
 msgid "No automatic schedule."
 msgstr "Nessuna pianificazione automatica."
 
-#: mintcare/gui.py:3156
+#: mintcare/gui.py:3160
 #, python-brace-format
 msgid "A full system copy is about {0}; later snapshots store only changes."
 msgstr ""
 "Una copia completa del sistema occupa circa {0}; gli snapshot successivi "
 "salvano solo le modifiche."
 
-#: mintcare/gui.py:3165
+#: mintcare/gui.py:3169
 msgid "No snapshots."
 msgstr "Nessuno snapshot."
 
-#: mintcare/gui.py:3180
+#: mintcare/gui.py:3184
 msgid "newest · kept"
 msgstr "il più recente · conservato"
 
-#: mintcare/gui.py:3184
+#: mintcare/gui.py:3188
 msgid "{0} · {1:,} files"
 msgstr "{0} · {1:,} file"
 
-#: mintcare/gui.py:3186
+#: mintcare/gui.py:3190
 msgid "Restore a file…"
 msgstr "Ripristina un file…"
 
-#: mintcare/gui.py:3199
+#: mintcare/gui.py:3203
 msgid "Restore selected"
 msgstr "Ripristina selezionati"
 
-#: mintcare/gui.py:3210
+#: mintcare/gui.py:3214
 #, python-brace-format
 msgid "Restore from the {0} snapshot"
 msgstr "Ripristina dallo snapshot {0}"
 
-#: mintcare/gui.py:3219
+#: mintcare/gui.py:3223
 #, python-brace-format
 msgid "Restore {0} file?"
 msgid_plural "Restore {0} files?"
 msgstr[0] "Ripristinare {0} file?"
 msgstr[1] "Ripristinare {0} file?"
 
-#: mintcare/gui.py:3221
+#: mintcare/gui.py:3225
 msgid ""
 "Each file goes back to where it was. The current version is kept beside it "
 "as NAME.~1~, so you can switch back."
@@ -3456,29 +3479,29 @@ msgstr ""
 "Ogni file torna dov'era. La versione attuale resta accanto come NOME.~1~, "
 "così puoi tornare indietro."
 
-#: mintcare/gui.py:3224
+#: mintcare/gui.py:3228
 msgid "Restore files from Timeshift"
 msgstr "Ripristina file da Timeshift"
 
-#: mintcare/gui.py:3224 mintcare/gui.py:4166
+#: mintcare/gui.py:3228 mintcare/gui.py:4170
 msgid "Restoring…"
 msgstr "Ripristino…"
 
-#: mintcare/gui.py:3225
+#: mintcare/gui.py:3229
 #, python-brace-format
 msgid "Restored {0} from snapshot {1}"
 msgstr "{0} ripristinato dallo snapshot {1}"
 
-#: mintcare/gui.py:3231
+#: mintcare/gui.py:3235
 msgid "Tick the snapshots you want to delete first"
 msgstr "Spunta prima gli snapshot da eliminare"
 
-#: mintcare/gui.py:3238
+#: mintcare/gui.py:3242
 #, python-brace-format
 msgid "Delete {0} Timeshift snapshot(s)?"
 msgstr "Eliminare {0} snapshot di Timeshift?"
 
-#: mintcare/gui.py:3239
+#: mintcare/gui.py:3243
 msgid ""
 "\n"
 "\n"
@@ -3488,33 +3511,33 @@ msgstr ""
 "\n"
 "Non si può annullare; non potrai più tornare a questi punti."
 
-#: mintcare/gui.py:3242
+#: mintcare/gui.py:3246
 #, python-brace-format
 msgid "Delete snapshot {0}"
 msgstr "Elimina lo snapshot {0}"
 
-#: mintcare/gui.py:3247
+#: mintcare/gui.py:3251
 msgid "Snapshot clean-up"
 msgstr "Pulizia degli snapshot"
 
-#: mintcare/gui.py:3250
+#: mintcare/gui.py:3254
 #, python-brace-format
 msgid "Deleted {0} snapshot(s), freed {1}"
 msgstr "{0} snapshot eliminato/i, {1} liberati"
 
-#: mintcare/gui.py:3252
+#: mintcare/gui.py:3256
 msgid "Deleting snapshots…"
 msgstr "Eliminazione degli snapshot…"
 
-#: mintcare/gui.py:3268
+#: mintcare/gui.py:3272
 msgid "Nothing to fix there right now"
 msgstr "Niente da correggere lì al momento"
 
-#: mintcare/gui.py:3273
+#: mintcare/gui.py:3277
 msgid "Applying…"
 msgstr "Applicazione…"
 
-#: mintcare/gui.py:3345
+#: mintcare/gui.py:3349
 msgid ""
 "What's installed and how much space it takes, what you changed and when "
 "(with undo), kernels, the fastest download mirrors and Mint upgrades."
@@ -3523,23 +3546,23 @@ msgstr ""
 "annullamento), i kernel, i mirror più veloci e gli avanzamenti di versione "
 "di Mint."
 
-#: mintcare/gui.py:3351
+#: mintcare/gui.py:3355
 msgid "Held back"
 msgstr "Bloccati"
 
-#: mintcare/gui.py:3351
+#: mintcare/gui.py:3355
 msgid "Installed by you"
 msgstr "Installati da te"
 
-#: mintcare/gui.py:3351
+#: mintcare/gui.py:3355
 msgid "Largest packages"
 msgstr "Pacchetti più grandi"
 
-#: mintcare/gui.py:3356
+#: mintcare/gui.py:3360
 msgid "Filter…"
 msgstr "Filtra…"
 
-#: mintcare/gui.py:3366
+#: mintcare/gui.py:3370
 msgid ""
 "Undo removes the packages that change installed (dependencies that are no "
 "longer needed go too). You'll see exactly what will be removed before "
@@ -3549,7 +3572,7 @@ msgstr ""
 "dipendenze non più necessarie). Vedrai esattamente cosa verrà rimosso prima "
 "che succeda qualcosa."
 
-#: mintcare/gui.py:3373
+#: mintcare/gui.py:3377
 msgid ""
 "Keep the running kernel and the newest one; older kernels are only a "
 "fallback. Removing one frees space in /boot."
@@ -3557,32 +3580,32 @@ msgstr ""
 "Tieni il kernel in uso e quello più recente; i vecchi servono solo di "
 "riserva. Rimuoverne uno libera spazio in /boot."
 
-#: mintcare/gui.py:3381
+#: mintcare/gui.py:3385
 msgid "Find the fastest Linux Mint and Ubuntu mirrors near you."
 msgstr "Trova i mirror di Linux Mint e Ubuntu più veloci vicino a te."
 
-#: mintcare/gui.py:3383
+#: mintcare/gui.py:3387
 msgid "Restore original"
 msgstr "Ripristina l'originale"
 
-#: mintcare/gui.py:3386
+#: mintcare/gui.py:3390
 msgid "Use the fastest"
 msgstr "Usa i più veloci"
 
-#: mintcare/gui.py:3389
+#: mintcare/gui.py:3393
 msgid "Test mirrors"
 msgstr "Verifica i mirror"
 
-#: mintcare/gui.py:3403
+#: mintcare/gui.py:3407
 #, python-brace-format
 msgid "You're on Linux Mint {0} “{1}”."
 msgstr "Stai usando Linux Mint {0} “{1}”."
 
-#: mintcare/gui.py:3405
+#: mintcare/gui.py:3409
 msgid "Check for a new release"
 msgstr "Cerca una nuova versione"
 
-#: mintcare/gui.py:3408
+#: mintcare/gui.py:3412
 msgid ""
 "Point releases (22.x) arrive through Update Manager › Edit › Upgrade; a new "
 "major version uses Mint's upgrade tool."
@@ -3591,117 +3614,117 @@ msgstr ""
 "Aggiorna; una nuova versione principale usa lo strumento di aggiornamento di "
 "Mint."
 
-#: mintcare/gui.py:3414
+#: mintcare/gui.py:3418
 msgid "History"
 msgstr "Cronologia"
 
-#: mintcare/gui.py:3414
+#: mintcare/gui.py:3418
 msgid "Installed"
 msgstr "Installati"
 
-#: mintcare/gui.py:3415
+#: mintcare/gui.py:3419
 msgid "Kernels"
 msgstr "Kernel"
 
-#: mintcare/gui.py:3415
+#: mintcare/gui.py:3419
 msgid "Mirrors"
 msgstr "Mirror"
 
-#: mintcare/gui.py:3416
+#: mintcare/gui.py:3420
 msgid "Mint upgrade"
 msgstr "Aggiornamento di Mint"
 
-#: mintcare/gui.py:3453
+#: mintcare/gui.py:3457
 msgid "{0} packages · {1}  (of {2:,} installed)"
 msgstr "{0} pacchetti · {1}  (su {2:,} installati)"
 
-#: mintcare/gui.py:3459
+#: mintcare/gui.py:3463
 msgid "Release hold"
 msgstr "Sblocca"
 
-#: mintcare/gui.py:3460
+#: mintcare/gui.py:3464
 msgid "Releasing hold…"
 msgstr "Sblocco in corso…"
 
-#: mintcare/gui.py:3463
+#: mintcare/gui.py:3467
 msgid "Remove…"
 msgstr "Rimuovi…"
 
-#: mintcare/gui.py:3464
+#: mintcare/gui.py:3468
 msgid "system"
 msgstr "sistema"
 
-#: mintcare/gui.py:3468
+#: mintcare/gui.py:3472
 msgid "No packages match."
 msgstr "Nessun pacchetto corrisponde."
 
-#: mintcare/gui.py:3468
+#: mintcare/gui.py:3472
 msgid "Nothing to show"
 msgstr "Niente da mostrare"
 
-#: mintcare/gui.py:3471
+#: mintcare/gui.py:3475
 msgid "Remove packages"
 msgstr "Rimuovi pacchetti"
 
-#: mintcare/gui.py:3474
+#: mintcare/gui.py:3478
 msgid "apt can't remove that cleanly — see the Activity log"
 msgstr "apt non riesce a rimuoverlo in modo pulito — vedi il Registro attività"
 
-#: mintcare/gui.py:3475
+#: mintcare/gui.py:3479
 #, python-brace-format
 msgid "apt-get -s remove {0} failed or would remove nothing"
 msgstr "apt-get -s remove {0} non è riuscito o non rimuoverebbe nulla"
 
-#: mintcare/gui.py:3478
+#: mintcare/gui.py:3482
 msgid "This removes:"
 msgstr "Verrà rimosso:"
 
-#: mintcare/gui.py:3481
+#: mintcare/gui.py:3485
 #, python-brace-format
 msgid "{0} other package(s) depend on it and go too."
 msgstr ""
 "{0} altro/i pacchetto/i dipendono da esso e verranno rimossi anch'essi."
 
-#: mintcare/gui.py:3482
+#: mintcare/gui.py:3486
 #, python-brace-format
 msgid "Remove {0} package(s)?"
 msgstr "Rimuovere {0} pacchetto/i?"
 
-#: mintcare/gui.py:3484
+#: mintcare/gui.py:3488
 msgid "Removing packages…"
 msgstr "Rimozione dei pacchetti…"
 
-#: mintcare/gui.py:3485
+#: mintcare/gui.py:3489
 msgid "removing packages"
 msgstr "la rimozione di pacchetti"
 
-#: mintcare/gui.py:3495 mintcare/gui.py:5469
+#: mintcare/gui.py:3499 mintcare/gui.py:5477
 msgid "Undo…"
 msgstr "Annulla…"
 
-#: mintcare/gui.py:3504
+#: mintcare/gui.py:3508
 msgid "running"
 msgstr "in esecuzione"
 
-#: mintcare/gui.py:3506
+#: mintcare/gui.py:3510
 msgid "newest"
 msgstr "più recente"
 
-#: mintcare/gui.py:3508 mintcare/gui.py:4121
+#: mintcare/gui.py:3512 mintcare/gui.py:4125
 msgid "Remove"
 msgstr "Rimuovi"
 
-#: mintcare/gui.py:3509
+#: mintcare/gui.py:3513
 #, python-brace-format
 msgid "Linux {0}"
 msgstr "Linux {0}"
 
-#: mintcare/gui.py:3514
+#: mintcare/gui.py:3518
 #, python-brace-format
 msgid "Remove kernel {0}?"
 msgstr "Rimuovere il kernel {0}?"
 
-#: mintcare/gui.py:3515
+#: mintcare/gui.py:3519
 msgid ""
 "You keep the running and newest kernels to boot from. The boot menu is "
 "updated."
@@ -3709,53 +3732,53 @@ msgstr ""
 "Restano il kernel in uso e quello più recente per l'avvio. Il menu di avvio "
 "viene aggiornato."
 
-#: mintcare/gui.py:3516
+#: mintcare/gui.py:3520
 msgid "Removing kernel…"
 msgstr "Rimozione del kernel…"
 
-#: mintcare/gui.py:3521
+#: mintcare/gui.py:3525
 msgid "Testing mirrors…"
 msgstr "Verifica dei mirror…"
 
-#: mintcare/gui.py:3534
+#: mintcare/gui.py:3538
 #, python-brace-format
 msgid "{0} mirrors"
 msgstr "Mirror di {0}"
 
-#: mintcare/gui.py:3536
+#: mintcare/gui.py:3540
 msgid "no answer"
 msgstr "nessuna risposta"
 
-#: mintcare/gui.py:3539
+#: mintcare/gui.py:3543
 msgid "current"
 msgstr "attuale"
 
-#: mintcare/gui.py:3541
+#: mintcare/gui.py:3545
 msgid "out of date"
 msgstr "non aggiornato"
 
-#: mintcare/gui.py:3545
+#: mintcare/gui.py:3549
 #, python-brace-format
 msgid "Tested mirrors in {0}. "
 msgstr "Mirror verificati in {0}. "
 
-#: mintcare/gui.py:3545
+#: mintcare/gui.py:3549
 msgid "your area"
 msgstr "tua zona"
 
-#: mintcare/gui.py:3546
+#: mintcare/gui.py:3550
 msgid "A faster mirror is available."
 msgstr "È disponibile un mirror più veloce."
 
-#: mintcare/gui.py:3546
+#: mintcare/gui.py:3550
 msgid "You're already on the fastest."
 msgstr "Stai già usando il più veloce."
 
-#: mintcare/gui.py:3557
+#: mintcare/gui.py:3561
 msgid "Switch to the fastest mirrors?"
 msgstr "Passare ai mirror più veloci?"
 
-#: mintcare/gui.py:3558
+#: mintcare/gui.py:3562
 #, python-brace-format
 msgid ""
 "Linux Mint: <tt>{0}</tt>\n"
@@ -3768,19 +3791,19 @@ msgstr ""
 "\n"
 "L'elenco originale viene salvato e può essere ripristinato qui."
 
-#: mintcare/gui.py:3560
+#: mintcare/gui.py:3564
 msgid "Switching mirrors…"
 msgstr "Cambio dei mirror…"
 
-#: mintcare/gui.py:3564
+#: mintcare/gui.py:3568
 msgid "Restoring mirrors…"
 msgstr "Ripristino dei mirror…"
 
-#: mintcare/gui.py:3568 mintcare/gui.py:3725
+#: mintcare/gui.py:3572 mintcare/gui.py:3729
 msgid "Checking…"
 msgstr "Controllo…"
 
-#: mintcare/gui.py:3574
+#: mintcare/gui.py:3578
 #, python-brace-format
 msgid ""
 "<b>Linux Mint {0} “{1}” is available.</b> Check the list below, then start "
@@ -3789,7 +3812,7 @@ msgstr ""
 "<b>Linux Mint {0} “{1}” è disponibile.</b> Controlla l'elenco qui sotto, poi "
 "avvia lo strumento di aggiornamento."
 
-#: mintcare/gui.py:3576
+#: mintcare/gui.py:3580
 msgid ""
 "No newer Linux Mint release yet. Point releases also appear in Update "
 "Manager › Edit › Upgrade."
@@ -3797,19 +3820,19 @@ msgstr ""
 "Ancora nessuna versione più recente di Linux Mint. Le versioni minori "
 "compaiono anche in Gestore aggiornamenti › Modifica › Aggiorna."
 
-#: mintcare/gui.py:3584
+#: mintcare/gui.py:3588
 msgid "Start the upgrade tool"
 msgstr "Avvia lo strumento di aggiornamento"
 
-#: mintcare/gui.py:3593
+#: mintcare/gui.py:3597
 msgid "Installing Mint's upgrade tool…"
 msgstr "Installazione dello strumento di aggiornamento di Mint…"
 
-#: mintcare/gui.py:3594
+#: mintcare/gui.py:3598
 msgid "Install mintupgrade"
 msgstr "Installa mintupgrade"
 
-#: mintcare/gui.py:3603
+#: mintcare/gui.py:3607
 msgid ""
 "What's using your processor and memory right now, what each program is, and "
 "a way to close one that's stuck."
@@ -3817,49 +3840,49 @@ msgstr ""
 "Cosa sta usando ora processore e memoria, cos'è ogni programma, e un modo "
 "per chiuderne uno bloccato."
 
-#: mintcare/gui.py:3607
+#: mintcare/gui.py:3611
 msgid "Sort by CPU"
 msgstr "Ordina per CPU"
 
-#: mintcare/gui.py:3608
+#: mintcare/gui.py:3612
 msgid "Sort by memory"
 msgstr "Ordina per memoria"
 
-#: mintcare/gui.py:3611
+#: mintcare/gui.py:3615
 msgid "Filter by name…"
 msgstr "Filtra per nome…"
 
-#: mintcare/gui.py:3613
+#: mintcare/gui.py:3617
 msgid "Include system processes"
 msgstr "Includi i processi di sistema"
 
-#: mintcare/gui.py:3615
+#: mintcare/gui.py:3619
 msgid "Pause"
 msgstr "Pausa"
 
-#: mintcare/gui.py:3654
+#: mintcare/gui.py:3658
 #, no-python-format, python-brace-format
 msgid "{0} processes · {1:.0f}% of all CPU · showing {2}"
 msgstr "{0} processi · {1:.0f}% di tutta la CPU · mostrati {2}"
 
-#: mintcare/gui.py:3657
+#: mintcare/gui.py:3661
 msgid "What is this?"
 msgstr "Che cos'è?"
 
-#: mintcare/gui.py:3658 mintcare/gui.py:3680
+#: mintcare/gui.py:3662 mintcare/gui.py:3684
 msgid "End"
 msgstr "Termina"
 
-#: mintcare/gui.py:3663
+#: mintcare/gui.py:3667
 msgid "No description for this one."
 msgstr "Nessuna descrizione per questo."
 
-#: mintcare/gui.py:3676
+#: mintcare/gui.py:3680
 #, python-brace-format
 msgid "End {0} ({1})?"
 msgstr "Terminare {0} ({1})?"
 
-#: mintcare/gui.py:3678
+#: mintcare/gui.py:3682
 msgid ""
 "Unsaved work in that program will be lost. 'Force' stops a program that "
 "doesn't respond."
@@ -3867,29 +3890,29 @@ msgstr ""
 "Il lavoro non salvato in quel programma andrà perso. 'Forza' ferma un "
 "programma che non risponde."
 
-#: mintcare/gui.py:3680
+#: mintcare/gui.py:3684
 msgid "Force"
 msgstr "Forza"
 
-#: mintcare/gui.py:3690
+#: mintcare/gui.py:3694
 #, python-brace-format
 msgid "Ended {0}"
 msgstr "{0} terminato"
 
-#: mintcare/gui.py:3692
+#: mintcare/gui.py:3696
 msgid "It had already closed"
 msgstr "Era già chiuso"
 
-#: mintcare/gui.py:3694
+#: mintcare/gui.py:3698
 msgid "Not allowed to end that process"
 msgstr "Non è consentito terminare quel processo"
 
-#: mintcare/gui.py:3697
+#: mintcare/gui.py:3701
 #, python-brace-format
 msgid "Ending {0}…"
 msgstr "Chiusura di {0}…"
 
-#: mintcare/gui.py:3706
+#: mintcare/gui.py:3710
 msgid ""
 "Step-by-step checks and one-click fixes for sound, network, printers, "
 "Bluetooth and crashing programs."
@@ -3897,68 +3920,68 @@ msgstr ""
 "Controlli passo passo e correzioni con un clic per audio, rete, stampanti, "
 "Bluetooth e programmi che vanno in crash."
 
-#: mintcare/gui.py:3708
+#: mintcare/gui.py:3712
 msgid "Support bundle…"
 msgstr "Pacchetto di supporto…"
 
-#: mintcare/gui.py:3712
+#: mintcare/gui.py:3716
 msgid "Printers & Bluetooth"
 msgstr "Stampanti e Bluetooth"
 
-#: mintcare/gui.py:3712
+#: mintcare/gui.py:3716
 msgid "Sound"
 msgstr "Audio"
 
-#: mintcare/gui.py:3739
+#: mintcare/gui.py:3743
 msgid "No problems found."
 msgstr "Nessun problema trovato."
 
-#: mintcare/gui.py:3755
+#: mintcare/gui.py:3759
 #, python-brace-format
 msgid "Sound server: {0}"
 msgstr "Server audio: {0}"
 
-#: mintcare/gui.py:3755
+#: mintcare/gui.py:3759
 msgid "not running"
 msgstr "non in esecuzione"
 
-#: mintcare/gui.py:3756
+#: mintcare/gui.py:3760
 msgid "Play test sound"
 msgstr "Riproduci suono di prova"
 
-#: mintcare/gui.py:3757
+#: mintcare/gui.py:3761
 msgid "Restart sound system"
 msgstr "Riavvia il sistema audio"
 
-#: mintcare/gui.py:3758
+#: mintcare/gui.py:3762
 msgid "Reset sound settings"
 msgstr "Ripristina le impostazioni audio"
 
-#: mintcare/gui.py:3764 mintcare/gui.py:3894
+#: mintcare/gui.py:3768 mintcare/gui.py:3898
 msgid "default"
 msgstr "predefinita"
 
-#: mintcare/gui.py:3766
+#: mintcare/gui.py:3770
 msgid "muted"
 msgstr "silenziata"
 
-#: mintcare/gui.py:3767
+#: mintcare/gui.py:3771
 msgid "Use this"
 msgstr "Usa questo"
 
-#: mintcare/gui.py:3769
+#: mintcare/gui.py:3773
 msgid "Set to 70%"
 msgstr "Imposta al 70%"
 
-#: mintcare/gui.py:3773
+#: mintcare/gui.py:3777
 msgid "OUTPUTS"
 msgstr "USCITE"
 
-#: mintcare/gui.py:3787
+#: mintcare/gui.py:3791
 msgid "Sound: fixed volume/default output"
 msgstr "Audio: volume e uscita predefinita corretti"
 
-#: mintcare/gui.py:3792
+#: mintcare/gui.py:3796
 msgid ""
 "Forgets saved volumes and device choices (a copy is kept in ~/.local/state/"
 "wireplumber.mintcare-bak), then restarts the sound system."
@@ -3966,36 +3989,36 @@ msgstr ""
 "Dimentica volumi e dispositivi salvati (una copia resta in ~/.local/state/"
 "wireplumber.mintcare-bak), poi riavvia il sistema audio."
 
-#: mintcare/gui.py:3792
+#: mintcare/gui.py:3796
 msgid "Reset sound settings?"
 msgstr "Ripristinare le impostazioni audio?"
 
-#: mintcare/gui.py:3807
+#: mintcare/gui.py:3811
 msgid "Couldn't reach speed.cloudflare.com — check your internet connection."
 msgstr ""
 "Impossibile raggiungere speed.cloudflare.com — controlla la connessione a "
 "Internet."
 
-#: mintcare/gui.py:3809
+#: mintcare/gui.py:3813
 #, python-brace-format
 msgid "{0:.1f} Mb/s"
 msgstr "{0:.1f} Mb/s"
 
-#: mintcare/gui.py:3810
+#: mintcare/gui.py:3814
 #, python-brace-format
 msgid "Download {0} · Upload {1} · Latency {2:.0f} ms"
 msgstr "Download {0} · Upload {1} · Latenza {2:.0f} ms"
 
-#: mintcare/gui.py:3812
+#: mintcare/gui.py:3816
 #, python-brace-format
 msgid "Speed test: {0}"
 msgstr "Test di velocità: {0}"
 
-#: mintcare/gui.py:3821
+#: mintcare/gui.py:3825
 msgid "Testing internet speed…"
 msgstr "Misurazione della velocità di Internet…"
 
-#: mintcare/gui.py:3835
+#: mintcare/gui.py:3839
 #, python-brace-format
 msgid ""
 "{0} · signal {1}% · channel {2} ({3}) · {4} networks nearby on the same "
@@ -4003,50 +4026,50 @@ msgid ""
 msgstr ""
 "{0} · segnale {1}% · canale {2} ({3}) · {4} reti vicine sullo stesso canale"
 
-#: mintcare/gui.py:3838
+#: mintcare/gui.py:3842
 #, python-brace-format
 msgid "Ping {0}"
 msgstr "Ping {0}"
 
-#: mintcare/gui.py:3840
+#: mintcare/gui.py:3844
 #, no-python-format, python-brace-format
 msgid "{0:.1f} ms, {1}% loss"
 msgstr "{0:.1f} ms, {1}% di perdita"
 
-#: mintcare/gui.py:3842
+#: mintcare/gui.py:3846
 #, no-python-format, python-brace-format
 msgid "{0}% loss"
 msgstr "{0}% di perdita"
 
-#: mintcare/gui.py:3843
+#: mintcare/gui.py:3847
 msgid "DNS lookup"
 msgstr "Richiesta DNS"
 
-#: mintcare/gui.py:3844
+#: mintcare/gui.py:3848
 msgid "Router"
 msgstr "Router"
 
-#: mintcare/gui.py:3844
+#: mintcare/gui.py:3848
 msgid "none"
 msgstr "nessuno"
 
-#: mintcare/gui.py:3850 mintcare/gui.py:3882
+#: mintcare/gui.py:3854 mintcare/gui.py:3886
 msgid "Flush DNS cache"
 msgstr "Svuota la cache DNS"
 
-#: mintcare/gui.py:3851
+#: mintcare/gui.py:3855
 msgid "Reset networking"
 msgstr "Ripristina la rete"
 
-#: mintcare/gui.py:3852
+#: mintcare/gui.py:3856
 msgid "Test again"
 msgstr "Verifica di nuovo"
 
-#: mintcare/gui.py:3859
+#: mintcare/gui.py:3863
 msgid "Internet speed"
 msgstr "Velocità di Internet"
 
-#: mintcare/gui.py:3861
+#: mintcare/gui.py:3865
 msgid ""
 "Measures download and upload speed against speed.cloudflare.com (uses up to "
 "about 120 MB of data)."
@@ -4054,161 +4077,161 @@ msgstr ""
 "Misura la velocità di download e upload con speed.cloudflare.com (usa fino a "
 "circa 120 MB di dati)."
 
-#: mintcare/gui.py:3865
+#: mintcare/gui.py:3869
 msgid "Test speed"
 msgstr "Misura velocità"
 
-#: mintcare/gui.py:3869
+#: mintcare/gui.py:3873
 msgid "NEARBY WI-FI"
 msgstr "WI-FI VICINE"
 
-#: mintcare/gui.py:3872
+#: mintcare/gui.py:3876
 msgid "(hidden)"
 msgstr "(nascosta)"
 
-#: mintcare/gui.py:3872
+#: mintcare/gui.py:3876
 #, python-brace-format
 msgid "channel {0} · {1} · {2}"
 msgstr "canale {0} · {1} · {2}"
 
-#: mintcare/gui.py:3873 mintcare/gui.py:3924
+#: mintcare/gui.py:3877 mintcare/gui.py:3928
 msgid "connected"
 msgstr "connesso"
 
-#: mintcare/gui.py:3879
+#: mintcare/gui.py:3883
 msgid "Disconnects for a few seconds, then reconnects."
 msgstr "Si disconnette per qualche secondo, poi si riconnette."
 
-#: mintcare/gui.py:3879
+#: mintcare/gui.py:3883
 msgid "Reset networking?"
 msgstr "Ripristinare la rete?"
 
-#: mintcare/gui.py:3882
+#: mintcare/gui.py:3886
 msgid "Flushing DNS…"
 msgstr "Svuotamento del DNS…"
 
-#: mintcare/gui.py:3889
+#: mintcare/gui.py:3893
 msgid "PRINTERS"
 msgstr "STAMPANTI"
 
-#: mintcare/gui.py:3896
+#: mintcare/gui.py:3900
 msgid "paused"
 msgstr "in pausa"
 
-#: mintcare/gui.py:3897
+#: mintcare/gui.py:3901
 msgid "Make default"
 msgstr "Imposta come predefinita"
 
-#: mintcare/gui.py:3898 mintcare/gui.py:3952
+#: mintcare/gui.py:3902 mintcare/gui.py:3956
 #, python-brace-format
 msgid "Default printer: {0}"
 msgstr "Stampante predefinita: {0}"
 
-#: mintcare/gui.py:3902
+#: mintcare/gui.py:3906
 #, python-brace-format
 msgid "Job {0}"
 msgstr "Lavoro {0}"
 
-#: mintcare/gui.py:3902
+#: mintcare/gui.py:3906
 msgid "waiting"
 msgstr "in attesa"
 
-#: mintcare/gui.py:3904
+#: mintcare/gui.py:3908
 msgid "Add one in Menu › Printers."
 msgstr "Aggiungine una da Menu › Stampanti."
 
-#: mintcare/gui.py:3904
+#: mintcare/gui.py:3908
 msgid "No printers set up"
 msgstr "Nessuna stampante configurata"
 
-#: mintcare/gui.py:3907
+#: mintcare/gui.py:3911
 msgid "Restart printing service"
 msgstr "Riavvia il servizio di stampa"
 
-#: mintcare/gui.py:3910
+#: mintcare/gui.py:3914
 msgid "Cancel all jobs"
 msgstr "Annulla tutti i lavori"
 
-#: mintcare/gui.py:3912
+#: mintcare/gui.py:3916
 msgid "Printer settings"
 msgstr "Impostazioni stampante"
 
-#: mintcare/gui.py:3916
+#: mintcare/gui.py:3920
 msgid "BLUETOOTH"
 msgstr "BLUETOOTH"
 
-#: mintcare/gui.py:3918
+#: mintcare/gui.py:3922
 msgid "No Bluetooth adapter found."
 msgstr "Nessun adattatore Bluetooth trovato."
 
-#: mintcare/gui.py:3926
+#: mintcare/gui.py:3930
 #, python-brace-format
 msgid "battery {0}%"
 msgstr "batteria {0}%"
 
-#: mintcare/gui.py:3927
+#: mintcare/gui.py:3931
 msgid "Forget"
 msgstr "Dimentica"
 
-#: mintcare/gui.py:3929
+#: mintcare/gui.py:3933
 msgid "Connect"
 msgstr "Connetti"
 
-#: mintcare/gui.py:3933
+#: mintcare/gui.py:3937
 msgid "No paired devices"
 msgstr "Nessun dispositivo associato"
 
-#: mintcare/gui.py:3936
+#: mintcare/gui.py:3940
 msgid "Restart Bluetooth"
 msgstr "Riavvia il Bluetooth"
 
-#: mintcare/gui.py:3937
+#: mintcare/gui.py:3941
 msgid "Restarting Bluetooth…"
 msgstr "Riavvio del Bluetooth…"
 
-#: mintcare/gui.py:3939
+#: mintcare/gui.py:3943
 msgid "Pair a device"
 msgstr "Associa un dispositivo"
 
-#: mintcare/gui.py:3951
+#: mintcare/gui.py:3955
 #, python-brace-format
 msgid "{0} is now your default printer"
 msgstr "{0} è ora la tua stampante predefinita"
 
-#: mintcare/gui.py:3955
+#: mintcare/gui.py:3959
 msgid "Cancel all print jobs?"
 msgstr "Annullare tutti i lavori di stampa?"
 
-#: mintcare/gui.py:3955
+#: mintcare/gui.py:3959
 msgid "Everything waiting to print is removed."
 msgstr "Tutto ciò che è in attesa di stampa viene rimosso."
 
-#: mintcare/gui.py:3956
+#: mintcare/gui.py:3960
 msgid "Cancel all print jobs"
 msgstr "Annulla tutti i lavori di stampa"
 
-#: mintcare/gui.py:3956
+#: mintcare/gui.py:3960
 msgid "Cancelling jobs…"
 msgstr "Annullamento dei lavori…"
 
-#: mintcare/gui.py:3959
+#: mintcare/gui.py:3963
 msgid "Restarting printing…"
 msgstr "Riavvio della stampa…"
 
-#: mintcare/gui.py:3962
+#: mintcare/gui.py:3966
 msgid "Resuming printer…"
 msgstr "Ripresa della stampante…"
 
-#: mintcare/gui.py:3966
+#: mintcare/gui.py:3970
 #, python-brace-format
 msgid "Forget {0}?"
 msgstr "Dimenticare {0}?"
 
-#: mintcare/gui.py:3966
+#: mintcare/gui.py:3970
 msgid "You'll need to pair it again to use it."
 msgstr "Dovrai associarlo di nuovo per usarlo."
 
-#: mintcare/gui.py:3973
+#: mintcare/gui.py:3977
 msgid ""
 "Programs that crashed recently. The same program crashing again and again "
 "usually means it needs updating or reinstalling."
@@ -4216,43 +4239,43 @@ msgstr ""
 "Programmi andati in crash di recente. Se lo stesso programma va in crash più "
 "volte, di solito va aggiornato o reinstallato."
 
-#: mintcare/gui.py:3980
+#: mintcare/gui.py:3984
 msgid "dump kept"
 msgstr "dump conservato"
 
-#: mintcare/gui.py:3982
+#: mintcare/gui.py:3986
 msgid "Click for the full crash report"
 msgstr "Fai clic per il rapporto di crash completo"
 
-#: mintcare/gui.py:4001
+#: mintcare/gui.py:4005
 msgid "No crash reports"
 msgstr "Nessun rapporto di crash"
 
-#: mintcare/gui.py:4001
+#: mintcare/gui.py:4005
 msgid "Nothing has crashed recently."
 msgstr "Niente è andato in crash di recente."
 
-#: mintcare/gui.py:4005
+#: mintcare/gui.py:4009
 msgid "Delete stored crash dumps"
 msgstr "Elimina i dump dei crash salvati"
 
-#: mintcare/gui.py:4006
+#: mintcare/gui.py:4010
 msgid "Delete stored crash dumps?"
 msgstr "Eliminare i dump dei crash salvati?"
 
-#: mintcare/gui.py:4006
+#: mintcare/gui.py:4010
 msgid "Frees the space they use; the list of crashes stays in the log."
 msgstr "Libera lo spazio che occupano; l'elenco dei crash resta nel registro."
 
-#: mintcare/gui.py:4007
+#: mintcare/gui.py:4011
 msgid "Delete crash dumps"
 msgstr "Elimina i dump dei crash"
 
-#: mintcare/gui.py:4007
+#: mintcare/gui.py:4011
 msgid "Deleting…"
 msgstr "Eliminazione…"
 
-#: mintcare/gui.py:4018
+#: mintcare/gui.py:4022
 msgid ""
 "Copies your personal folders to another drive. Each backup is a dated "
 "snapshot; files that didn't change are hard-linked, so extra snapshots cost "
@@ -4263,47 +4286,47 @@ msgstr ""
 "gli snapshot aggiuntivi non occupano quasi spazio. Timeshift copre il "
 "sistema; questo copre i tuoi file."
 
-#: mintcare/gui.py:4023
+#: mintcare/gui.py:4027
 msgid "Destination"
 msgstr "Destinazione"
 
-#: mintcare/gui.py:4026
+#: mintcare/gui.py:4030
 msgid "Choose drive…"
 msgstr "Scegli disco…"
 
-#: mintcare/gui.py:4033
+#: mintcare/gui.py:4037
 msgid "Folders"
 msgstr "Cartelle"
 
-#: mintcare/gui.py:4042 mintcare/gui.py:4043
+#: mintcare/gui.py:4046 mintcare/gui.py:4047
 msgid "Automatic backup"
 msgstr "Backup automatico"
 
-#: mintcare/gui.py:4047
+#: mintcare/gui.py:4051
 msgid "Every Sunday"
 msgstr "Ogni domenica"
 
-#: mintcare/gui.py:4047 mintcare/gui.py:5395
+#: mintcare/gui.py:4051 mintcare/gui.py:5403
 msgid "Every day"
 msgstr "Ogni giorno"
 
-#: mintcare/gui.py:4047
+#: mintcare/gui.py:4051
 msgid "Monthly"
 msgstr "Mensile"
 
-#: mintcare/gui.py:4051
+#: mintcare/gui.py:4055
 msgid "Keep"
 msgstr "Conserva"
 
-#: mintcare/gui.py:4055
+#: mintcare/gui.py:4059
 msgid "snapshots"
 msgstr "snapshot"
 
-#: mintcare/gui.py:4088
+#: mintcare/gui.py:4092
 msgid "Move MintCare to another PC"
 msgstr "Sposta MintCare su un altro PC"
 
-#: mintcare/gui.py:4089
+#: mintcare/gui.py:4093
 msgid ""
 "Save your MintCare settings, the optimisations it applied and your startup-"
 "app choices to a file, then import them on another computer."
@@ -4311,92 +4334,92 @@ msgstr ""
 "Salva in un file le impostazioni di MintCare, le ottimizzazioni applicate e "
 "le scelte delle app all'avvio, poi importale su un altro computer."
 
-#: mintcare/gui.py:4093
+#: mintcare/gui.py:4097
 msgid "Import…"
 msgstr "Importa…"
 
-#: mintcare/gui.py:4094
+#: mintcare/gui.py:4098
 msgid "Export…"
 msgstr "Esporta…"
 
-#: mintcare/gui.py:4105
+#: mintcare/gui.py:4109
 msgid "(not chosen)"
 msgstr "(non scelto)"
 
-#: mintcare/gui.py:4125
+#: mintcare/gui.py:4129
 msgid "measuring…"
 msgstr "misurazione…"
 
-#: mintcare/gui.py:4127
+#: mintcare/gui.py:4131
 #, python-brace-format
 msgid "{0} to back up (first time)"
 msgstr "{0} da salvare (prima volta)"
 
-#: mintcare/gui.py:4131
+#: mintcare/gui.py:4135
 #, python-brace-format
 msgid "Last backup {0}: {1} changed file(s). "
 msgstr "Ultimo backup {0}: {1} file modificato/i. "
 
-#: mintcare/gui.py:4131
+#: mintcare/gui.py:4135
 msgid "No backup yet. "
 msgstr "Ancora nessun backup. "
 
-#: mintcare/gui.py:4132
+#: mintcare/gui.py:4136
 msgid "Automatic backup is off."
 msgstr "Il backup automatico è disattivato."
 
-#: mintcare/gui.py:4132
+#: mintcare/gui.py:4136
 #, python-brace-format
 msgid "Next automatic backup: {0}."
 msgstr "Prossimo backup automatico: {0}."
 
-#: mintcare/gui.py:4135
+#: mintcare/gui.py:4139
 #, python-brace-format
 msgid "SNAPSHOTS ({0})"
 msgstr "SNAPSHOT ({0})"
 
-#: mintcare/gui.py:4138
+#: mintcare/gui.py:4142
 msgid "Open"
 msgstr "Apri"
 
-#: mintcare/gui.py:4140
+#: mintcare/gui.py:4144
 msgid "Restore…"
 msgstr "Ripristina…"
 
-#: mintcare/gui.py:4143
+#: mintcare/gui.py:4147
 msgid "No snapshots yet"
 msgstr "Ancora nessuno snapshot"
 
-#: mintcare/gui.py:4143
+#: mintcare/gui.py:4147
 msgid "Press Back up now to make the first one."
 msgstr "Premi Esegui il backup ora per creare il primo."
 
-#: mintcare/gui.py:4147
+#: mintcare/gui.py:4151
 #, python-brace-format
 msgid "Restore from the backup of {0}"
 msgstr "Ripristina dal backup del {0}"
 
-#: mintcare/gui.py:4148
+#: mintcare/gui.py:4152
 msgid "Restore everything"
 msgstr "Ripristina tutto"
 
-#: mintcare/gui.py:4151
+#: mintcare/gui.py:4155
 msgid "everything in this backup"
 msgstr "tutto il contenuto di questo backup"
 
-#: mintcare/gui.py:4152
+#: mintcare/gui.py:4156
 #, python-brace-format
 msgid "{0} item"
 msgid_plural "{0} items"
 msgstr[0] "{0} elemento"
 msgstr[1] "{0} elementi"
 
-#: mintcare/gui.py:4153
+#: mintcare/gui.py:4157
 #, python-brace-format
 msgid "Restore {0}?"
 msgstr "Ripristinare {0}?"
 
-#: mintcare/gui.py:4154
+#: mintcare/gui.py:4158
 msgid ""
 "Files go back to where they were backed up from. Anything they would replace "
 "is kept beside it as NAME.before-restore, so nothing is lost."
@@ -4404,99 +4427,99 @@ msgstr ""
 "I file tornano dove sono stati salvati. Ciò che sostituirebbero resta "
 "accanto come NOME.before-restore, quindi non si perde nulla."
 
-#: mintcare/gui.py:4162
+#: mintcare/gui.py:4166
 #, python-brace-format
 msgid "Could not restore {0}: {1}"
 msgstr "Impossibile ripristinare {0}: {1}"
 
-#: mintcare/gui.py:4162
+#: mintcare/gui.py:4166
 #, python-brace-format
 msgid "Restored {0}"
 msgstr "{0} ripristinato"
 
-#: mintcare/gui.py:4163
+#: mintcare/gui.py:4167
 #, python-brace-format
 msgid "Restored {0} from the backup of {1}"
 msgstr "{0} ripristinato dal backup del {1}"
 
-#: mintcare/gui.py:4164
+#: mintcare/gui.py:4168
 #, python-brace-format
 msgid "Restore finished with {0} problem(s) — see the Activity log"
 msgstr "Ripristino terminato con {0} problema/i — vedi il Registro attività"
 
-#: mintcare/gui.py:4165
+#: mintcare/gui.py:4169
 msgid "Restore finished"
 msgstr "Ripristino terminato"
 
-#: mintcare/gui.py:4179
+#: mintcare/gui.py:4183
 #, python-brace-format
 msgid "Backup timer: {0}"
 msgstr "Timer di backup: {0}"
 
-#: mintcare/gui.py:4187
+#: mintcare/gui.py:4191
 msgid "Choose a destination first"
 msgstr "Scegli prima una destinazione"
 
-#: mintcare/gui.py:4193
+#: mintcare/gui.py:4197
 msgid "Automatic backup turned on"
 msgstr "Backup automatico attivato"
 
-#: mintcare/gui.py:4196
+#: mintcare/gui.py:4200
 msgid "Automatic backup turned off"
 msgstr "Backup automatico disattivato"
 
-#: mintcare/gui.py:4202
+#: mintcare/gui.py:4206
 msgid "Choose"
 msgstr "Scegli"
 
-#: mintcare/gui.py:4209
+#: mintcare/gui.py:4213
 msgid "Choose where to keep backups"
 msgstr "Scegli dove tenere i backup"
 
-#: mintcare/gui.py:4217
+#: mintcare/gui.py:4221
 msgid "Add a folder to back up"
 msgstr "Aggiungi una cartella da salvare"
 
-#: mintcare/gui.py:4250
+#: mintcare/gui.py:4254
 #, python-brace-format
 msgid "Backup done: {0} changed file(s)"
 msgstr "Backup completato: {0} file modificato/i"
 
-#: mintcare/gui.py:4250
+#: mintcare/gui.py:4254
 #, python-brace-format
 msgid "Backup: {0}"
 msgstr "Backup: {0}"
 
-#: mintcare/gui.py:4256
+#: mintcare/gui.py:4260
 msgid "Export MintCare settings"
 msgstr "Esporta le impostazioni di MintCare"
 
-#: mintcare/gui.py:4266
+#: mintcare/gui.py:4270
 #, python-brace-format
 msgid "Exported settings and {0} optimisation(s)"
 msgstr "Esportate le impostazioni e {0} ottimizzazione/i"
 
-#: mintcare/gui.py:4269
+#: mintcare/gui.py:4273
 msgid "Import MintCare settings"
 msgstr "Importa le impostazioni di MintCare"
 
-#: mintcare/gui.py:4272
+#: mintcare/gui.py:4276
 msgid "Import"
 msgstr "Importa"
 
-#: mintcare/gui.py:4280
+#: mintcare/gui.py:4284
 #, python-brace-format
 msgid "Import failed: {0}"
 msgstr "Importazione non riuscita: {0}"
 
-#: mintcare/gui.py:4290
+#: mintcare/gui.py:4294
 #, python-brace-format
 msgid "Imported settings; {0} optimisation(s) selected — press Apply changes"
 msgstr ""
 "Impostazioni importate; {0} ottimizzazione/i selezionata/e — premi Applica "
 "modifiche"
 
-#: mintcare/gui.py:4298
+#: mintcare/gui.py:4302
 msgid ""
 "Ask about your computer in plain English. Uses Claude by Anthropic — "
 "optional, off until you set it up, and nothing is sent unless you ask."
@@ -4505,20 +4528,20 @@ msgstr ""
 "facoltativo, disattivato finché non lo configuri, e non viene inviato nulla "
 "se non chiedi."
 
-#: mintcare/gui.py:4304
+#: mintcare/gui.py:4308
 #, python-brace-format
 msgid "Model: {0}"
 msgstr "Modello: {0}"
 
-#: mintcare/gui.py:4309
+#: mintcare/gui.py:4313
 msgid "Include my system summary (no names or serial numbers)"
 msgstr "Includi il riepilogo del mio sistema (senza nomi né numeri di serie)"
 
-#: mintcare/gui.py:4311
+#: mintcare/gui.py:4315
 msgid "Let Claude run MintCare's checks"
 msgstr "Lascia che Claude esegua i controlli di MintCare"
 
-#: mintcare/gui.py:4312
+#: mintcare/gui.py:4316
 msgid ""
 "Claude can run the read-only health checks to answer from this PC's real "
 "state. Names, serial numbers and MAC addresses are removed first."
@@ -4527,33 +4550,33 @@ msgstr ""
 "stato reale di questo PC. Nomi, numeri di serie e indirizzi MAC vengono "
 "rimossi prima."
 
-#: mintcare/gui.py:4315
+#: mintcare/gui.py:4319
 msgid "Think harder"
 msgstr "Ragiona di più"
 
-#: mintcare/gui.py:4316
+#: mintcare/gui.py:4320
 msgid "More thinking for tricky problems: slower, and costs more per answer."
 msgstr ""
 "Più ragionamento per i problemi difficili: più lento, e ogni risposta costa "
 "di più."
 
-#: mintcare/gui.py:4326
+#: mintcare/gui.py:4330
 msgid "Ask anything about your PC…"
 msgstr "Chiedi qualsiasi cosa sul tuo PC…"
 
-#: mintcare/gui.py:4329
+#: mintcare/gui.py:4333
 msgid "Send"
 msgstr "Invia"
 
-#: mintcare/gui.py:4333
+#: mintcare/gui.py:4337
 msgid "Clear"
 msgstr "Cancella"
 
-#: mintcare/gui.py:4354
+#: mintcare/gui.py:4358
 msgid "AI support isn't installed"
 msgstr "Il supporto IA non è installato"
 
-#: mintcare/gui.py:4355
+#: mintcare/gui.py:4359
 msgid ""
 "Installs Python's venv module (admin) and the official Anthropic SDK into "
 "MintCare's own folder (~/.local/share/mintcare/ai-venv). About 30 MB."
@@ -4561,15 +4584,15 @@ msgstr ""
 "Installa il modulo venv di Python (admin) e l'SDK ufficiale di Anthropic "
 "nella cartella di MintCare (~/.local/share/mintcare/ai-venv). Circa 30 MB."
 
-#: mintcare/gui.py:4358
+#: mintcare/gui.py:4362
 msgid "Install AI support"
 msgstr "Installa il supporto IA"
 
-#: mintcare/gui.py:4360
+#: mintcare/gui.py:4364
 msgid "Add your Anthropic API key"
 msgstr "Aggiungi la tua chiave API di Anthropic"
 
-#: mintcare/gui.py:4361
+#: mintcare/gui.py:4365
 msgid ""
 "Create one at console.anthropic.com (usage is billed to your account). It's "
 "stored in ~/.config/mintcare/anthropic-key, readable only by you."
@@ -4577,11 +4600,11 @@ msgstr ""
 "Creane una su console.anthropic.com (l'uso è addebitato sul tuo account). "
 "Viene salvata in ~/.config/mintcare/anthropic-key, leggibile solo da te."
 
-#: mintcare/gui.py:4365
+#: mintcare/gui.py:4369
 msgid "Assistant ready"
 msgstr "Assistente pronto"
 
-#: mintcare/gui.py:4366
+#: mintcare/gui.py:4370
 msgid ""
 "Requests go to Anthropic's API using your key. If Claude declines a request, "
 "it's retried automatically on Anthropic's recommended fallback model."
@@ -4590,31 +4613,31 @@ msgstr ""
 "una richiesta, viene ripetuta automaticamente sul modello di riserva "
 "consigliato da Anthropic."
 
-#: mintcare/gui.py:4369
+#: mintcare/gui.py:4373
 msgid "Remove key"
 msgstr "Rimuovi la chiave"
 
-#: mintcare/gui.py:4378
+#: mintcare/gui.py:4382
 msgid "Save key"
 msgstr "Salva la chiave"
 
-#: mintcare/gui.py:4389
+#: mintcare/gui.py:4393
 msgid "Installing AI support…"
 msgstr "Installazione del supporto IA…"
 
-#: mintcare/gui.py:4394
+#: mintcare/gui.py:4398
 msgid "That doesn't look like an Anthropic API key (sk-ant-…)"
 msgstr "Non sembra una chiave API di Anthropic (sk-ant-…)"
 
-#: mintcare/gui.py:4397
+#: mintcare/gui.py:4401
 msgid "Assistant: API key saved"
 msgstr "Assistente: chiave API salvata"
 
-#: mintcare/gui.py:4403
+#: mintcare/gui.py:4407
 msgid "Saved chats"
 msgstr "Chat salvate"
 
-#: mintcare/gui.py:4415
+#: mintcare/gui.py:4419
 msgid ""
 "\n"
 "— Saved chat. New questions start a fresh conversation."
@@ -4622,25 +4645,25 @@ msgstr ""
 "\n"
 "— Chat salvata. Le nuove domande iniziano una nuova conversazione."
 
-#: mintcare/gui.py:4460
+#: mintcare/gui.py:4464
 msgid "MintCare assistant:"
 msgstr "Assistente MintCare:"
 
-#: mintcare/gui.py:4478
+#: mintcare/gui.py:4482
 #, python-brace-format
 msgid "${0:.4f}"
 msgstr "{0:.4f} $"
 
-#: mintcare/gui.py:4478
+#: mintcare/gui.py:4482
 #, python-brace-format
 msgid "about ${0:.4f}"
 msgstr "circa {0:.4f} $"
 
-#: mintcare/gui.py:4480
+#: mintcare/gui.py:4484
 msgid "Answered"
 msgstr "Risposto"
 
-#: mintcare/gui.py:4490
+#: mintcare/gui.py:4494
 msgid ""
 "Installed apps, how tightly each one is sandboxed, and switches to tighten "
 "or loosen permissions (your account only — like Flatseal)."
@@ -4648,23 +4671,23 @@ msgstr ""
 "App installate, quanto è isolata ciascuna, e interruttori per restringere o "
 "allentare i permessi (solo per il tuo account — come Flatseal)."
 
-#: mintcare/gui.py:4495
+#: mintcare/gui.py:4499
 msgid "Update all"
 msgstr "Aggiorna tutto"
 
-#: mintcare/gui.py:4501
+#: mintcare/gui.py:4505
 msgid "APPS"
 msgstr "APP"
 
-#: mintcare/gui.py:4501
+#: mintcare/gui.py:4505
 msgid "INSTALLED SIZE"
 msgstr "DIMENSIONE INSTALLATA"
 
-#: mintcare/gui.py:4501
+#: mintcare/gui.py:4505
 msgid "LOOSE SANDBOXES"
 msgstr "ISOLAMENTO DEBOLE"
 
-#: mintcare/gui.py:4510
+#: mintcare/gui.py:4514
 msgid ""
 "Sandbox ratings: STRONG = no broad file or device access; MODERATE = home "
 "folder, all devices or X11; LOOSE = several of those or the whole "
@@ -4675,119 +4698,119 @@ msgstr ""
 "questi o l'intero file system. Le modifiche valgono al prossimo avvio "
 "dell'app."
 
-#: mintcare/gui.py:4559
+#: mintcare/gui.py:4563
 msgid "Flatpak is not installed."
 msgstr "Flatpak non è installato."
 
-#: mintcare/gui.py:4559
+#: mintcare/gui.py:4563
 msgid "No Flatpak apps installed."
 msgstr "Nessuna app Flatpak installata."
 
-#: mintcare/gui.py:4576
+#: mintcare/gui.py:4580
 msgid " sandbox"
 msgstr " isolamento"
 
-#: mintcare/gui.py:4579 mintcare/gui.py:5291
+#: mintcare/gui.py:4583 mintcare/gui.py:5299
 msgid "customised"
 msgstr "personalizzato"
 
-#: mintcare/gui.py:4584
+#: mintcare/gui.py:4588
 msgid "Has access to: "
 msgstr "Ha accesso a: "
 
-#: mintcare/gui.py:4587
+#: mintcare/gui.py:4591
 msgid "Permissions"
 msgstr "Permessi"
 
-#: mintcare/gui.py:4599
+#: mintcare/gui.py:4603
 msgid "broad"
 msgstr "ampio"
 
-#: mintcare/gui.py:4609
+#: mintcare/gui.py:4613
 msgid "Reset to app defaults"
 msgstr "Ripristina i valori dell'app"
 
-#: mintcare/gui.py:4610
+#: mintcare/gui.py:4614
 msgid "Uninstall…"
 msgstr "Disinstalla…"
 
-#: mintcare/gui.py:4631
+#: mintcare/gui.py:4635
 #, python-brace-format
 msgid "Flatpak override failed for {0}: {1}"
 msgstr "flatpak override non riuscito per {0}: {1}"
 
-#: mintcare/gui.py:4632
+#: mintcare/gui.py:4636
 msgid "Could not change permission"
 msgstr "Impossibile cambiare il permesso"
 
-#: mintcare/gui.py:4640
+#: mintcare/gui.py:4644
 #, python-brace-format
 msgid "Flatpak: {0} — {1} {2} (flatpak override --user {3} {4})"
 msgstr "Flatpak: {0} — {1} {2} (flatpak override --user {3} {4})"
 
-#: mintcare/gui.py:4641
+#: mintcare/gui.py:4645
 #, python-brace-format
 msgid "{0}: {1} {2} — restart the app to apply"
 msgstr "{0}: {1} {2} — riavvia l'app per applicare"
 
-#: mintcare/gui.py:4648
+#: mintcare/gui.py:4652
 #, python-brace-format
 msgid "Reset failed for {0}: {1}"
 msgstr "Ripristino non riuscito per {0}: {1}"
 
-#: mintcare/gui.py:4649
+#: mintcare/gui.py:4653
 msgid "Reset failed"
 msgstr "Ripristino non riuscito"
 
-#: mintcare/gui.py:4652
+#: mintcare/gui.py:4656
 #, python-brace-format
 msgid "{0}: permissions reset to defaults"
 msgstr "{0}: permessi ripristinati ai valori predefiniti"
 
-#: mintcare/gui.py:4653
+#: mintcare/gui.py:4657
 #, python-brace-format
 msgid "Flatpak: {0} permissions reset to the app's defaults"
 msgstr "Flatpak: permessi di {0} ripristinati ai valori dell'app"
 
-#: mintcare/gui.py:4654
+#: mintcare/gui.py:4658
 #, python-brace-format
 msgid "{0} permissions reset"
 msgstr "Permessi di {0} ripristinati"
 
-#: mintcare/gui.py:4658
+#: mintcare/gui.py:4662
 #, python-brace-format
 msgid "Uninstall {0}?"
 msgstr "Disinstallare {0}?"
 
-#: mintcare/gui.py:4659
+#: mintcare/gui.py:4663
 #, python-brace-format
 msgid "<tt>{0}</tt> will be removed. Its data in ~/.var/app is kept."
 msgstr ""
 "<tt>{0}</tt> verrà rimosso. I suoi dati in ~/.var/app vengono conservati."
 
-#: mintcare/gui.py:4664
+#: mintcare/gui.py:4668
 #, python-brace-format
 msgid "Uninstall {0}"
 msgstr "Disinstalla {0}"
 
-#: mintcare/gui.py:4667
+#: mintcare/gui.py:4671
 #, python-brace-format
 msgid "Uninstalling {0}…"
 msgstr "Disinstallazione di {0}…"
 
-#: mintcare/gui.py:4675
+#: mintcare/gui.py:4679
 msgid "Updating Flatpaks…"
 msgstr "Aggiornamento dei Flatpak…"
 
-#: mintcare/gui.py:4684
+#: mintcare/gui.py:4688
 msgid "Repairing Flatpak…"
 msgstr "Riparazione di Flatpak…"
 
-#: mintcare/gui.py:4691
+#: mintcare/gui.py:4695
 msgid "Hardware Health"
 msgstr "Stato dell'hardware"
 
-#: mintcare/gui.py:4692
+#: mintcare/gui.py:4696
 msgid ""
 "SMART disk health and live temperatures, read through UDisks2 and kernel "
 "sensors — no password needed."
@@ -4795,55 +4818,55 @@ msgstr ""
 "Stato SMART dei dischi e temperature in tempo reale, letti tramite UDisks2 e "
 "i sensori del kernel — senza password."
 
-#: mintcare/gui.py:4696
+#: mintcare/gui.py:4700
 msgid "Full SMART report"
 msgstr "Rapporto SMART completo"
 
-#: mintcare/gui.py:4702
+#: mintcare/gui.py:4706
 msgid "Your hardware"
 msgstr "Il tuo hardware"
 
-#: mintcare/gui.py:4703
+#: mintcare/gui.py:4707
 msgid "Read RAM details…"
 msgstr "Leggi dettagli RAM…"
 
-#: mintcare/gui.py:4707
+#: mintcare/gui.py:4711
 msgid "Detecting hardware…"
 msgstr "Rilevamento hardware…"
 
-#: mintcare/gui.py:4714
+#: mintcare/gui.py:4718
 msgid "Temperatures & Throttling"
 msgstr "Temperature e throttling"
 
-#: mintcare/gui.py:4715
+#: mintcare/gui.py:4719
 msgid "updates every 2 s"
 msgstr "si aggiorna ogni 2 s"
 
-#: mintcare/gui.py:4733
+#: mintcare/gui.py:4737
 msgid "Check online"
 msgstr "Controlla online"
 
-#: mintcare/gui.py:4736
+#: mintcare/gui.py:4740
 msgid "Reading firmware information…"
 msgstr "Lettura delle informazioni sul firmware…"
 
-#: mintcare/gui.py:4740
+#: mintcare/gui.py:4744
 msgid "Devices"
 msgstr "Dispositivi"
 
-#: mintcare/gui.py:4752
+#: mintcare/gui.py:4756
 msgid "Benchmarks"
 msgstr "Benchmark"
 
-#: mintcare/gui.py:4757
+#: mintcare/gui.py:4761
 msgid "Test CPU"
 msgstr "Prova la CPU"
 
-#: mintcare/gui.py:4758
+#: mintcare/gui.py:4762
 msgid "Test disk"
 msgstr "Prova il disco"
 
-#: mintcare/gui.py:4761
+#: mintcare/gui.py:4765
 msgid ""
 "Disk: writes and reads a 256 MB temporary file (deleted afterwards). CPU: "
 "hashes data on one core and on all cores. Results are kept so you can "
@@ -4853,105 +4876,105 @@ msgstr ""
 "calcola hash su un core e su tutti. I risultati vengono conservati per "
 "confrontare prima e dopo un'ottimizzazione."
 
-#: mintcare/gui.py:4768
+#: mintcare/gui.py:4772
 msgid "DRIVES"
 msgstr "DISCHI"
 
-#: mintcare/gui.py:4771
+#: mintcare/gui.py:4775
 msgid "Reading SMART data…"
 msgstr "Lettura dei dati SMART…"
 
-#: mintcare/gui.py:4788
+#: mintcare/gui.py:4792
 msgid "Read RAM type and speed"
 msgstr "Leggi tipo e velocità della RAM"
 
-#: mintcare/gui.py:4791
+#: mintcare/gui.py:4795
 msgid "Reading RAM details…"
 msgstr "Lettura dettagli RAM…"
 
-#: mintcare/gui.py:4797
+#: mintcare/gui.py:4801
 msgid "No hardware details could be read."
 msgstr "Impossibile leggere i dettagli dell'hardware."
 
-#: mintcare/gui.py:4819
+#: mintcare/gui.py:4823
 msgid "Health unknown"
 msgstr "Stato sconosciuto"
 
-#: mintcare/gui.py:4819
+#: mintcare/gui.py:4823
 #, no-python-format, python-brace-format
 msgid "Holds {0}% of its original charge"
 msgstr "Trattiene il {0}% della carica originale"
 
-#: mintcare/gui.py:4820
+#: mintcare/gui.py:4824
 #, python-brace-format
 msgid " · {0} charge cycles"
 msgstr " · {0} cicli di carica"
 
-#: mintcare/gui.py:4821
+#: mintcare/gui.py:4825
 #, python-brace-format
 msgid " · {0:.1f} of {1:.1f} Wh"
 msgstr " · {0:.1f} di {1:.1f} Wh"
 
-#: mintcare/gui.py:4826
+#: mintcare/gui.py:4830
 msgid "good"
 msgstr "buona"
 
-#: mintcare/gui.py:4826
+#: mintcare/gui.py:4830
 msgid "replace soon"
 msgstr "da sostituire presto"
 
-#: mintcare/gui.py:4826
+#: mintcare/gui.py:4830
 msgid "worn"
 msgstr "usurata"
 
-#: mintcare/gui.py:4845
+#: mintcare/gui.py:4849
 msgid "Disk {0}: write {1:,.0f} MB/s · read {2:,.0f} MB/s"
 msgstr "Disco {0}: scrittura {1:,.0f} MB/s · lettura {2:,.0f} MB/s"
 
-#: mintcare/gui.py:4848
+#: mintcare/gui.py:4852
 msgid "  (before: {0:,.0f} / {1:,.0f} MB/s)"
 msgstr "  (prima: {0:,.0f} / {1:,.0f} MB/s)"
 
-#: mintcare/gui.py:4850
+#: mintcare/gui.py:4854
 msgid "CPU: {0:,.0f} MB/s on one core · {1:,.0f} MB/s on {2} threads"
 msgstr "CPU: {0:,.0f} MB/s su un core · {1:,.0f} MB/s su {2} thread"
 
-#: mintcare/gui.py:4853
+#: mintcare/gui.py:4857
 msgid "  (before: {0:,.0f} / {1:,.0f})"
 msgstr "  (prima: {0:,.0f} / {1:,.0f})"
 
-#: mintcare/gui.py:4855
+#: mintcare/gui.py:4859
 #, python-brace-format
 msgid "Measured {0}"
 msgstr "Misurato {0}"
 
-#: mintcare/gui.py:4864
+#: mintcare/gui.py:4868
 #, python-brace-format
 msgid "Disk test {0}"
 msgstr "Prova del disco {0}"
 
-#: mintcare/gui.py:4867
+#: mintcare/gui.py:4871
 msgid "Testing disk speed…"
 msgstr "Prova della velocità del disco…"
 
-#: mintcare/gui.py:4868
+#: mintcare/gui.py:4872
 msgid "Disk test finished"
 msgstr "Prova del disco completata"
 
-#: mintcare/gui.py:4875
+#: mintcare/gui.py:4879
 msgid "CPU test finished"
 msgstr "Prova della CPU completata"
 
-#: mintcare/gui.py:4875
+#: mintcare/gui.py:4879
 msgid "Testing CPU…"
 msgstr "Prova della CPU…"
 
-#: mintcare/gui.py:4879
+#: mintcare/gui.py:4883
 msgid "fwupd isn't installed, so firmware can't be checked here."
 msgstr ""
 "fwupd non è installato, quindi il firmware non può essere controllato qui."
 
-#: mintcare/gui.py:4893
+#: mintcare/gui.py:4897
 #, python-brace-format
 msgid ""
 "<b>{0} firmware update(s) available.</b> Keep the computer plugged in and "
@@ -4960,47 +4983,47 @@ msgstr ""
 "<b>{0} aggiornamento/i firmware disponibile/i.</b> Tieni il computer "
 "collegato alla corrente e non spegnerlo durante l'aggiornamento."
 
-#: mintcare/gui.py:4900
+#: mintcare/gui.py:4904
 msgid "needs restart"
 msgstr "richiede riavvio"
 
-#: mintcare/gui.py:4907
+#: mintcare/gui.py:4911
 #, python-brace-format
 msgid "Firmware is up to date for {0} updatable device(s)."
 msgstr "Il firmware è aggiornato per {0} dispositivo/i aggiornabile/i."
 
-#: mintcare/gui.py:4908
+#: mintcare/gui.py:4912
 #, python-brace-format
 msgid " The firmware catalogue was refreshed {0} ago."
 msgstr " Il catalogo firmware è stato aggiornato {0} fa."
 
-#: mintcare/gui.py:4910
+#: mintcare/gui.py:4914
 #, python-brace-format
 msgid "Devices ({0}, {1} support updates)"
 msgstr "Dispositivi ({0}, {1} supportano gli aggiornamenti)"
 
-#: mintcare/gui.py:4914
+#: mintcare/gui.py:4918
 msgid "fixed"
 msgstr "corretto"
 
-#: mintcare/gui.py:4914
+#: mintcare/gui.py:4918
 msgid "updatable"
 msgstr "aggiornabile"
 
-#: mintcare/gui.py:4923
+#: mintcare/gui.py:4927
 msgid "Firmware check"
 msgstr "Controllo del firmware"
 
-#: mintcare/gui.py:4925
+#: mintcare/gui.py:4929
 msgid "Checking for firmware updates…"
 msgstr "Ricerca di aggiornamenti firmware…"
 
-#: mintcare/gui.py:4935
+#: mintcare/gui.py:4939
 #, python-brace-format
 msgid "Install {0} firmware update(s)?"
 msgstr "Installare {0} aggiornamento/i firmware?"
 
-#: mintcare/gui.py:4936
+#: mintcare/gui.py:4940
 msgid ""
 "\n"
 "\n"
@@ -5010,7 +5033,7 @@ msgstr ""
 "\n"
 "Tieni il computer collegato alla corrente e non spegnerlo."
 
-#: mintcare/gui.py:4937
+#: mintcare/gui.py:4941
 msgid ""
 "\n"
 "<b>Some updates finish during the next restart.</b>"
@@ -5018,90 +5041,90 @@ msgstr ""
 "\n"
 "<b>Alcuni aggiornamenti si completano al prossimo riavvio.</b>"
 
-#: mintcare/gui.py:4939
+#: mintcare/gui.py:4943
 msgid "firmware updates"
 msgstr "aggiornamenti firmware"
 
-#: mintcare/gui.py:4944
+#: mintcare/gui.py:4948
 msgid "Firmware update"
 msgstr "Aggiornamento firmware"
 
-#: mintcare/gui.py:4947
+#: mintcare/gui.py:4951
 msgid "Firmware staged — restart the computer to finish installing it"
 msgstr ""
 "Firmware preparato — riavvia il computer per completare l'installazione"
 
-#: mintcare/gui.py:4948
+#: mintcare/gui.py:4952
 msgid "Installing firmware updates…"
 msgstr "Installazione degli aggiornamenti firmware…"
 
-#: mintcare/gui.py:4956
+#: mintcare/gui.py:4960
 #, python-brace-format
 msgid "DRIVES ({0})"
 msgstr "DISCHI ({0})"
 
-#: mintcare/gui.py:4958
+#: mintcare/gui.py:4962
 msgid "No drives found, or UDisks2 is not running."
 msgstr "Nessun disco trovato, oppure UDisks2 non è in esecuzione."
 
-#: mintcare/gui.py:5000
+#: mintcare/gui.py:5004
 msgid "No warning signs in SMART data"
 msgstr "Nessun segnale d'allarme nei dati SMART"
 
-#: mintcare/gui.py:5025
+#: mintcare/gui.py:5033
 #, python-brace-format
 msgid "The graphics card has been above {0}°C for a minute — check its cooling"
 msgstr ""
 "La scheda grafica è sopra {0} °C da un minuto: controlla il raffreddamento"
 
-#: mintcare/gui.py:5062
+#: mintcare/gui.py:5070
 msgid "no limit reported"
 msgstr "nessun limite segnalato"
 
-#: mintcare/gui.py:5067
+#: mintcare/gui.py:5075
 msgid "whole system, right now"
 msgstr "intero sistema, in questo momento"
 
-#: mintcare/gui.py:5106
+#: mintcare/gui.py:5114
 msgid "No drives loaded yet"
 msgstr "Ancora nessun disco caricato"
 
-#: mintcare/gui.py:5108
+#: mintcare/gui.py:5116
 #, python-brace-format
 msgid "SMART report: {0} ({1})"
 msgstr "Rapporto SMART: {0} ({1})"
 
-#: mintcare/gui.py:5114
+#: mintcare/gui.py:5122
 msgid "Reading full SMART reports…"
 msgstr "Lettura dei rapporti SMART completi…"
 
-#: mintcare/gui.py:5122
+#: mintcare/gui.py:5130
 msgid ""
 "How long boot takes, what slows it down, and which apps start when you log "
 "in."
 msgstr "Quanto dura l'avvio, cosa lo rallenta e quali app partono all'accesso."
 
-#: mintcare/gui.py:5128
+#: mintcare/gui.py:5136
 msgid "LAST BOOT"
 msgstr "ULTIMO AVVIO"
 
-#: mintcare/gui.py:5147
+#: mintcare/gui.py:5155
 msgid "Boot time history"
 msgstr "Cronologia dei tempi di avvio"
 
-#: mintcare/gui.py:5148 mintcare/gui.py:5151 mintcare/gui.py:5201
+#: mintcare/gui.py:5156 mintcare/gui.py:5159 mintcare/gui.py:5209
 msgid "Services"
 msgstr "Servizi"
 
-#: mintcare/gui.py:5148 mintcare/gui.py:5151
+#: mintcare/gui.py:5156 mintcare/gui.py:5159
 msgid "Total"
 msgstr "Totale"
 
-#: mintcare/gui.py:5158
+#: mintcare/gui.py:5166
 msgid "SLOWEST TO START"
 msgstr "I PIÙ LENTI A PARTIRE"
 
-#: mintcare/gui.py:5159
+#: mintcare/gui.py:5167
 msgid ""
 "Services start in parallel, so times overlap. Only those marked BLOCKS BOOT "
 "actually delay reaching the desktop."
@@ -5109,11 +5132,11 @@ msgstr ""
 "I servizi partono in parallelo, quindi i tempi si sovrappongono. Solo quelli "
 "segnati BLOCCA L'AVVIO ritardano davvero l'arrivo al desktop."
 
-#: mintcare/gui.py:5165
+#: mintcare/gui.py:5173
 msgid "STARTUP APPLICATIONS"
 msgstr "APPLICAZIONI ALL'AVVIO"
 
-#: mintcare/gui.py:5167
+#: mintcare/gui.py:5175
 msgid ""
 "Switching an app off only affects your account and takes effect at next "
 "login. This is the same setting as Cinnamon's Startup Applications."
@@ -5121,27 +5144,27 @@ msgstr ""
 "Disattivare un'app riguarda solo il tuo account e vale dal prossimo accesso. "
 "È la stessa impostazione di Applicazioni d'avvio di Cinnamon."
 
-#: mintcare/gui.py:5172
+#: mintcare/gui.py:5180
 msgid "Desktop components (locked)"
 msgstr "Componenti del desktop (bloccati)"
 
-#: mintcare/gui.py:5185
+#: mintcare/gui.py:5193
 msgid "The history fills in as you restart the computer."
 msgstr "La cronologia si riempie man mano che riavvii il computer."
 
-#: mintcare/gui.py:5191
+#: mintcare/gui.py:5199
 msgid "faster than average"
 msgstr "più veloce della media"
 
-#: mintcare/gui.py:5191
+#: mintcare/gui.py:5199
 msgid "slower than average"
 msgstr "più lento della media"
 
-#: mintcare/gui.py:5192
+#: mintcare/gui.py:5200
 msgid "about average"
 msgstr "nella media"
 
-#: mintcare/gui.py:5194
+#: mintcare/gui.py:5202
 #, python-brace-format
 msgid ""
 "Last {0} boots: this one took {1:.1f} s, {2} ({3:.1f} s). Slowest was "
@@ -5150,19 +5173,19 @@ msgstr ""
 "Ultimi {0} avvii: questo ha richiesto {1:.1f} s, {2} ({3:.1f} s). Il più "
 "lento ha richiesto {4:.1f} s il {5}."
 
-#: mintcare/gui.py:5200
+#: mintcare/gui.py:5208
 msgid "Boot loader"
 msgstr "Bootloader"
 
-#: mintcare/gui.py:5201 mintcare/report.py:54
+#: mintcare/gui.py:5209 mintcare/report.py:54
 msgid "Kernel"
 msgstr "Kernel"
 
-#: mintcare/gui.py:5204
+#: mintcare/gui.py:5212
 msgid "Last boot"
 msgstr "Ultimo avvio"
 
-#: mintcare/gui.py:5214
+#: mintcare/gui.py:5222
 #, python-brace-format
 msgid ""
 "{0:.1f} s is spent in your BIOS/UEFI before Linux starts. Enabling “Fast "
@@ -5175,136 +5198,136 @@ msgstr ""
 "PXE) e i controller inutilizzati di solito lo accorcia — MintCare non può "
 "cambiarlo da Linux."
 
-#: mintcare/gui.py:5219
+#: mintcare/gui.py:5227
 #, python-brace-format
 msgid "{0} is on the critical path and adds {1:.1f} s."
 msgstr "{0} è sul percorso critico e aggiunge {1:.1f} s."
 
-#: mintcare/gui.py:5220
+#: mintcare/gui.py:5228
 msgid "Boot looks lean — nothing obvious to trim."
 msgstr "L'avvio è snello — niente di evidente da ridurre."
 
-#: mintcare/gui.py:5234
+#: mintcare/gui.py:5242
 msgid "blocks boot"
 msgstr "blocca l'avvio"
 
-#: mintcare/gui.py:5258
+#: mintcare/gui.py:5266
 #, python-brace-format
 msgid "STARTUP APPLICATIONS ({0} of {1} on)"
 msgstr "APPLICAZIONI ALL'AVVIO ({0} di {1} attive)"
 
-#: mintcare/gui.py:5259
+#: mintcare/gui.py:5267
 #, python-brace-format
 msgid "Desktop components ({0}, locked)"
 msgstr "Componenti del desktop ({0}, bloccati)"
 
-#: mintcare/gui.py:5289
+#: mintcare/gui.py:5297
 msgid "added by you"
 msgstr "aggiunta da te"
 
-#: mintcare/gui.py:5293
+#: mintcare/gui.py:5301
 #, python-brace-format
 msgid "delay {0}s"
 msgstr "ritardo {0} s"
 
-#: mintcare/gui.py:5300
+#: mintcare/gui.py:5308
 #, python-brace-format
 msgid "Start {0} at login"
 msgstr "Avvia {0} all'accesso"
 
-#: mintcare/gui.py:5302
+#: mintcare/gui.py:5310
 msgid ""
 "Part of the desktop; switching it off can break shortcuts, keyrings or logins"
 msgstr ""
 "Fa parte del desktop; disattivarlo può rompere scorciatoie, portachiavi o "
 "l'accesso"
 
-#: mintcare/gui.py:5309
+#: mintcare/gui.py:5317
 msgid "Start straight away"
 msgstr "Avvia subito"
 
-#: mintcare/gui.py:5309
+#: mintcare/gui.py:5317
 #, python-brace-format
 msgid "Start {0} s after login"
 msgstr "Avvia {0} s dopo l'accesso"
 
-#: mintcare/gui.py:5311
+#: mintcare/gui.py:5319
 #, python-brace-format
 msgid "When {0} starts"
 msgstr "Quando si avvia {0}"
 
-#: mintcare/gui.py:5312
+#: mintcare/gui.py:5320
 msgid ""
 "Delaying apps that aren't needed straight away makes the desktop ready "
 "sooner."
 msgstr "Ritardare le app che non servono subito rende il desktop pronto prima."
 
-#: mintcare/gui.py:5323 mintcare/gui.py:5337
+#: mintcare/gui.py:5331 mintcare/gui.py:5345
 #, python-brace-format
 msgid "Could not change startup entry {0}: {1}"
 msgstr "Impossibile modificare la voce di avvio {0}: {1}"
 
-#: mintcare/gui.py:5324 mintcare/gui.py:5338
+#: mintcare/gui.py:5332 mintcare/gui.py:5346
 #, python-brace-format
 msgid "Could not change {0}"
 msgstr "Impossibile modificare {0}"
 
-#: mintcare/gui.py:5327
+#: mintcare/gui.py:5335
 #, python-brace-format
 msgid "Startup app {0}: starts {1} s after login"
 msgstr "App all'avvio {0}: si avvia {1} s dopo l'accesso"
 
-#: mintcare/gui.py:5328
+#: mintcare/gui.py:5336
 #, python-brace-format
 msgid "{0} will start {1} s after login"
 msgstr "{0} si avvierà {1} s dopo l'accesso"
 
-#: mintcare/gui.py:5329
+#: mintcare/gui.py:5337
 #, python-brace-format
 msgid "{0} will start straight away"
 msgstr "{0} si avvierà subito"
 
-#: mintcare/gui.py:5345
+#: mintcare/gui.py:5353
 #, python-brace-format
 msgid "Startup app {0} disabled"
 msgstr "App all'avvio {0} disattivata"
 
-#: mintcare/gui.py:5345
+#: mintcare/gui.py:5353
 #, python-brace-format
 msgid "Startup app {0} enabled"
 msgstr "App all'avvio {0} attivata"
 
-#: mintcare/gui.py:5346
+#: mintcare/gui.py:5354
 #, python-brace-format
 msgid "Startup: {0} {1} (~/.config/autostart/{2})"
 msgstr "Avvio: {0} {1} (~/.config/autostart/{2})"
 
-#: mintcare/gui.py:5347
+#: mintcare/gui.py:5355
 #, python-brace-format
 msgid "{0} will no longer start at login"
 msgstr "{0} non partirà più all'accesso"
 
-#: mintcare/gui.py:5347
+#: mintcare/gui.py:5355
 #, python-brace-format
 msgid "{0} will start at login"
 msgstr "{0} partirà all'accesso"
 
-#: mintcare/gui.py:5358
+#: mintcare/gui.py:5366
 #, python-brace-format
 msgid "a change to {0}"
 msgstr "una modifica a {0}"
 
-#: mintcare/gui.py:5366
+#: mintcare/gui.py:5374
 #, python-brace-format
 msgid "Disabling {0}…"
 msgstr "Disattivazione di {0}…"
 
-#: mintcare/gui.py:5366
+#: mintcare/gui.py:5374
 #, python-brace-format
 msgid "Enabling {0}…"
 msgstr "Attivazione di {0}…"
 
-#: mintcare/gui.py:5374
+#: mintcare/gui.py:5382
 msgid ""
 "Automatic check-ups, safety snapshots, one-click undo and a record of every "
 "change MintCare makes."
@@ -5312,11 +5335,11 @@ msgstr ""
 "Controlli automatici, snapshot di sicurezza, annullamento con un clic e un "
 "registro di ogni modifica fatta da MintCare."
 
-#: mintcare/gui.py:5384 mintcare/gui.py:5385
+#: mintcare/gui.py:5392 mintcare/gui.py:5393
 msgid "Scheduled check-up"
 msgstr "Controllo pianificato"
 
-#: mintcare/gui.py:5389
+#: mintcare/gui.py:5397
 msgid ""
 "Runs every check in the background and tells you only when something needs "
 "attention. Uses a systemd user timer — no password needed."
@@ -5324,59 +5347,59 @@ msgstr ""
 "Esegue tutti i controlli in background e ti avvisa solo quando qualcosa "
 "richiede attenzione. Usa un timer utente di systemd — senza password."
 
-#: mintcare/gui.py:5393
+#: mintcare/gui.py:5401
 msgid "How often"
 msgstr "Frequenza"
 
-#: mintcare/gui.py:5395
+#: mintcare/gui.py:5403
 msgid "1st of each month"
 msgstr "Il 1° di ogni mese"
 
-#: mintcare/gui.py:5395
+#: mintcare/gui.py:5403
 msgid "Every Monday"
 msgstr "Ogni lunedì"
 
-#: mintcare/gui.py:5399
+#: mintcare/gui.py:5407
 msgid "Notify me"
 msgstr "Avvisami"
 
-#: mintcare/gui.py:5401
+#: mintcare/gui.py:5409
 msgid "Only when something needs attention"
 msgstr "Solo quando qualcosa richiede attenzione"
 
-#: mintcare/gui.py:5402
+#: mintcare/gui.py:5410
 msgid "After every check-up"
 msgstr "Dopo ogni controllo"
 
-#: mintcare/gui.py:5405
+#: mintcare/gui.py:5413
 msgid "Also clean"
 msgstr "Pulisci anche"
 
-#: mintcare/gui.py:5408
+#: mintcare/gui.py:5416
 msgid "Stale application cache (30+ days)"
 msgstr "Cache delle applicazioni obsoleta (oltre 30 giorni)"
 
-#: mintcare/gui.py:5409
+#: mintcare/gui.py:5417
 msgid "Browser caches (skipped while a browser is open)"
 msgstr "Cache dei browser (saltate se un browser è aperto)"
 
-#: mintcare/gui.py:5417
+#: mintcare/gui.py:5425
 msgid "Save a health report after each check-up"
 msgstr "Salva un rapporto sullo stato dopo ogni controllo"
 
-#: mintcare/gui.py:5422
+#: mintcare/gui.py:5430
 msgid "HTML"
 msgstr "HTML"
 
-#: mintcare/gui.py:5425
+#: mintcare/gui.py:5433
 msgid "Open reports folder"
 msgstr "Apri la cartella dei rapporti"
 
-#: mintcare/gui.py:5440
+#: mintcare/gui.py:5448
 msgid "Safety snapshots"
 msgstr "Snapshot di sicurezza"
 
-#: mintcare/gui.py:5442
+#: mintcare/gui.py:5450
 msgid ""
 "Before fixes, optimisations, boot-service changes and Undo, MintCare can "
 "take a Timeshift snapshot so the whole system can be rolled back."
@@ -5385,201 +5408,201 @@ msgstr ""
 "annullamenti, MintCare può creare uno snapshot di Timeshift così da poter "
 "ripristinare l'intero sistema."
 
-#: mintcare/gui.py:5446
+#: mintcare/gui.py:5454
 msgid "Before big changes"
 msgstr "Prima delle modifiche importanti"
 
-#: mintcare/gui.py:5448
+#: mintcare/gui.py:5456
 msgid "Always take a snapshot"
 msgstr "Crea sempre uno snapshot"
 
-#: mintcare/gui.py:5448
+#: mintcare/gui.py:5456
 msgid "Ask me"
 msgstr "Chiedimi"
 
-#: mintcare/gui.py:5448
+#: mintcare/gui.py:5456
 msgid "Never"
 msgstr "Mai"
 
-#: mintcare/gui.py:5456
+#: mintcare/gui.py:5464
 msgid "Take snapshot now"
 msgstr "Crea uno snapshot ora"
 
-#: mintcare/gui.py:5465 mintcare/gui.py:5654
+#: mintcare/gui.py:5473 mintcare/gui.py:5662
 msgid "Undo MintCare changes"
 msgstr "Annulla le modifiche di MintCare"
 
-#: mintcare/gui.py:5477
+#: mintcare/gui.py:5485
 msgid "HISTORY"
 msgstr "CRONOLOGIA"
 
-#: mintcare/gui.py:5479
+#: mintcare/gui.py:5487
 msgid "Clear history"
 msgstr "Cancella la cronologia"
 
-#: mintcare/gui.py:5519
+#: mintcare/gui.py:5527
 #, python-brace-format
 msgid "<b>On.</b> Next check-up: {0}"
 msgstr "<b>Attivo.</b> Prossimo controllo: {0}"
 
-#: mintcare/gui.py:5520
+#: mintcare/gui.py:5528
 msgid "Off. Turn it on to get a notification when your system needs attention."
 msgstr ""
 "Disattivato. Attivalo per ricevere un avviso quando il sistema richiede "
 "attenzione."
 
-#: mintcare/gui.py:5524
+#: mintcare/gui.py:5532
 #, python-brace-format
 msgid "Last check-up {0}: "
 msgstr "Ultimo controllo {0}: "
 
-#: mintcare/gui.py:5525
+#: mintcare/gui.py:5533
 #, python-brace-format
 msgid "{0} issue(s) — "
 msgstr "{0} problema/i — "
 
-#: mintcare/gui.py:5526
+#: mintcare/gui.py:5534
 msgid "no issues"
 msgstr "nessun problema"
 
-#: mintcare/gui.py:5527
+#: mintcare/gui.py:5535
 #, python-brace-format
 msgid "; freed {0}"
 msgstr "; {0} liberati"
 
-#: mintcare/gui.py:5529
+#: mintcare/gui.py:5537
 msgid "No check-up has run yet."
 msgstr "Non è stato ancora eseguito alcun controllo."
 
-#: mintcare/gui.py:5530
+#: mintcare/gui.py:5538
 msgid " Snapshots will be skipped."
 msgstr " Gli snapshot verranno saltati."
 
-#: mintcare/gui.py:5530
+#: mintcare/gui.py:5538
 msgid "Timeshift is ready."
 msgstr "Timeshift è pronto."
 
-#: mintcare/gui.py:5536
+#: mintcare/gui.py:5544
 #, python-brace-format
 msgid "{0} optimisation"
 msgid_plural "{0} optimisations"
 msgstr[0] "{0} ottimizzazione"
 msgstr[1] "{0} ottimizzazioni"
 
-#: mintcare/gui.py:5537
+#: mintcare/gui.py:5545
 #, python-brace-format
 msgid "{0} boot service"
 msgid_plural "{0} boot services"
 msgstr[0] "{0} servizio di avvio"
 msgstr[1] "{0} servizi di avvio"
 
-#: mintcare/gui.py:5538
+#: mintcare/gui.py:5546
 #, python-brace-format
 msgid "{0} startup app"
 msgid_plural "{0} startup apps"
 msgstr[0] "{0} app all'avvio"
 msgstr[1] "{0} app all'avvio"
 
-#: mintcare/gui.py:5539
+#: mintcare/gui.py:5547
 #, python-brace-format
 msgid "{0} Flatpak app"
 msgid_plural "{0} Flatpak apps"
 msgstr[0] "{0} app Flatpak"
 msgstr[1] "{0} app Flatpak"
 
-#: mintcare/gui.py:5541
+#: mintcare/gui.py:5549
 msgid "MintCare has changed "
 msgstr "MintCare ha modificato "
 
-#: mintcare/gui.py:5542
+#: mintcare/gui.py:5550
 msgid ". Choose what to put back the way it was."
 msgstr ". Scegli cosa riportare com'era."
 
-#: mintcare/gui.py:5543
+#: mintcare/gui.py:5551
 msgid "Nothing to undo — MintCare hasn't changed anything that's still active."
 msgstr ""
 "Niente da annullare — MintCare non ha modificato nulla che sia ancora attivo."
 
-#: mintcare/gui.py:5547
+#: mintcare/gui.py:5555
 #, python-brace-format
 msgid "HISTORY ({0})"
 msgstr "CRONOLOGIA ({0})"
 
-#: mintcare/gui.py:5550
+#: mintcare/gui.py:5558
 msgid ""
 "Nothing recorded yet. Every fix, tweak, clean-up and undo will appear here."
 msgstr ""
 "Ancora nulla registrato. Ogni correzione, ottimizzazione, pulizia e "
 "annullamento comparirà qui."
 
-#: mintcare/gui.py:5579
+#: mintcare/gui.py:5587
 msgid "failed"
 msgstr "non riuscito"
 
-#: mintcare/gui.py:5600
+#: mintcare/gui.py:5608
 #, python-brace-format
 msgid "Could not update the check-up timer: {0}"
 msgstr "Impossibile aggiornare il timer del controllo: {0}"
 
-#: mintcare/gui.py:5601
+#: mintcare/gui.py:5609
 msgid "Maintenance settings saved"
 msgstr "Impostazioni di manutenzione salvate"
 
-#: mintcare/gui.py:5610 mintcare/gui.py:5611
+#: mintcare/gui.py:5618 mintcare/gui.py:5619
 msgid "Scheduled check-up turned on"
 msgstr "Controllo pianificato attivato"
 
-#: mintcare/gui.py:5614 mintcare/gui.py:5615
+#: mintcare/gui.py:5622 mintcare/gui.py:5623
 msgid "Scheduled check-up turned off"
 msgstr "Controllo pianificato disattivato"
 
-#: mintcare/gui.py:5617 mintcare/maintenance.py:366
+#: mintcare/gui.py:5625 mintcare/maintenance.py:366
 #, python-brace-format
 msgid "Scheduled check-up: {0}"
 msgstr "Controllo pianificato: {0}"
 
-#: mintcare/gui.py:5618
+#: mintcare/gui.py:5626
 msgid "Could not change the schedule"
 msgstr "Impossibile modificare la pianificazione"
 
-#: mintcare/gui.py:5625
+#: mintcare/gui.py:5633
 msgid "Check-up done: all good"
 msgstr "Controllo completato: tutto a posto"
 
-#: mintcare/gui.py:5625
+#: mintcare/gui.py:5633
 #, python-brace-format
 msgid "Check-up done: {0} issue(s)"
 msgstr "Controllo completato: {0} problema/i"
 
-#: mintcare/gui.py:5629
+#: mintcare/gui.py:5637
 msgid "Running check-up…"
 msgstr "Controllo in corso…"
 
-#: mintcare/gui.py:5637
+#: mintcare/gui.py:5645
 msgid "a manual MintCare snapshot"
 msgstr "uno snapshot manuale di MintCare"
 
-#: mintcare/gui.py:5642
+#: mintcare/gui.py:5650
 msgid "Taking a Timeshift snapshot…"
 msgstr "Creazione di uno snapshot di Timeshift…"
 
-#: mintcare/gui.py:5645
+#: mintcare/gui.py:5653
 msgid "Clear the change history?"
 msgstr "Cancellare la cronologia delle modifiche?"
 
-#: mintcare/gui.py:5645
+#: mintcare/gui.py:5653
 msgid "This only clears the list; it doesn't undo anything."
 msgstr "Cancella solo l'elenco; non annulla nulla."
 
-#: mintcare/gui.py:5652
+#: mintcare/gui.py:5660
 msgid "Nothing to undo"
 msgstr "Niente da annullare"
 
-#: mintcare/gui.py:5657
+#: mintcare/gui.py:5665
 msgid "Undo selected"
 msgstr "Annulla selezionati"
 
-#: mintcare/gui.py:5662
+#: mintcare/gui.py:5670
 msgid ""
 "Untick anything you want to keep. Optimisations and boot services need your "
 "password; startup apps and Flatpak permissions don't."
@@ -5587,41 +5610,41 @@ msgstr ""
 "Togli la spunta a ciò che vuoi tenere. Ottimizzazioni e servizi di avvio "
 "richiedono la password; app all'avvio e permessi Flatpak no."
 
-#: mintcare/gui.py:5667
+#: mintcare/gui.py:5675
 msgid "Optimisations"
 msgstr "Ottimizzazioni"
 
-#: mintcare/gui.py:5667
+#: mintcare/gui.py:5675
 msgid "Startup apps"
 msgstr "App all'avvio"
 
-#: mintcare/gui.py:5668
+#: mintcare/gui.py:5676
 msgid "Flatpak permissions"
 msgstr "Permessi Flatpak"
 
-#: mintcare/gui.py:5696
+#: mintcare/gui.py:5704
 msgid "an undo of MintCare changes"
 msgstr "un annullamento delle modifiche di MintCare"
 
-#: mintcare/gui.py:5704
+#: mintcare/gui.py:5712
 #, python-brace-format
 msgid "Undone: {0}"
 msgstr "Annullato: {0}"
 
-#: mintcare/gui.py:5707
+#: mintcare/gui.py:5715
 #, python-brace-format
 msgid "Could not undo {0}: {1}"
 msgstr "Impossibile annullare {0}: {1}"
 
-#: mintcare/gui.py:5720
+#: mintcare/gui.py:5728
 msgid "Undoing changes…"
 msgstr "Annullamento delle modifiche…"
 
-#: mintcare/gui.py:5727
+#: mintcare/gui.py:5735
 msgid "Full output of every command MintCare runs."
 msgstr "Output completo di ogni comando eseguito da MintCare."
 
-#: mintcare/gui.py:5733
+#: mintcare/gui.py:5741
 #, python-brace-format
 msgid "MintCare {0}\n"
 msgstr "MintCare {0}\n"
