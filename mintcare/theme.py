@@ -28,8 +28,18 @@ PALETTES = {
         "logtext": "#ffffff",
     },
 }
-DARK_BASE = {"dark": True, "light": False, "contrast": True}
-NAMES = [("system", _("Follow system")), ("dark", _("Dark")), ("light", _("Light")), ("contrast", _("High contrast"))]
+# colour-blind friendly: the Okabe-Ito set (blue = fine, orange = careful, vermilion = problem); no red/green pairs
+PALETTES["colourblind"] = dict(PALETTES["dark"], emerald="#56b4e9", emerald4="#8ccdf0", amber="#e69f00",
+                               red="#d55e00", orange="#e69f00", chipval="#d4ecfb", logtext="#bfe3f7")
+STATUS = {
+    "dark": {"ok": "#10b981", "warn": "#f59e0b", "fail": "#ef4444"},
+    "light": {"ok": "#10b981", "warn": "#b45309", "fail": "#b91c1c"},
+    "contrast": {"ok": "#22c55e", "warn": "#fde047", "fail": "#fca5a5"},
+    "colourblind": {"ok": "#56b4e9", "warn": "#e69f00", "fail": "#d55e00"},
+}
+DARK_BASE = {"dark": True, "light": False, "contrast": True, "colourblind": True}
+NAMES = [("system", _("Follow system")), ("dark", _("Dark")), ("light", _("Light")), ("contrast", _("High contrast")),
+         ("colourblind", _("Colour-blind friendly"))]
 
 CONTRAST_EXTRA = """
 .card, .sidebar, .stat-tile, .sensor-tile, .profile-tile, .pill { border-width: 2px; }

@@ -192,6 +192,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.set_default_size(1240, 820)
         self.set_size_request(720, 560)
         self._layout_mode = None
+        self._theme_eff = "dark"                    # set by apply_theme; read by the status colours
         self._responsive = []          # (grid, {mode: [(widget, left, top, width, height)]})
         self.set_icon_name("mintcare")
         self.busy = False
@@ -653,6 +654,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def apply_theme(self, name):
         eff = theme.resolve(name, self._system_dark)
+        self._theme_eff = eff
         self.css_provider.load_from_data(theme.css(eff))
         self._gtk_settings.set_property("gtk-application-prefer-dark-theme", theme.DARK_BASE[eff])
         pal = theme.PALETTES[eff]
@@ -1560,8 +1562,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._update_weekly()
         counts = {s: sum(1 for r in res.values() if r.status == s) for s in STATUS_ICON}
         score = max(0, 100 - counts[checks.FAIL] * 15 - counts[checks.WARN] * 5)  # tips do not count
-        color, kind, word = ((EMERALD, "ok", _("healthy")) if score >= 85 else
-                             ("#f59e0b", "warn", _("needs care")) if score >= 60 else ("#ef4444", "fail", _("at risk")))
+        st = theme.STATUS[self._theme_eff]
+        color, kind, word = ((st["ok"], "ok", _("healthy")) if score >= 85 else
+                             (st["warn"], "warn", _("needs care")) if score >= 60 else (st["fail"], "fail", _("at risk")))
         self.g_health.color = color
         self.g_health.set_value(score, str(score))
         describe(self.g_health, _('Health score: {0} of 100, {1}').format(score, word))
@@ -4895,7 +4898,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                 "ok" if hl >= 80 else "warn" if hl >= 60 else "fail"), False, False, 0)
             c.pack_start(h, False, False, 0)
             if hl is not None:
-                bar = Bar(EMERALD if hl >= 80 else "#f59e0b" if hl >= 60 else "#ef4444", 8)
+                st = theme.STATUS[self._theme_eff]
+                bar = Bar(st["ok"] if hl >= 80 else st["warn"] if hl >= 60 else st["fail"], 8)
                 bar.set_value(hl)
                 c.pack_start(bar, False, False, 8)
             self.bat_box.pack_start(c, False, False, 0)
@@ -5168,7 +5172,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self.sensor_flow.add(box)
                 self.sensor_tiles[key] = (val, bar, sub)
             self.sensor_flow.show_all()
-        colors = {checks.OK: EMERALD, checks.INFO: BLUE, checks.WARN: "#f59e0b", checks.FAIL: "#ef4444"}
+        st = theme.STATUS[self._theme_eff]
+        colors = {checks.OK: st["ok"], checks.INFO: BLUE, checks.WARN: st["warn"], checks.FAIL: st["fail"]}
         for key, value, lvl, sub, pct in tiles:
             val, bar, sublbl = self.sensor_tiles[key]
             val.set_text(value)
