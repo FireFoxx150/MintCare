@@ -39,7 +39,7 @@ _HEADINGS = (N_("Assistant"), N_("Boot services"), N_("Clean"), N_("Firmware"), 
              N_("Timeshift"), N_("Troubleshoot"), N_("Undo"), N_("Update"))
 STATUS_WORD = {checks.OK: _("OK"), checks.INFO: _("TIP"), checks.WARN: _("WARN"), checks.FAIL: _("FAIL")}
 
-DASH_ORDER = ("cpu", "memory", "disk", "performance", "health", "network", "details", "gpu")
+DASH_ORDER = ("cpu", "memory", "disk", "performance", "health", "network", "details", "gpu", "gpu2")
 DASH_COLS = {"wide": 3, "medium": 2, "narrow": 1}
 DASH_SPAN = {"wide": {"gpu": (2, 1), "performance": (2, 1), "health": (1, 2)},
              "medium": {"performance": (2, 1), "network": (2, 1), "health": (1, 2)}, "narrow": {}}
@@ -566,7 +566,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _dash_names(self):
         return {"cpu": _("Processor"), "memory": _("Memory"), "disk": _("Disk"), "gpu": _("Graphics"),
                 "performance": _("Performance"), "health": _("Health"), "network": _("Network"),
-                "details": _("Details")}
+                "details": _("Details"), "gpu2": _("Second graphics card")}
 
     def _dash_order(self):
         """Card keys in the user's order, with any new or missing cards placed in the default order."""
@@ -1401,14 +1401,23 @@ class MintCareWindow(Gtk.ApplicationWindow):
             "orange")
         self.disk_used, self.disk_free = self._tiles(disk_foot, _("OCCUPIED"), _("AVAILABLE"))
 
-        # GPU card only when a GPU reports its load (NVIDIA via nvidia-smi, AMD via sysfs)
-        gpu = hardware.gpu_load()
-        gpu_card = None
+        # Graphics cards that report their load (NVIDIA via nvidia-smi, AMD via sysfs), largest VRAM first.
+        # The first gets the full card with a load and VRAM history; a second one gets a simpler card.
+        gpus = hardware.gpu_load()
+        gpu_card = gpu2_card = None
         self._gpu_busy = False
-        if gpu:
+        if gpus:
             self.g_gpu, gpu_card, gpu_foot = self._gauge_card(
-                _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), gpu["name"], "info")
+                _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), gpus[0]["name"], "info")
             self.gpu_vram, self.gpu_temp = self._tiles(gpu_foot, _("VRAM USED"), _("TEMPERATURE"))
+            legend = hbox(12)
+            legend.set_halign(Gtk.Align.CENTER)
+            legend.pack_start(self._legend("GPU", VIOLET), False, False, 0)
+            legend.pack_start(self._legend("VRAM", BLUE), False, False, 0)
+            self.gpu_history = LineChart([("GPU", VIOLET), ("VRAM", BLUE)], points=60, height=44, fixed_max=100,
+                                         axis=False)
+            gpu_foot.pack_start(legend, False, False, 2)
+            gpu_foot.pack_start(self.gpu_history, False, False, 2)
             self.gpu_chart = LineChart([(_("Temperature"), ORANGE)], points=60, height=44, fixed_max=100, axis=False,
                                        fmt=lambda v: f"{v:.0f}°C")
             gpu_foot.pack_start(self.gpu_chart, False, False, 2)
@@ -1417,6 +1426,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._gpu_temps = maintenance.load_gpu_temps()     # kept across restarts
             for t in self._gpu_temps:
                 self.gpu_chart.push(t)
+        if len(gpus) > 1:
+            self.g_gpu2, gpu2_card, gpu2_foot = self._gauge_card(
+                _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), gpus[1]["name"], "info")
+            (self.gpu2_temp,) = self._tiles(gpu2_foot, _("TEMPERATURE"))
 
         # performance chart (2 columns)
         perf = card()
@@ -1483,8 +1496,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         det.pack_start(self.kv_grid, False, False, 10)
         self._fill_details()
         self._dash_cards = {k: w for k, w in {"cpu": cpu_card, "memory": mem_card, "disk": disk_card,
-                                              "gpu": gpu_card, "performance": perf, "health": hc,
-                                              "network": net, "details": det}.items() if w is not None}
+                                              "gpu": gpu_card, "gpu2": gpu2_card, "performance": perf,
+                                              "health": hc, "network": net, "details": det}.items() if w is not None}
         self._dash_switches = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=4)
         page.pack_start(self._dash_switches, False, False, 0)
         page.reorder_child(self._dash_switches, page.get_children().index(grid))
@@ -1514,11 +1527,11 @@ class MintCareWindow(Gtk.ApplicationWindow):
         c.pack_start(foot, False, False, 0)
         return g, c, foot
 
-    def _tiles(self, parent, a, b):
+    def _tiles(self, parent, *names):
         row = hbox(8)
         row.set_homogeneous(True)
         vals = []
-        for k in (a, b):
+        for k in names:
             t = vbox(1, "stat-tile")
             t.pack_start(label(k, ("kicker",), xalign=0.5), False, False, 0)
             v = label("–", ("stat-val",), xalign=0.5)
@@ -5162,14 +5175,20 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.bg(hardware.gpu_load, self._render_gpu)
         return True
 
-    def _render_gpu(self, g):
+    def _render_gpu(self, gpus):
         self._gpu_busy = False
-        if not g:
+        if not gpus:
             return
+        g = gpus[0]
         self.g_gpu.set_value(g["util"] or 0)
         used, total = g["vram_used"], g["vram_total"]
         self.gpu_vram.set_text(f"{human(used)} / {human(total)}" if used is not None and total else "n/a")
         self.gpu_temp.set_text(f"{g['temp']:.0f}°C" if g["temp"] is not None else "n/a")
+        self.gpu_history.push(g["util"] or 0, used / total * 100 if used is not None and total else 0)
+        if len(gpus) > 1 and getattr(self, "g_gpu2", None) is not None:
+            g2 = gpus[1]
+            self.g_gpu2.set_value(g2["util"] or 0)
+            self.gpu2_temp.set_text(f"{g2['temp']:.0f}°C" if g2["temp"] is not None else "n/a")
         if g["temp"] is not None:
             self.gpu_chart.push(g["temp"])
             self._gpu_temps = (self._gpu_temps + [g["temp"]])[-60:]

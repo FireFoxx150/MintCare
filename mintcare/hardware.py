@@ -615,30 +615,52 @@ def _disk_items():
     return items
 
 
+_PCI_GPU_NAMES = {}
+
+
+def _pci_gpu_name(slot):
+    """Short name of the graphics adapter at a PCI slot, e.g. 'AMD Radeon Vega Series'. lspci runs once per slot."""
+    if slot not in _PCI_GPU_NAMES:
+        rc, o = run(["lspci", "-Dmm", "-nn", "-s", slot], timeout=5) if has_cmd("lspci") else (1, "")
+        found = parse_lspci(o if rc == 0 else "")
+        _PCI_GPU_NAMES[slot] = found[0][2].split("/")[0].strip() if found else "AMD"
+    return _PCI_GPU_NAMES[slot]
+
+
+def _amd_temp(dev):
+    """Edge temperature in °C from the card's own hwmon sensor, or None."""
+    for f in glob(f"{dev}/hwmon/hwmon*/temp1_input"):
+        v = read(f)
+        if v.isdigit():
+            return int(v) / 1000
+    return None
+
+
 def gpu_load():
-    """{name, util, vram_used, vram_total, temp} for the first GPU that reports load, or None.
+    """[{name, util, vram_used, vram_total, temp}] for each GPU that reports load, largest VRAM first.
 
     NVIDIA through nvidia-smi, AMD through the kernel's sysfs counters. Values are None when unknown.
     """
+    gpus = []
     if has_cmd("nvidia-smi"):
         rc, o = run(["nvidia-smi", "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
                      "--format=csv,noheader,nounits"], timeout=5)
-        if rc == 0 and o:
-            f = [x.strip() for x in o.splitlines()[0].split(",")]
-            num = lambda x: float(x) if re.fullmatch(r"[0-9.]+", x) else None
+        num = lambda x: float(x) if re.fullmatch(r"[0-9.]+", x) else None
+        for line in (o.splitlines() if rc == 0 else []):
+            f = [x.strip() for x in line.split(",")]
             used, total = num(f[2]), num(f[3])
-            return {"name": f[0].replace("NVIDIA GeForce ", ""), "util": num(f[1]),
-                    "vram_used": used * 2 ** 20 if used is not None else None,
-                    "vram_total": total * 2 ** 20 if total is not None else None, "temp": num(f[4])}
+            gpus.append({"name": f[0].replace("NVIDIA GeForce ", ""), "util": num(f[1]),
+                         "vram_used": used * 2 ** 20 if used is not None else None,
+                         "vram_total": total * 2 ** 20 if total is not None else None, "temp": num(f[4])})
     for busy in sorted(glob("/sys/class/drm/card[0-9]*/device/gpu_busy_percent")):
         dev = Path(busy).parent
         util = read(busy).strip()
         if util.isdigit():
             used, total = (read(f"{dev}/mem_info_vram_{k}").strip() for k in ("used", "total"))
-            return {"name": "AMD", "util": float(util),
-                    "vram_used": int(used) if used.isdigit() else None,
-                    "vram_total": int(total) if total.isdigit() else None, "temp": None}
-    return None
+            gpus.append({"name": _pci_gpu_name(dev.resolve().name), "util": float(util),
+                         "vram_used": int(used) if used.isdigit() else None,
+                         "vram_total": int(total) if total.isdigit() else None, "temp": _amd_temp(dev)})
+    return sorted(gpus, key=lambda g: -(g["vram_total"] or 0))
 
 
 def power_draw():

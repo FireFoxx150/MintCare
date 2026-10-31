@@ -46,8 +46,9 @@ class Inventory(unittest.TestCase):
         from unittest import mock
         out = "NVIDIA GeForce RTX 3060, 48, 285, 12288, 49\n"
         with mock.patch.object(hardware, "has_cmd", return_value=True), \
-                mock.patch.object(hardware, "run", return_value=(0, out)):
-            g = hardware.gpu_load()
+                mock.patch.object(hardware, "run", return_value=(0, out)), \
+                mock.patch.object(hardware, "glob", return_value=[]):
+            [g] = hardware.gpu_load()
         self.assertEqual(g["name"], "RTX 3060")
         self.assertEqual(g["util"], 48.0)
         self.assertEqual(g["vram_used"], 285 * 2 ** 20)
@@ -56,12 +57,40 @@ class Inventory(unittest.TestCase):
 
     def test_gpu_load_unknown_values_are_none(self):
         from unittest import mock
+        out = "NVIDIA GeForce GTX 970, [N/A], 512, 4096, [N/A]\n"
         with mock.patch.object(hardware, "has_cmd", return_value=True), \
-                mock.patch.object(hardware, "run", return_value=(0, "NVIDIA GeForce GTX 970, [N/A], 512, 4096, [N/A]\n")):
-            g = hardware.gpu_load()
+                mock.patch.object(hardware, "run", return_value=(0, out)), \
+                mock.patch.object(hardware, "glob", return_value=[]):
+            [g] = hardware.gpu_load()
         self.assertIsNone(g["util"])
         self.assertIsNone(g["temp"])
         self.assertEqual(g["vram_total"], 4096 * 2 ** 20)
+
+    def test_gpu_load_lists_each_gpu_largest_vram_first(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        nvidia = "NVIDIA GeForce RTX 3060, 48, 285, 12288, 49\n"
+        lspci = ('0000:09:00.0 "VGA compatible controller [0300]" "Advanced Micro Devices, Inc. [AMD/ATI] [1002]" '
+                 '"Cezanne [Radeon Vega Series / Radeon Vega Mobile Series] [1638]" -rc8\n')
+        real_glob = hardware.glob
+        with tempfile.TemporaryDirectory() as tmp:
+            dev = Path(tmp) / "card2" / "device"
+            (dev / "hwmon" / "hwmon3").mkdir(parents=True)
+            (dev / "gpu_busy_percent").write_text("3\n")
+            (dev / "mem_info_vram_total").write_text("2147483648\n")
+            (dev / "mem_info_vram_used").write_text("564920320\n")
+            (dev / "hwmon" / "hwmon3" / "temp1_input").write_text("36000\n")
+            sysfs = lambda pattern: real_glob(pattern.replace("/sys/class/drm", tmp))
+            run = lambda cmd, timeout=None: (0, nvidia if cmd[0] == "nvidia-smi" else lspci)
+            with mock.patch.object(hardware, "has_cmd", return_value=True), \
+                    mock.patch.object(hardware, "run", side_effect=run), \
+                    mock.patch.object(hardware, "glob", side_effect=sysfs):
+                gpus = hardware.gpu_load()
+        self.assertEqual([g["name"] for g in gpus], ["RTX 3060", "AMD Radeon Vega Series"])
+        self.assertEqual(gpus[1]["util"], 3.0)
+        self.assertEqual(gpus[1]["vram_total"], 2147483648)
+        self.assertEqual(gpus[1]["temp"], 36.0)
 
     def test_inventory_runs(self):
         kinds = [k for k, _n, _d in hardware.inventory()]
@@ -87,7 +116,7 @@ class WirelessDetail(unittest.TestCase):
 class PowerReading(unittest.TestCase):
     def test_no_power_sensor_means_no_reading(self):
         from unittest import mock
-        with mock.patch("glob.glob", return_value=[]):
+        with mock.patch.object(hardware, "glob", return_value=[]):
             self.assertIsNone(hardware.power_draw())
 
     def test_battery_reading_is_in_watts(self):

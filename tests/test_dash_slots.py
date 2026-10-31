@@ -16,6 +16,7 @@ class DashboardPacking(unittest.TestCase):
         self.assertEqual(p["performance"], (0, 1, 2, 1))
         self.assertEqual(p["health"], (2, 1, 1, 2))
         self.assertEqual(p["gpu"], (0, 3, 2, 1))
+        self.assertEqual(p["gpu2"], (2, 3, 1, 1))
 
     def test_cards_never_overlap(self):
         for mode in ("wide", "medium", "narrow"):
