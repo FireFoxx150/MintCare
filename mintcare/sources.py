@@ -10,6 +10,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .i18n import _
 from .util import q, read
@@ -20,6 +21,20 @@ LISTS_DIR = Path("/var/lib/apt/lists")
 DISABLED_MARK = "# mintcare-disabled: "
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
 RANK = {OK: 0, INFO: 1, WARN: 2, FAIL: 3}
+PPA_HOSTS = ("ppa.launchpad.net", "ppa.launchpadcontent.net")
+
+
+def _uri_host(uri):
+    """Host name of a source URI, without user, port or trailing dot; '' when it has none or is malformed."""
+    try:
+        return (urlsplit(uri).hostname or "").rstrip(".")
+    except ValueError:
+        return ""
+
+
+def _under(host, domain):
+    """True for the domain itself or a subdomain of it, so 'ubuntu.com.evil.example' does not match."""
+    return host == domain or host.endswith("." + domain)
 
 
 @dataclass
@@ -38,13 +53,13 @@ class Source:
 
     @property
     def kind(self):
-        u = self.uri
-        if "linuxmint.com" in u:
+        host = _uri_host(self.uri)
+        if _under(host, "linuxmint.com"):
             return "Linux Mint"
-        if "ppa.launchpad" not in u and ("ubuntu.com" in u or re.search(r"/ubuntu/?$", u)):
-            return "Ubuntu"                       # official archive or an Ubuntu mirror (…/ubuntu)
-        if "ppa.launchpad" in u:
+        if host in PPA_HOSTS:
             return "PPA"
+        if _under(host, "ubuntu.com") or re.search(r"/ubuntu/?$", self.uri):
+            return "Ubuntu"                       # official archive or an Ubuntu mirror (…/ubuntu)
         return "Third-party"
 
     @property
