@@ -123,8 +123,15 @@ def set_delay(file, seconds):
     kf.save_to_file(str(USER_DIR / file))
 
 
+def is_plain_name(file):
+    """A bare file name, so joining it onto the autostart folder cannot leave that folder."""
+    return os.sep not in file and file != ".."
+
+
 def set_enabled(file, enabled):
     """Enable/disable an entry for the current user only."""
+    if not is_plain_name(file):
+        raise ValueError(file)
     USER_DIR.mkdir(parents=True, exist_ok=True)
     user = USER_DIR / file
     kf = _load(user)

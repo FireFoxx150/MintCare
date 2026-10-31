@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from mintcare import autostart, maintenance
+from mintcare import autostart, backup, maintenance
 from tests.helpers import TempDirTest
 
 ENTRY = """[Desktop Entry]
@@ -116,6 +116,58 @@ class Maintenance(TempDirTest):
         self.assertEqual(maintenance._changes()["flatpak"], ["org.example.App"])
         maintenance.note_flatpak("org.example.App", reset=True)
         self.assertEqual(maintenance._changes()["flatpak"], [])
+
+
+class StartupNames(TempDirTest):
+    """A startup-entry name from an imported file or an undo record must stay in the autostart folder."""
+
+    def setUp(self):
+        super().setUp()
+        root = Path(self.tmp)
+        self.sys_dir = root / "xdg-autostart"
+        self.user_dir = root / "user-autostart"
+        self.sys_dir.mkdir()
+        self._old = (autostart.SYSTEM_DIRS, autostart.USER_DIR, maintenance.CONFIG_DIR, maintenance.STATE,
+                     maintenance.SETTINGS_FILE, maintenance.CHANGES_FILE)
+        autostart.SYSTEM_DIRS, autostart.USER_DIR = [self.sys_dir], self.user_dir
+        maintenance.CONFIG_DIR = root / "cfg"
+        maintenance.STATE = root / "state"
+        maintenance.SETTINGS_FILE = root / "cfg" / "settings.json"
+        maintenance.CHANGES_FILE = root / "state" / "changes.json"
+
+    def tearDown(self):
+        (autostart.SYSTEM_DIRS, autostart.USER_DIR, maintenance.CONFIG_DIR, maintenance.STATE,
+         maintenance.SETTINGS_FILE, maintenance.CHANGES_FILE) = self._old
+        super().tearDown()
+
+    def test_set_enabled_refuses_names_outside_the_folder(self):
+        for bad in ("../victim.desktop", "sub/x.desktop", "..", "/tmp/x.desktop"):
+            with self.subTest(bad), self.assertRaises(ValueError):
+                autostart.set_enabled(bad, False)
+        self.assertFalse((Path(self.tmp) / "victim.desktop").exists())
+
+    def test_import_skips_a_crafted_name_and_keeps_the_plain_one(self):
+        (self.sys_dir / "demo.desktop").write_text(ENTRY.format(extra=""))
+        victim = Path(self.tmp) / "victim.desktop"
+        victim.write_text(ENTRY.format(extra=""))
+        settings = Path(self.tmp) / "in.json"
+        settings.write_text(json.dumps({"mintcare": "test",
+                                        "startup_disabled": ["../victim.desktop", "demo.desktop"]}))
+        backup.import_settings(settings)
+        self.assertEqual(victim.read_text(), ENTRY.format(extra=""))
+        self.assertIn("X-GNOME-Autostart-enabled=false", (self.user_dir / "demo.desktop").read_text())
+        self.assertEqual(list(maintenance._changes()["autostart"]), ["demo.desktop"])
+
+    def test_undo_of_a_crafted_record_touches_no_file_and_drops_the_record(self):
+        victim = Path(self.tmp) / "victim.desktop"
+        for info in ({"was_enabled": True, "created": True}, {"was_enabled": False, "created": False}):
+            with self.subTest(info=info):
+                victim.write_text(ENTRY.format(extra=""))
+                maintenance.CHANGES_FILE.parent.mkdir(parents=True, exist_ok=True)
+                maintenance.CHANGES_FILE.write_text(json.dumps({"autostart": {"../victim.desktop": info}}))
+                maintenance.undo_user_item("autostart", "../victim.desktop")
+                self.assertEqual(victim.read_text(), ENTRY.format(extra=""))
+                self.assertNotIn("../victim.desktop", maintenance._changes()["autostart"])
 
 
 if __name__ == "__main__":

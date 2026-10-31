@@ -30,7 +30,7 @@ def run_steps(steps, root, on_line=print):
     fd, path = tempfile.mkstemp(prefix="mintcare-", suffix=".sh", dir="/tmp")
     with os.fdopen(fd, "w") as f:
         f.write(_script(steps))
-    os.chmod(path, 0o600 if not root else 0o644)
+    os.chmod(path, 0o600)  # root reads the script regardless of mode, so nobody else needs it
     if root and os.geteuid() != 0:
         # The .deb ships a helper with its own polkit action, so the prompt
         # names MintCare; running from source falls back to plain bash.

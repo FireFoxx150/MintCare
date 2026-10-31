@@ -215,14 +215,13 @@ def undo_user_item(kind, key):
     from . import autostart, flatpaks
     c = _changes()
     if kind == "autostart":
-        info = c["autostart"].get(key)
-        if info:
+        info = c["autostart"].pop(key, None)
+        if info and autostart.is_plain_name(key):  # a crafted key is dropped, never used
             user_file = autostart.USER_DIR / key
             if info["created"]:
                 user_file.unlink(missing_ok=True)
             else:
                 autostart.set_enabled(key, info["was_enabled"])
-            del c["autostart"][key]
     elif kind == "flatpak":
         flatpaks.reset(key)
         c["flatpak"] = [a for a in c["flatpak"] if a != key]

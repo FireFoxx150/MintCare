@@ -275,6 +275,8 @@ def import_settings(path):
             st[k] = v
     maintenance.save_settings(st)
     for f in data.get("startup_disabled", []):
+        if not autostart.is_plain_name(f):
+            continue
         try:
             had = (autostart.USER_DIR / f).exists()
             autostart.set_enabled(f, False)
