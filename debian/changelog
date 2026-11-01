@@ -1,3 +1,21 @@
+mintcare (1.12.10) noble; urgency=medium
+
+  * Dashboard: a second card for a second graphics card, such as an integrated
+    GPU, and a load and VRAM history for the first card.
+  * Duplicate finder: thumbnails are decoded in the background, and very large
+    pictures get none.
+  * Malware scan: clamscan gets an explicit list of files, and names with line
+    breaks are left out. A file is quarantined only if it is a plain file under
+    your home folder, checked again as root.
+  * Mint upgrade check: a directory listing over 1 MiB is refused.
+  * Software sources: a source is labelled Ubuntu or Linux Mint only when its
+    host name is that domain or a subdomain of it.
+  * Security: the root batch script is readable only by its owner, and imported
+    settings cannot name files outside the autostart folder.
+  * CI: the workflow's token is limited to reading the repository.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Sun, 01 Nov 2026 00:35:00 +0000
+
 mintcare (1.12.9) noble; urgency=medium
 
   * Simpler by default: hide individual tips on Diagnose & Fix (show them

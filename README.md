@@ -13,7 +13,7 @@ finds and fixes common problems.
 
 ```
 ./build-deb.sh                                   # builds dist/mintcare_<ver>_all.deb
-sudo apt install ./dist/mintcare_1.12.9_all.deb   # system-wide install (recommended)
+sudo apt install ./dist/mintcare_1.12.10_all.deb   # system-wide install (recommended)
 ```
 or, without packaging:
 ```
@@ -129,7 +129,7 @@ mintcare --tray            # start the GUI hidden in the tray
 
 ## Development
 ```
-./run-tests.sh                 # 91 stdlib unittest tests; never needs root or changes the system
+./run-tests.sh                 # stdlib unittest tests; never needs root or changes the system
 po/update-pot.sh               # refresh the translation template (see po/README.md)
 ```
 See `RELEASING.md` for GitHub releases and a Launchpad PPA.
