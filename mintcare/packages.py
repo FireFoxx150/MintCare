@@ -1,6 +1,7 @@
 """Package audit, apt history (with undo), kernels, mirror speed test and Mint upgrade check."""
 
 import gzip
+import http.client
 import os
 import re
 import time
@@ -280,6 +281,20 @@ def _vtuple(v):
     return tuple(int(x) for x in re.findall(r"\d+", v)[:2]) or (0,)
 
 
+LISTING_MAX = 1 << 20   # Mint's release directory listing is a few kilobytes; a bigger reply is refused
+
+
+def _capped(resp, cap=LISTING_MAX):
+    """Body of an HTTP reply, or None when it is larger than `cap` bytes. A reply cut short raises IncompleteRead."""
+    body = resp.read(cap + 1)
+    if len(body) > cap:
+        return None
+    declared = resp.headers.get("Content-Length")
+    if declared is not None and int(declared) != len(body):
+        raise http.client.IncompleteRead(body)
+    return body
+
+
 def upgrade_available(timeout=8):
     """A newer mainline Linux Mint release on packages.linuxmint.com: (codename, version) or None.
 
@@ -289,9 +304,12 @@ def upgrade_available(timeout=8):
     try:
         with urllib.request.urlopen(urllib.request.Request(
                 MINT_DEFAULT + "/dists/", headers={"User-Agent": "MintCare"}), timeout=timeout) as r:
-            listing = r.read().decode(errors="replace")
+            body = _capped(r)
     except (OSError, ValueError):
         return None
+    if body is None:
+        return None
+    listing = body.decode(errors="replace")
     rel, _code = mint_release()
     known = {p.name for p in Path("/usr/share/mintsources").iterdir()} if Path("/usr/share/mintsources").is_dir() else set()
     best = None

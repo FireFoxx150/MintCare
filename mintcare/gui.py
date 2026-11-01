@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import gi
@@ -60,6 +61,20 @@ def dash_slots(keys, mode):
                 break
             r += 1
     return out
+
+
+THUMB_MAX_PIXELS = 100_000_000   # no thumbnail for a picture this big: decoding it takes long and a lot of memory
+
+
+def _thumbnail(path):
+    """A 48-pixel thumbnail of the picture at `path`, or None when it is unreadable or too large."""
+    fmt, w, h = GdkPixbuf.Pixbuf.get_file_info(path)     # reads the header only
+    if fmt is None or w * h > THUMB_MAX_PIXELS:
+        return None
+    try:
+        return GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 48, 48, True)
+    except GLib.Error:
+        return None
 
 
 TIPS = {
@@ -3060,7 +3075,19 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._render_dups()
         self.bg(lambda: space.duplicates(roots, min_size, hidden, progress, self._space_cancel.is_set), done)
 
+    def _set_thumbnail(self, img, fut, gen):
+        """Runs on the UI thread when a thumbnail is ready, unless the duplicate list was drawn again since."""
+        if gen == self._dup_render and not fut.cancelled() and fut.exception() is None and fut.result() is not None:
+            img.set_from_pixbuf(fut.result())
+        return False
+
     def _render_dups(self):
+        for f in getattr(self, "_thumb_futures", []):    # thumbnails of the previous list are not wanted now
+            f.cancel()
+        self._thumb_futures = []
+        self._dup_render = getattr(self, "_dup_render", 0) + 1
+        if getattr(self, "_thumbs", None) is None:
+            self._thumbs = ThreadPoolExecutor(max_workers=1)     # one decoder at a time, off the UI thread
         for ch in self.dup_list.get_children():
             ch.destroy()
         show = self.dup_groups[:120]
@@ -3082,12 +3109,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 cb.connect("toggled", self._dup_toggle, p)
                 rb.pack_start(cb, False, False, 0)
                 if space.file_kind(p) == "image":           # thumbnail, so copies can be told apart
-                    # shortcut: decodes the full image on the UI thread, move to a worker if large pictures lag
-                    try:
-                        thumb = GdkPixbuf.Pixbuf.new_from_file_at_scale(p, 48, 48, True)
-                        rb.pack_start(Gtk.Image.new_from_pixbuf(thumb), False, False, 0)
-                    except GLib.Error:
-                        pass                                # unreadable or unusual image: no thumbnail
+                    img = Gtk.Image(valign=Gtk.Align.CENTER)    # filled in later; an unreadable one stays empty
+                    img.set_size_request(48, 48)
+                    rb.pack_start(img, False, False, 0)
+                    fut = self._thumbs.submit(_thumbnail, p)
+                    fut.add_done_callback(lambda f, img=img, gen=self._dup_render:
+                                          GLib.idle_add(self._set_thumbnail, img, f, gen))
+                    self._thumb_futures.append(fut)
                 pl = label(p.replace(space.HOME, "~"), ("mono", "muted"), ellipsize=True)
                 pl.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
                 rb.pack_start(pl, True, True, 0)

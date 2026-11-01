@@ -83,7 +83,7 @@ class TestUntrustedText(unittest.TestCase):
             mark = os.path.join(d, "pwned")
             name = "x';touch pwned;'.exe"
             Path(d, name).touch()
-            sid, title, body = secaudit.quarantine_step([os.path.join(d, name)])
+            sid, title, body = secaudit.quarantine_step([os.path.join(d, name)], home=d)
             body = body.replace("/var/lib/mintcare/quarantine", os.path.join(d, "q"))
             kill = processes.end_step(999999, f"$(touch {mark})`touch {mark}`")
             out = subprocess.run(["bash", "-c", _script([(sid, title, body), kill])],

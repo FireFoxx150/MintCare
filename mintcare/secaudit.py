@@ -1,8 +1,10 @@
 """Login security (failed logins, SSH settings, AppArmor, auto-login, screen lock) and malware scans."""
 
 import glob
+import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 from .i18n import _
@@ -128,32 +130,75 @@ def install_step(name):
                "rkhunter --propupd --nocolors || true"))
 
 
+def scan_files(paths):
+    """Regular files under the folders in `paths` that clamscan may scan, and how many names were left out.
+
+    Links and .cache folders are skipped. A name with a control character (a line break, say) is left out
+    too: clamscan prints one line per file, so such a name could make the output show another path.
+    """
+    files, skipped = [], 0
+    for top in paths:
+        for root, dirs, names in os.walk(top):
+            dirs[:] = [d for d in dirs if d != ".cache"]
+            for name in names:
+                full = os.path.join(root, name)
+                if os.path.islink(full) or not os.path.isfile(full):
+                    continue
+                if any(ord(c) < 32 or ord(c) == 127 for c in full):
+                    skipped += 1
+                    continue
+                files.append(full)
+    return files, skipped
+
+
 def clam_scan(paths, on_line=lambda line: None, cancel=lambda: False):
-    """Run clamscan as you. Returns {'infected': [(path, virus)], 'scanned', 'rc'}."""
-    args = ["clamscan", "-r", "-i", "--no-summary", "--exclude-dir=^/proc", "--exclude-dir=/\\.cache/", *paths]
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
-    infected = []
-    for line in proc.stdout:
-        if cancel():
-            proc.terminate()
-            break
-        line = line.rstrip()
-        m = re.match(r"(.+): (.+) FOUND$", line)
-        if m:
-            infected.append((m.group(1), m.group(2)))
-        on_line(line)
-    rc = proc.wait()
-    return {"infected": infected, "rc": rc, "cancelled": cancel()}
+    """Run clamscan as you over the folders in `paths`.
+
+    Returns {'infected': [(path, virus)], 'scanned', 'skipped', 'rc', 'cancelled'}. clamscan gets an explicit
+    file list (see scan_files), and a line counts as an infection only when its path is one of those files.
+    """
+    files, skipped = scan_files(paths)
+    if not files:
+        return {"infected": [], "scanned": 0, "skipped": skipped, "rc": 0, "cancelled": cancel()}
+    fd, listing = tempfile.mkstemp(prefix="mintcare-scan-")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(b"\n".join(os.fsencode(p) for p in files) + b"\n")
+        proc = subprocess.Popen(["clamscan", "-i", "--no-summary", f"--file-list={listing}"],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace",
+                                bufsize=1)
+        known, infected = set(files), []
+        for line in proc.stdout:
+            if cancel():
+                proc.terminate()
+                break
+            line = line.rstrip()
+            m = re.match(r"(.+): (.+) FOUND$", line)
+            if m and m.group(1) in known:
+                infected.append((m.group(1), m.group(2)))
+            on_line(line)
+        rc = proc.wait()
+    finally:
+        os.remove(listing)
+    return {"infected": infected, "scanned": len(files), "skipped": skipped, "rc": rc, "cancelled": cancel()}
 
 
 def rkhunter_step():
     return ("rkhunter", _("Rootkit check (rkhunter)"), "rkhunter --check --sk --rwo --nocolors 2>&1 || true")
 
 
-def quarantine_step(paths):
-    """Move infected files into /var/lib/mintcare/quarantine (root-only, not executable)."""
+def quarantine_step(paths, home=None):
+    """Move infected files into /var/lib/mintcare/quarantine (root-only, not executable).
+
+    The root step checks each path again after the password prompt: only a plain file under your home
+    folder is moved, so a folder swapped for a link in the meantime cannot send the move elsewhere.
+    """
+    home = os.path.realpath(home or os.path.expanduser("~"))
     lines = ["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine"]
     for p in paths:
-        lines.append(f"mv -- {q(p)} /var/lib/mintcare/quarantine/ && echo {q('Quarantined ' + p)}")
+        plain = (f"[ -f {q(p)} ] && [ ! -L {q(p)} ] && "
+                 f'case "$(realpath -e -- {q(p)})" in {q(home)}/*) true;; *) false;; esac')
+        lines.append(f"if {plain}; then mv -- {q(p)} /var/lib/mintcare/quarantine/ && echo {q('Quarantined ' + p)}; "
+                     f"else echo {q('Skipped, not a plain file in your home folder: ' + p)}; fi")
     lines.append("chmod -R a-x /var/lib/mintcare/quarantine/* 2>/dev/null || true")
     return ("quarantine", f"Quarantine {len(paths)} file(s)", "\n".join(lines))
