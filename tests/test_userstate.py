@@ -146,6 +146,12 @@ class StartupNames(TempDirTest):
                 autostart.set_enabled(bad, False)
         self.assertFalse((Path(self.tmp) / "victim.desktop").exists())
 
+    def test_set_delay_refuses_names_outside_the_folder(self):
+        for bad in ("../victim.desktop", "..", "/tmp/x.desktop"):
+            with self.subTest(bad), self.assertRaises(ValueError):
+                autostart.set_delay(bad, 30)
+        self.assertFalse((Path(self.tmp) / "victim.desktop").exists())
+
     def test_import_skips_a_crafted_name_and_keeps_the_plain_one(self):
         (self.sys_dir / "demo.desktop").write_text(ENTRY.format(extra=""))
         victim = Path(self.tmp) / "victim.desktop"
@@ -157,6 +163,16 @@ class StartupNames(TempDirTest):
         self.assertEqual(victim.read_text(), ENTRY.format(extra=""))
         self.assertIn("X-GNOME-Autostart-enabled=false", (self.user_dir / "demo.desktop").read_text())
         self.assertEqual(list(maintenance._changes()["autostart"]), ["demo.desktop"])
+
+    def test_import_keeps_this_computers_report_folder(self):
+        before = maintenance.load_settings()["maintenance"]["report_folder"]
+        settings = Path(self.tmp) / "in.json"
+        settings.write_text(json.dumps({"mintcare": "test",
+                                        "settings": {"maintenance": {"report_folder": "/etc", "report": True}}}))
+        backup.import_settings(settings)
+        after = maintenance.load_settings()["maintenance"]
+        self.assertEqual(after["report_folder"], before)
+        self.assertTrue(after["report"])
 
     def test_undo_of_a_crafted_record_touches_no_file_and_drops_the_record(self):
         victim = Path(self.tmp) / "victim.desktop"

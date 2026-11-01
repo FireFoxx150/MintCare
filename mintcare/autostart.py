@@ -112,6 +112,8 @@ def _user_copy(file):
 
 def set_delay(file, seconds):
     """Start an entry `seconds` after login (0 = straight away), for the current user only."""
+    if not is_plain_name(file):
+        raise ValueError(file)
     kf = _user_copy(file)
     if seconds:
         kf.set_string(DE, "X-GNOME-Autostart-Delay", str(int(seconds)))

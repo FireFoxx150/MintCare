@@ -66,13 +66,13 @@ def dash_slots(keys, mode):
 THUMB_MAX_PIXELS = 100_000_000   # no thumbnail for a picture this big: decoding it takes long and a lot of memory
 
 
-def _thumbnail(path):
-    """A 48-pixel thumbnail of the picture at `path`, or None when it is unreadable or too large."""
+def _thumbnail(path, size=48):
+    """A thumbnail of at most `size` pixels for the picture at `path`, or None when it is unreadable or too large."""
     fmt, w, h = GdkPixbuf.Pixbuf.get_file_info(path)     # reads the header only
     if fmt is None or w * h > THUMB_MAX_PIXELS:
         return None
     try:
-        return GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 48, 48, True)
+        return GdkPixbuf.Pixbuf.new_from_file_at_scale(path, size, size, True)
     except GLib.Error:
         return None
 
@@ -579,14 +579,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
             GLib.idle_add(self._apply_layout, mode)
 
     def _dash_names(self):
-        return {"cpu": _("Processor"), "memory": _("Memory"), "disk": _("Disk"), "gpu": _("Graphics"),
-                "performance": _("Performance"), "health": _("Health"), "network": _("Network"),
-                "details": _("Details"), "gpu2": _("Second graphics card")}
+        names = {"cpu": _("Processor"), "memory": _("Memory"), "disk": _("Disk"), "gpu": _("Graphics"),
+                 "performance": _("Performance"), "health": _("Health"), "network": _("Network"),
+                 "details": _("Details"), "gpu2": _("Second graphics card")}
+        names.update({key: name for key, _g, _t, _c, name in getattr(self, "_gpu_more", [])})
+        return names
 
     def _dash_order(self):
         """Card keys in the user's order, with any new or missing cards placed in the default order."""
         saved = [k for k in maintenance.load_settings().get("dash_order", []) if k in self._dash_cards]
-        return saved + [k for k in DASH_ORDER if k in self._dash_cards and k not in saved]
+        default = list(DASH_ORDER) + [k for k in self._dash_cards if k not in DASH_ORDER]
+        return saved + [k for k in default if k in self._dash_cards and k not in saved]
 
     def _fill_dash_switches(self):
         for ch in self._dash_switches.get_children():
@@ -1445,6 +1448,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.g_gpu2, gpu2_card, gpu2_foot = self._gauge_card(
                 _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), gpus[1]["name"], "info")
             (self.gpu2_temp,) = self._tiles(gpu2_foot, _("TEMPERATURE"))
+        self._gpu_more = []                 # (key, gauge, temperature label, card, name) for each card after the second
+        for i, g in enumerate(gpus[2:], start=3):
+            gauge, more_card, more_foot = self._gauge_card(
+                _("Graphics Activity"), "video-display-symbolic", VIOLET, _("GPU load"), g["name"], "info")
+            (temp,) = self._tiles(more_foot, _("TEMPERATURE"))
+            self._gpu_more.append((f"gpu{i}", gauge, temp, more_card, g["name"]))
 
         # performance chart (2 columns)
         perf = card()
@@ -1513,6 +1522,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._dash_cards = {k: w for k, w in {"cpu": cpu_card, "memory": mem_card, "disk": disk_card,
                                               "gpu": gpu_card, "gpu2": gpu2_card, "performance": perf,
                                               "health": hc, "network": net, "details": det}.items() if w is not None}
+        self._dash_cards.update({key: card for key, _g, _t, card, _n in self._gpu_more})
         self._dash_switches = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=4)
         page.pack_start(self._dash_switches, False, False, 0)
         page.reorder_child(self._dash_switches, page.get_children().index(grid))
@@ -2034,9 +2044,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self._mal_running = False
             res = res or {"infected": [], "rc": 2}
             found = res["infected"]
-            self.mal_progress.set_text(_("Cancelled.") if res.get("cancelled") else
-                                       (_('Scan finished: {0} infected file(s).').format(len(found)) if res["rc"] in (0, 1)
-                                        else _("The scanner reported an error — see the Activity log.")))
+            skipped = res.get("skipped", 0)
+            note = ngettext("{0} file name was not scanned because it contains a line break.",
+                            "{0} file names were not scanned because they contain line breaks.", skipped).format(skipped)
+            self.mal_progress.set_text((_("Cancelled.") if res.get("cancelled") else
+                                        (_('Scan finished: {0} infected file(s).').format(len(found)) if res["rc"] in (0, 1)
+                                         else _("The scanner reported an error — see the Activity log.")))
+                                       + (" " + note if skipped else ""))
             for path, virus in found:
                 self.mal_results.pack_start(self._row(os.path.basename(path), virus, path, "dialog-error-symbolic"),
                                             False, False, 0)
@@ -5217,6 +5231,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
             g2 = gpus[1]
             self.g_gpu2.set_value(g2["util"] or 0)
             self.gpu2_temp.set_text(f"{g2['temp']:.0f}°C" if g2["temp"] is not None else "n/a")
+        for (_k, gauge, temp, _c, _n), more in zip(getattr(self, "_gpu_more", []), gpus[2:]):
+            gauge.set_value(more["util"] or 0)
+            temp.set_text(f"{more['temp']:.0f}°C" if more["temp"] is not None else "n/a")
         if g["temp"] is not None:
             self.gpu_chart.push(g["temp"])
             self._gpu_temps = (self._gpu_temps + [g["temp"]])[-60:]
@@ -5475,10 +5492,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _app_icon(self, name):
         img = None
         if name and os.path.isabs(name):
-            try:
-                img = Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(name, 28, 28))
-            except GLib.Error:
-                img = None
+            pixbuf = _thumbnail(name, 28)              # the same size limit as the duplicate list's thumbnails
+            img = Gtk.Image.new_from_pixbuf(pixbuf) if pixbuf is not None else None
         elif name and Gtk.IconTheme.get_default().has_icon(name):
             img = Gtk.Image.new_from_icon_name(name, Gtk.IconSize.DND)
             img.set_pixel_size(28)

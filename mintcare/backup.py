@@ -270,9 +270,12 @@ def import_settings(path):
     if "mintcare" not in data:
         raise ValueError(_("This isn't a MintCare settings file"))
     st = maintenance.load_settings()
+    report_folder = st.get("maintenance", {}).get("report_folder", "")    # a folder on this computer: never taken from the file
     for k, v in data.get("settings", {}).items():
         if k in st and k != "backup":
             st[k] = v
+    if isinstance(st.get("maintenance"), dict):
+        st["maintenance"]["report_folder"] = report_folder
     maintenance.save_settings(st)
     for f in data.get("startup_disabled", []):
         if not autostart.is_plain_name(f):
