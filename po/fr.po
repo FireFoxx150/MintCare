@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 01:19+0000\n"
+"POT-Creation-Date: 2026-11-02 08:43+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: French\n"
@@ -384,7 +384,7 @@ msgstr[1] "{0} noyaux installés"
 msgid "{0} kernels installed; old ones waste space in /boot"
 msgstr "{0} noyaux installés ; les anciens gaspillent de la place dans /boot"
 
-#: mintcare/checks.py:182 mintcare/checks.py:191 mintcare/checks.py:716
+#: mintcare/checks.py:182 mintcare/checks.py:191 mintcare/checks.py:718
 msgid "Open cleaner"
 msgstr "Ouvrir le nettoyeur"
 
@@ -915,291 +915,295 @@ msgstr "Configurer la sauvegarde"
 msgid "Open backup"
 msgstr "Ouvrir la sauvegarde"
 
-#: mintcare/checks.py:580 mintcare/checks.py:585 mintcare/gui.py:4248
-#: mintcare/gui.py:4250
+#: mintcare/checks.py:580
+msgid "Automatic backup is off"
+msgstr "La sauvegarde automatique est désactivée"
+
+#: mintcare/checks.py:580 mintcare/checks.py:582 mintcare/checks.py:587
+#: mintcare/gui.py:4248 mintcare/gui.py:4250
 msgid "Back up now"
 msgstr "Sauvegarder maintenant"
 
-#: mintcare/checks.py:580
+#: mintcare/checks.py:582
 msgid "Backup is set up but hasn't run yet"
 msgstr "La sauvegarde est configurée mais n'a pas encore tourné"
 
-#: mintcare/checks.py:585
+#: mintcare/checks.py:587
 #, python-brace-format
 msgid "Last backup was {0:.0f} days ago"
 msgstr "La dernière sauvegarde date de {0:.0f} jours"
 
-#: mintcare/checks.py:586
+#: mintcare/checks.py:588
 #, python-brace-format
 msgid "Personal files backed up {0:.0f} day(s) ago to {1}"
 msgstr "Fichiers personnels sauvegardés il y a {0:.0f} jour(s) vers {1}"
 
-#: mintcare/checks.py:593
+#: mintcare/checks.py:595
 msgid "No battery (desktop PC)"
 msgstr "Pas de batterie (PC de bureau)"
 
-#: mintcare/checks.py:596
+#: mintcare/checks.py:598
 msgid "Battery health isn't reported by this laptop"
 msgstr "Ce portable n'indique pas l'état de sa batterie"
 
-#: mintcare/checks.py:599
+#: mintcare/checks.py:601
 #, no-python-format, python-brace-format
 msgid "Battery holds only {0}% of its original charge — consider replacing it"
 msgstr ""
 "La batterie ne garde que {0} % de sa charge d'origine — pensez à la remplacer"
 
-#: mintcare/checks.py:600
+#: mintcare/checks.py:602
 msgid "View battery"
 msgstr "Voir la batterie"
 
-#: mintcare/checks.py:602
+#: mintcare/checks.py:604
 #, no-python-format, python-brace-format
 msgid "Battery holds {0}% of its original charge"
 msgstr "La batterie garde {0} % de sa charge d'origine"
 
-#: mintcare/checks.py:607
+#: mintcare/checks.py:609
 msgid "Internet connection"
 msgstr "Connexion Internet"
 
-#: mintcare/checks.py:607 mintcare/checks.py:608 mintcare/checks.py:609
-#: mintcare/checks.py:610 mintcare/gui.py:583 mintcare/gui.py:3867
+#: mintcare/checks.py:609 mintcare/checks.py:610 mintcare/checks.py:611
+#: mintcare/checks.py:612 mintcare/gui.py:583 mintcare/gui.py:3867
 #: mintcare/tweaks.py:256 mintcare/tweaks.py:266 mintcare/tweaks.py:277
 msgid "Network"
 msgstr "Réseau"
 
-#: mintcare/checks.py:608
+#: mintcare/checks.py:610
 msgid "DNS resolution"
 msgstr "Résolution DNS"
 
-#: mintcare/checks.py:609 mintcare/tweaks.py:256
+#: mintcare/checks.py:611 mintcare/tweaks.py:256
 msgid "TCP BBR congestion control"
 msgstr "Contrôle de congestion TCP BBR"
 
-#: mintcare/checks.py:610
+#: mintcare/checks.py:612
 msgid "Hostname resolution"
 msgstr "Résolution du nom d'hôte"
 
-#: mintcare/checks.py:611
+#: mintcare/checks.py:613
 msgid "Interrupted package installs"
 msgstr "Installations de paquets interrompues"
 
-#: mintcare/checks.py:611 mintcare/checks.py:612 mintcare/checks.py:613
-#: mintcare/checks.py:614 mintcare/checks.py:615 mintcare/checks.py:616
-#: mintcare/checks.py:617 mintcare/checks.py:618 mintcare/checks.py:619
+#: mintcare/checks.py:613 mintcare/checks.py:614 mintcare/checks.py:615
+#: mintcare/checks.py:616 mintcare/checks.py:617 mintcare/checks.py:618
+#: mintcare/checks.py:619 mintcare/checks.py:620 mintcare/checks.py:621
 #: mintcare/gui.py:38 mintcare/gui.py:96 mintcare/gui.py:3494
 msgid "Packages"
 msgstr "Paquets"
 
-#: mintcare/checks.py:612
+#: mintcare/checks.py:614
 msgid "Broken dependencies"
 msgstr "Dépendances cassées"
 
-#: mintcare/checks.py:613
+#: mintcare/checks.py:615
 msgid "Pending updates"
 msgstr "Mises à jour en attente"
 
-#: mintcare/checks.py:614
+#: mintcare/checks.py:616
 msgid "Flatpak app updates"
 msgstr "Mises à jour des apps Flatpak"
 
-#: mintcare/checks.py:615
+#: mintcare/checks.py:617
 msgid "Restart needed"
 msgstr "Redémarrage nécessaire"
 
-#: mintcare/checks.py:616
+#: mintcare/checks.py:618
 msgid "Installed kernels"
 msgstr "Noyaux installés"
 
-#: mintcare/checks.py:617
+#: mintcare/checks.py:619
 msgid "Leftover package config"
 msgstr "Configuration de paquets restante"
 
-#: mintcare/checks.py:618
+#: mintcare/checks.py:620
 msgid "Software sources"
 msgstr "Sources de logiciels"
 
-#: mintcare/checks.py:619 mintcare/gui.py:1770
+#: mintcare/checks.py:621 mintcare/gui.py:1770
 msgid "MintCare updates"
 msgstr "Mises à jour de MintCare"
 
-#: mintcare/checks.py:620 mintcare/gui.py:94 mintcare/gui.py:2763
+#: mintcare/checks.py:622 mintcare/gui.py:94 mintcare/gui.py:2763
 msgid "Disk space"
 msgstr "Espace disque"
 
-#: mintcare/checks.py:620 mintcare/checks.py:621 mintcare/checks.py:622
-#: mintcare/checks.py:623 mintcare/checks.py:624 mintcare/checks.py:625
+#: mintcare/checks.py:622 mintcare/checks.py:623 mintcare/checks.py:624
+#: mintcare/checks.py:625 mintcare/checks.py:626 mintcare/checks.py:627
 #: mintcare/tweaks.py:327 mintcare/tweaks.py:334 mintcare/tweaks.py:349
 #: mintcare/tweaks.py:407
 msgid "Storage"
 msgstr "Stockage"
 
-#: mintcare/checks.py:621
+#: mintcare/checks.py:623
 msgid "/boot space"
 msgstr "Espace de /boot"
 
-#: mintcare/checks.py:622
+#: mintcare/checks.py:624
 msgid "SSD TRIM"
 msgstr "TRIM du SSD"
 
-#: mintcare/checks.py:623
+#: mintcare/checks.py:625
 msgid "Log size"
 msgstr "Taille des journaux"
 
-#: mintcare/checks.py:624
+#: mintcare/checks.py:626
 msgid "System snapshots"
 msgstr "Instantanés système"
 
-#: mintcare/checks.py:625
+#: mintcare/checks.py:627
 msgid "Personal file backup"
 msgstr "Sauvegarde des fichiers personnels"
 
-#: mintcare/checks.py:626 mintcare/checks.py:627 mintcare/gui.py:582
+#: mintcare/checks.py:628 mintcare/checks.py:629 mintcare/gui.py:582
 #: mintcare/report.py:56 mintcare/tweaks.py:295 mintcare/tweaks.py:313
 #: mintcare/tweaks.py:319
 msgid "Memory"
 msgstr "Mémoire"
 
-#: mintcare/checks.py:626
+#: mintcare/checks.py:628
 msgid "Swap / zram"
 msgstr "Swap / zram"
 
-#: mintcare/checks.py:627
+#: mintcare/checks.py:629
 msgid "Memory usage"
 msgstr "Utilisation de la mémoire"
 
-#: mintcare/checks.py:628
+#: mintcare/checks.py:630
 msgid "CPU microcode"
 msgstr "Microcode du processeur"
 
-#: mintcare/checks.py:628 mintcare/checks.py:629 mintcare/checks.py:630
-#: mintcare/checks.py:631 mintcare/checks.py:632 mintcare/checks.py:633
-#: mintcare/checks.py:634 mintcare/gui.py:99
+#: mintcare/checks.py:630 mintcare/checks.py:631 mintcare/checks.py:632
+#: mintcare/checks.py:633 mintcare/checks.py:634 mintcare/checks.py:635
+#: mintcare/checks.py:636 mintcare/gui.py:99
 msgid "Hardware"
 msgstr "Matériel"
 
-#: mintcare/checks.py:629
+#: mintcare/checks.py:631
 msgid "Graphics driver"
 msgstr "Pilote graphique"
 
-#: mintcare/checks.py:630
+#: mintcare/checks.py:632
 msgid "Laptop power management"
 msgstr "Gestion d'énergie du portable"
 
-#: mintcare/checks.py:631
+#: mintcare/checks.py:633
 msgid "Disk health (SMART)"
 msgstr "Santé des disques (SMART)"
 
-#: mintcare/checks.py:632
+#: mintcare/checks.py:634
 msgid "Temperatures & throttling"
 msgstr "Températures et bridage"
 
-#: mintcare/checks.py:633
+#: mintcare/checks.py:635
 msgid "Firmware updates"
 msgstr "Mises à jour du firmware"
 
-#: mintcare/checks.py:634
+#: mintcare/checks.py:636
 msgid "Battery health"
 msgstr "Santé de la batterie"
 
-#: mintcare/checks.py:635 mintcare/gui.py:83 mintcare/gui.py:1594
+#: mintcare/checks.py:637 mintcare/gui.py:83 mintcare/gui.py:1594
 #: mintcare/gui.py:2138
 msgid "Firewall"
 msgstr "Pare-feu"
 
-#: mintcare/checks.py:635 mintcare/checks.py:636 mintcare/checks.py:637
+#: mintcare/checks.py:637 mintcare/checks.py:638 mintcare/checks.py:639
 #: mintcare/gui.py:39 mintcare/gui.py:100 mintcare/gui.py:1922
 #: mintcare/tweaks.py:381 mintcare/tweaks.py:391 mintcare/tweaks.py:399
 msgid "Security"
 msgstr "Sécurité"
 
-#: mintcare/checks.py:636
+#: mintcare/checks.py:638
 msgid "Home folder privacy"
 msgstr "Confidentialité du dossier personnel"
 
-#: mintcare/checks.py:637
+#: mintcare/checks.py:639
 msgid "Open network ports"
 msgstr "Ports réseau ouverts"
 
-#: mintcare/checks.py:638
+#: mintcare/checks.py:640
 msgid "Clock sync"
 msgstr "Synchronisation de l'horloge"
 
-#: mintcare/checks.py:638 mintcare/checks.py:639 mintcare/checks.py:640
-#: mintcare/checks.py:641 mintcare/checks.py:642 mintcare/checks.py:643
-#: mintcare/checks.py:644 mintcare/checks.py:645 mintcare/checks.py:646
-#: mintcare/checks.py:647
+#: mintcare/checks.py:640 mintcare/checks.py:641 mintcare/checks.py:642
+#: mintcare/checks.py:643 mintcare/checks.py:644 mintcare/checks.py:645
+#: mintcare/checks.py:646 mintcare/checks.py:647 mintcare/checks.py:648
+#: mintcare/checks.py:649
 msgid "System"
 msgstr "Système"
 
-#: mintcare/checks.py:639
+#: mintcare/checks.py:641
 msgid "Failed services"
 msgstr "Services en échec"
 
-#: mintcare/checks.py:640
+#: mintcare/checks.py:642
 msgid "Failed user services"
 msgstr "Services utilisateur en échec"
 
-#: mintcare/checks.py:641
+#: mintcare/checks.py:643
 msgid "Boot time"
 msgstr "Durée de démarrage"
 
-#: mintcare/checks.py:642
+#: mintcare/checks.py:644
 msgid "Boot menu timeout"
 msgstr "Délai du menu de démarrage"
 
-#: mintcare/checks.py:643
+#: mintcare/checks.py:645
 msgid "GameMode permissions"
 msgstr "Permissions de GameMode"
 
-#: mintcare/checks.py:644
+#: mintcare/checks.py:646
 msgid "Errors since boot"
 msgstr "Erreurs depuis le démarrage"
 
-#: mintcare/checks.py:645
+#: mintcare/checks.py:647
 msgid "Bluetooth plugin errors"
 msgstr "Erreurs des modules Bluetooth"
 
-#: mintcare/checks.py:646
+#: mintcare/checks.py:648
 msgid "Unused ecryptfs login module"
 msgstr "Module ecryptfs inutilisé"
 
-#: mintcare/checks.py:647
+#: mintcare/checks.py:649
 msgid "File watcher limit"
 msgstr "Limite de surveillance de fichiers"
 
-#: mintcare/checks.py:709
+#: mintcare/checks.py:711
 msgid "(no output)"
 msgstr "(aucune sortie)"
 
-#: mintcare/checks.py:715
+#: mintcare/checks.py:717
 msgid "Manage kernels"
 msgstr "Gérer les noyaux"
 
-#: mintcare/checks.py:718
+#: mintcare/checks.py:720
 msgid "Find big files"
 msgstr "Trouver les gros fichiers"
 
-#: mintcare/checks.py:721
+#: mintcare/checks.py:723
 msgid "Open process explorer"
 msgstr "Ouvrir l'explorateur de processus"
 
-#: mintcare/checks.py:723
+#: mintcare/checks.py:725
 msgid "Open drive details"
 msgstr "Ouvrir les détails du disque"
 
-#: mintcare/checks.py:724
+#: mintcare/checks.py:726
 msgid "Open sensors"
 msgstr "Ouvrir les capteurs"
 
-#: mintcare/checks.py:725
+#: mintcare/checks.py:727
 msgid "Open firmware"
 msgstr "Ouvrir le firmware"
 
-#: mintcare/checks.py:726
+#: mintcare/checks.py:728
 msgid "Open Security page"
 msgstr "Ouvrir la page Sécurité"
 
-#: mintcare/checks.py:729 mintcare/checks.py:730
+#: mintcare/checks.py:731 mintcare/checks.py:732
 msgid "Network troubleshooter"
 msgstr "Dépannage réseau"
 
@@ -2757,8 +2761,11 @@ msgstr "Installation de rkhunter…"
 msgid "{0} file name was not scanned because it contains a line break."
 msgid_plural ""
 "{0} file names were not scanned because they contain line breaks."
-msgstr[0] "{0} nom de fichier n'a pas été analysé car il contient un saut de ligne."
-msgstr[1] "{0} noms de fichiers n'ont pas été analysés car ils contiennent des sauts de ligne."
+msgstr[0] ""
+"{0} nom de fichier n'a pas été analysé car il contient un saut de ligne."
+msgstr[1] ""
+"{0} noms de fichiers n'ont pas été analysés car ils contiennent des sauts de "
+"ligne."
 
 #: mintcare/gui.py:2050 mintcare/gui.py:3082
 msgid "Cancelled."

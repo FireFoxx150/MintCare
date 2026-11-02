@@ -576,6 +576,8 @@ def c_backup():
     issues = [t for lvl, t in backup.check_destination(b["dest"]) if lvl == "fail"]
     if issues:
         return Result(WARN, issues[0], Fix("page", "backup", _("Open backup")))
+    if backup.timer_next() is None:             # automatic backup is off: backing up is then the user's choice
+        return Result(INFO, _("Automatic backup is off"), Fix("page", "backup", _("Back up now")))
     if not last:
         return Result(INFO, _("Backup is set up but hasn't run yet"), Fix("page", "backup", _("Back up now")))
     import time as _t
