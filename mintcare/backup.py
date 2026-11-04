@@ -17,7 +17,7 @@ from gi.repository import GLib
 
 from .i18n import _
 from . import __version__
-from .util import human, out, run
+from .util import has_cmd, human, out, run
 
 HOME = Path.home()
 DEFAULT_EXCLUDES = [".cache", "node_modules", "__pycache__", ".venv", "venv", "*.tmp", ".Trash-*",
@@ -213,6 +213,64 @@ def last_backup():
         return json.loads((maintenance.STATE / "last-backup.json").read_text())
     except (OSError, ValueError):
         return None
+
+
+RESTIC_PASSWORD = Path(GLib.get_user_config_dir()) / "mintcare" / "restic-password"
+
+
+def restic_ready():
+    return has_cmd("restic")
+
+
+def _restic(args, repo, password_file=None, timeout=600):
+    """Run restic on `repo`. The arguments are a list, so nothing in them is read by a shell."""
+    if not repo or repo.startswith("-"):
+        return 2, _("Choose a folder or repository first")
+    return run(["restic", *args, "--repo", repo, "--password-file", str(password_file or RESTIC_PASSWORD)],
+               timeout=timeout)
+
+
+def restic_init(repo, password):
+    """Create the encrypted repository. The password is kept only once restic has accepted it."""
+    if not password:
+        return False, _("Type a password first")
+    RESTIC_PASSWORD.parent.mkdir(parents=True, exist_ok=True)
+    tmp = RESTIC_PASSWORD.with_name(RESTIC_PASSWORD.name + ".new")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(password)
+    rc, text = _restic(["init"], repo, tmp, timeout=120)
+    if rc == 0:
+        os.replace(tmp, RESTIC_PASSWORD)
+    else:
+        tmp.unlink(missing_ok=True)
+    lines = text.strip().splitlines()
+    return rc == 0, lines[-1] if lines else ""
+
+
+def restic_backup(b=None, timeout=24 * 3600):
+    """One encrypted snapshot of the chosen folders. Returns (ok, last line of restic's output)."""
+    b = b or config()
+    folders = [f for f in b["folders"] if os.path.isdir(f)]
+    if not folders:
+        return False, _("None of the chosen folders exist")
+    args = ["backup"]
+    for ex in b.get("excludes", DEFAULT_EXCLUDES):
+        args += ["--exclude", ex]
+    rc, text = _restic(args + folders, b.get("restic_repo", ""), timeout=timeout)
+    lines = text.strip().splitlines()
+    return rc == 0, lines[-1] if lines else ""
+
+
+def restic_latest(b=None):
+    """Time of the newest encrypted snapshot, as restic writes it, or None."""
+    b = b or config()
+    rc, text = _restic(["snapshots", "--json"], b.get("restic_repo", ""), timeout=120)
+    try:
+        times = [s["time"] for s in json.loads(text) if s.get("time")] if rc == 0 else []
+    except (ValueError, TypeError):
+        return None
+    return max(times) if times else None
 
 
 CALENDAR = {"daily": "daily", "weekly": "Sun *-*-* 12:00", "monthly": "*-*-01 12:00"}

@@ -264,6 +264,68 @@ def _browser_items():
     return items
 
 
+STALE_DAYS = 90
+STALE_ROOT = HOME                # where project folders are looked for
+STALE_DEPTH = 6                  # how many folders deep to look
+STALE_FILE_CAP = 50000           # bigger projects are left alone rather than walked
+STALE_SKIP = {".cache", ".local", ".var", ".npm", ".cargo", ".rustup", ".gradle", ".m2", "snap"}
+STALE_NAMES = {"node_modules": "package.json", "target": "Cargo.toml", "venv": None, ".venv": None}
+
+
+def _is_project_folder(path, name, top):
+    """A dependency or build folder counts only beside its project's file (a Python venv holds its own)."""
+    if STALE_NAMES[name] is None:
+        return os.path.isfile(os.path.join(path, "pyvenv.cfg"))
+    return os.path.isfile(os.path.join(top, STALE_NAMES[name]))
+
+
+def _newest_change(project, skip):
+    """Newest file time under `project`, leaving out the folder `skip`. None when there are too many files to judge."""
+    newest, seen = 0.0, 0
+    for top, dirs, files in os.walk(project):
+        dirs[:] = [d for d in dirs if os.path.join(top, d) != skip]
+        for name in files:
+            seen += 1
+            if seen > STALE_FILE_CAP:
+                return None
+            try:
+                newest = max(newest, os.lstat(os.path.join(top, name)).st_mtime)
+            except OSError:
+                pass
+    return newest
+
+
+def stale_folders(root=None, days=STALE_DAYS):
+    """[(path, bytes)] for dependency and build folders whose project has had no file change for `days` days."""
+    root = str(root or STALE_ROOT)
+    cutoff = time.time() - days * 86400
+    found = []
+    for top, dirs, _files in os.walk(root):
+        depth = top[len(root):].count(os.sep)
+        kept = []
+        for d in dirs:
+            path = os.path.join(top, d)
+            if d in STALE_NAMES:                       # checked here and never walked into
+                newest = _newest_change(top, path) if top != root and _is_project_folder(path, d, top) else None
+                if newest is not None and newest < cutoff:
+                    found.append((path, dir_size(path)))
+            elif d not in STALE_SKIP and not d.startswith(".Trash") and depth < STALE_DEPTH:
+                kept.append(d)
+        dirs[:] = kept
+    return found
+
+
+def s_stale():
+    found = stale_folders()
+    # the scan records what it found, and the Trash step then moves exactly those folders
+    BY_ID["stale"].user_script = "\n".join(f"gio trash {q(p)}" for p, _n in found) or None
+    if not found:
+        return 0, _("none found")
+    names = ", ".join(os.path.relpath(p, HOME) for p, _n in found[:3])
+    return sum(n for _p, n in found), ngettext("{0} folder, for example {1}", "{0} folders, for example {1}",
+                                               len(found)).format(len(found), names)
+
+
 ITEMS = [
     CleanItem("apt", _("Package download cache"), _("Downloaded .deb files that are already installed."),
               s_apt, root_script="apt-get clean"),
@@ -313,6 +375,10 @@ ITEMS = [
               s_aimodels, default=False,
               user_script="\n".join(f"if [ -e {q(p)} ]; then gio trash {q(p)}; fi" for p in AI_MODELS),
               available=lambda: any(p.exists() for p in AI_MODELS)),
+    CleanItem("stale", _("Unused project folders"),
+              _("Dependency and build folders (node_modules, Rust target, Python venvs) of projects with no changed "
+                "files for {0} days. Moved to the Trash; your code is kept.").format(STALE_DAYS),
+              s_stale, default=False),
     CleanItem("trash", _("Empty Trash"), _("Permanently deletes everything in your Trash."),
               s_trash, default=False, user_script="gio trash --empty"),
 ]

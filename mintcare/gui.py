@@ -34,7 +34,7 @@ STATUS_ICON = {
     checks.FAIL: ("dialog-error-symbolic", "fail"),
 }
 # Job headings are English keys (see maintenance.KIND_FOR_HEADING); they are translated where shown.
-_HEADINGS = (N_("Assistant"), N_("Boot services"), N_("Clean"), N_("Firmware"), N_("Flatpak"),
+_HEADINGS = (N_("Assistant"), N_("Backup"), N_("Boot services"), N_("Clean"), N_("Firmware"), N_("Flatpak"),
              N_("Flatpak repair"), N_("Flatpak update"), N_("Optimise"), N_("Packages"), N_("Processes"),
              N_("Repair"), N_("SMART report"), N_("Security"), N_("Snapshot"), N_("Sources"),
              N_("Timeshift"), N_("Troubleshoot"), N_("Undo"), N_("Update"))
@@ -947,6 +947,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.refresh_maintenance()
         if name == "optimise":
             self._refresh_power_profile()          # the profile can be changed outside MintCare
+        if name == "log":
+            self.load_journal()
+        if name == "backup":
+            self._restic_refresh()
         if name == "hardware" and not self._hw_loaded:
             self._hw_loaded = True
             self.load_drives()
@@ -2529,6 +2533,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(prow, False, False, 0)
 
         self.switches, self.tweak_state_lbls, self.tweak_rows, self.opt_sections = {}, {}, {}, []
+        self.limit_spins = {}
         for cat in tweaks.CATEGORIES:
             kicker = label(cat.upper(), ("kicker",))
             page.pack_start(kicker, False, False, 0)
@@ -2562,6 +2567,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sw = describe(Gtk.Switch(valign=Gtk.Align.CENTER), t.title, t.description)
         sw.connect("notify::active", self._on_switch, t)
         self.switches[t.id] = sw
+        if t.limit:                                    # the level the tweak applies when switched on
+            spin = describe(Gtk.SpinButton.new_with_range(50, 100, 5), _("Charge limit"),
+                            _("The battery stops charging at this level"))
+            spin.set_value(t.limit())
+            spin.set_valign(Gtk.Align.CENTER)
+            spin.set_sensitive(False)                  # enabled once the probe says this PC has a battery
+            self.limit_spins[t.id] = spin
+            spin.connect("value-changed", lambda s: tweaks.set_charge_limit(int(s.get_value())))
+            box.pack_end(spin, False, False, 0)
         box.pack_end(sw, False, False, 0)
         row.add(box)
         return row
@@ -2591,6 +2605,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         for t in tweaks.TWEAKS:
             sw, lbl = self.switches[t.id], self.tweak_state_lbls[t.id]
             avail, st = states[t.id]
+            if t.id in self.limit_spins:
+                self.limit_spins[t.id].set_sensitive(avail)
             self._tweak_initial[t.id] = st != "off"
             sw.handler_block_by_func(self._on_switch)
             sw.set_active(st != "off")
@@ -4350,6 +4366,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.bk_snap_card, self.bk_snap_list = list_card()
         page.pack_start(self.bk_snap_card, False, False, 0)
 
+        page.pack_start(self._restic_card(), False, False, 0)
         ec = card()
         eh = hbox(8)
         eh.pack_start(icon("document-send-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
@@ -4366,6 +4383,93 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self._bk_cancel_ev = threading.Event()
         self._bk_loading = False
         return scrolled(page)
+
+    def _restic_card(self):
+        c = card("ecard")
+        h = hbox(8)
+        t = vbox(2)
+        t.pack_start(label(_("Encrypted copy (restic)"), ("h2",)), False, False, 0)
+        t.pack_start(label(_("A second copy that only your password can open: a folder on another drive, a network "
+                             "share, or an rclone remote. It runs with the automatic backup."), ("muted",), wrap=True),
+                     False, False, 0)
+        h.pack_start(t, True, True, 0)
+        self.rs_install = self._btn(_("Install restic"), self._restic_install, primary=True)
+        self.rs_install.set_no_show_all(True)
+        h.pack_end(self.rs_install, False, False, 0)
+        c.pack_start(h, False, False, 0)
+        self.rs_repo = Gtk.Entry(placeholder_text=_("Folder, or rclone:remote:path"),
+                                 text=backup.config().get("restic_repo", ""))
+        self.rs_pass = Gtk.Entry(visibility=False, placeholder_text=_("Password"))
+        self.rs_pass.set_input_purpose(Gtk.InputPurpose.PASSWORD)
+        self.rs_setup_btn = self._btn(_("Set up"), self._restic_setup)
+        self.rs_now_btn = self._btn(_("Encrypted backup now"), self._restic_now, primary=True)
+        row = hbox(8)
+        row.pack_start(self.rs_repo, True, True, 0)
+        row.pack_start(self.rs_pass, True, True, 0)
+        row.pack_end(self.rs_now_btn, False, False, 0)
+        row.pack_end(self.rs_setup_btn, False, False, 0)
+        c.pack_start(row, False, False, 8)
+        self.rs_status = label("", ("muted",), wrap=True)
+        c.pack_start(self.rs_status, False, False, 0)
+        self._restic_state()
+        return c
+
+    def _restic_state(self):
+        ready = backup.restic_ready()
+        self.rs_install.set_visible(not ready)
+        for w in (self.rs_repo, self.rs_pass, self.rs_setup_btn, self.rs_now_btn):
+            w.set_sensitive(ready)
+        if not ready:
+            self.rs_status.set_text(_("Install restic first. It's a small program from Ubuntu's repositories."))
+        elif not backup.config().get("restic_repo"):
+            self.rs_status.set_text(_("Choose a folder or repository and a password, then press Set up."))
+
+    def _restic_refresh(self):
+        if backup.restic_ready() and backup.config().get("restic_repo"):
+            self.bg(backup.restic_latest, self._restic_show_latest)
+
+    def _restic_show_latest(self, when):
+        self.rs_status.set_text(_("Last encrypted copy: {0}").format(when[:16].replace("T", " ")) if when
+                                else _("No encrypted copy yet."))
+
+    def _restic_install(self):
+        self._root_job(_("Installing restic…"),
+                       [("restic", "Install restic", "DEBIAN_FRONTEND=noninteractive apt-get install -y restic")],
+                       "Backup", lambda r: self._restic_state())
+
+    def _restic_setup(self):
+        repo, pw = self.rs_repo.get_text().strip(), self.rs_pass.get_text()
+        if not repo or not pw:
+            self.set_status(_("Enter a folder or repository, and a password"), bad=True)
+            return
+        self.rs_status.set_text(_("Creating the encrypted copy…"))
+
+        def done(res):
+            ok, text = res or (False, _("Couldn't create the encrypted copy"))
+            if not ok:
+                self.rs_status.set_text(_("Set-up failed: {0}").format(text))
+                return
+            b = backup.config()
+            b["restic_repo"] = repo
+            backup.save_config(b)
+            self.rs_pass.set_text("")
+            maintenance.record("backup", _("Encrypted copy set up"))
+            self.set_status(_("Keep a copy of the password somewhere safe: without it the copy can't be opened."))
+            self._restic_refresh()
+        self.bg(lambda: backup.restic_init(repo, pw), done)
+
+    def _restic_now(self):
+        b = backup.config()
+        self.rs_status.set_text(_("Making an encrypted copy…"))
+
+        def done(res):
+            ok, text = res or (False, _("Couldn't make the encrypted copy"))
+            maintenance.record("backup", _("Encrypted copy made") if ok else _("Encrypted copy failed"), ok, text)
+            if ok:
+                self._restic_refresh()
+            else:
+                self.rs_status.set_text(_("Encrypted copy failed: {0}").format(text))
+        self.bg(lambda: backup.restic_backup(b), done)
 
     def load_backup(self):
         self._bk_loading = True
@@ -4564,13 +4668,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
             "user-available-symbolic", _("Assistant"),
-            _("Ask about your computer in plain English. Uses Claude by Anthropic — optional, off until you set "
-              "it up, and nothing is sent unless you ask.")), False, False, 0)
+            _("Ask about your computer in plain English. Uses Claude by Anthropic, or a model on this PC through "
+              "Ollama. Optional, off until you set it up, and nothing is sent unless you ask.")), False, False, 0)
         self.ai_setup = card("ecard")
         page.pack_start(self.ai_setup, False, False, 0)
         chat = card()
         ch = hbox(8)
-        ch.pack_start(label(_('Model: {0}').format(assistant.MODEL), ("faint", "mono")), True, True, 0)
+        self.ai_model_lbl = label("", ("faint", "mono"))
+        ch.pack_start(self.ai_model_lbl, True, True, 0)
         self.ai_saved = Gtk.ComboBoxText()
         self.ai_saved.connect("changed", self._ai_open_saved)
         self._refresh_saved_chats()
@@ -4615,6 +4720,30 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def load_assistant(self):
         c = self.ai_setup
         self._clear(c, "ai_row")
+        local = assistant.backend() == "local"
+        self.ai_model_lbl.set_text(_('Model: {0}').format(assistant.model_name() or _("none chosen")))
+        pick = hbox(8)
+        pick.pack_start(label(_("Answers from"), ("kv-key",)), False, False, 0)
+        self.ai_backend = Gtk.ComboBoxText()
+        self.ai_backend.append("claude", _("Claude (Anthropic, cloud)"))
+        self.ai_backend.append("local", _("A model on this PC (Ollama)"))
+        self.ai_backend.set_active_id("local" if local else "claude")
+        self.ai_backend.connect("changed", lambda combo: GLib.idle_add(self._ai_backend_changed, combo))
+        pick.pack_start(self.ai_backend, False, False, 0)
+        c.pack_start(pick, False, False, 0)
+        for w in (self.ai_checks, self.ai_hard):          # checks and thinking time are Claude's
+            w.set_sensitive(not local)
+        if local:
+            self.ai_local_status = label(_("Checking Ollama on this PC…"), ("muted",), wrap=True)
+            c.pack_start(self.ai_local_status, False, False, 8)
+            self.ai_model_pick = Gtk.ComboBoxText()
+            self.ai_model_pick.connect("changed", self._ai_model_changed)
+            c.pack_start(self.ai_model_pick, False, False, 0)
+            c.show_all()
+            for w in (self.ai_entry, self.ai_send_btn, self.ai_include):
+                w.set_sensitive(False)
+            self.bg(assistant.ollama_models, self._ai_local_ready)
+            return
         ready_sdk = assistant.sdk_available()
         has_key = assistant.has_credentials()
         h = hbox(10)
@@ -4652,6 +4781,39 @@ class MintCareWindow(Gtk.ApplicationWindow):
         ok = ready_sdk and has_key
         for w in (self.ai_entry, self.ai_send_btn, self.ai_include, self.ai_checks, self.ai_hard):
             w.set_sensitive(ok)
+
+    def _ai_backend_changed(self, combo):
+        assistant.set_backend(combo.get_active_id() or "claude")
+        self.load_assistant()
+
+    def _ai_model_changed(self, combo):
+        name = combo.get_active_id()
+        if name and not getattr(self, "_ai_model_loading", False):
+            assistant.set_local_model(name)
+            self.ai_model_lbl.set_text(_('Model: {0}').format(name))
+
+    def _ai_local_ready(self, names):
+        if assistant.backend() != "local":              # the user switched back while Ollama was being asked
+            return
+        if names is None:
+            text = _("Ollama isn't running on this PC. Start it, then reopen this page.")
+        elif not names:
+            text = _("Ollama has no models yet. Download one first, for example with: ollama pull llama3.2")
+        else:
+            text = _("Answers are made on this PC, so nothing is sent to Anthropic.")
+        self.ai_local_status.set_text(text)
+        self._ai_model_loading = True
+        self.ai_model_pick.remove_all()
+        for n in names or []:
+            self.ai_model_pick.append(n, n)
+        if names:
+            if assistant.local_model() not in names:
+                assistant.set_local_model(names[0])
+            self.ai_model_pick.set_active_id(assistant.local_model())
+        self._ai_model_loading = False
+        self.ai_model_lbl.set_text(_('Model: {0}').format(assistant.model_name() or _("none chosen")))
+        for w in (self.ai_entry, self.ai_send_btn, self.ai_include):
+            w.set_sensitive(bool(names))
 
     def _ai_install(self):
         root, user = assistant.install_steps()
@@ -6053,8 +6215,60 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sw = Gtk.ScrolledWindow(vexpand=True)
         sw.add(self.log_view)
         c.pack_start(sw, True, True, 0)
-        page.pack_start(c, True, True, 0)
+        switch = Gtk.StackSwitcher(halign=Gtk.Align.START)
+        stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vexpand=True)
+        switch.set_stack(stack)
+        stack.add_titled(c, "app", _("MintCare"))
+        stack.add_titled(self._journal_view(), "journal", _("System journal"))
+        page.pack_start(switch, False, False, 0)
+        page.pack_start(stack, True, True, 0)
         return page
+
+    def _journal_view(self):
+        box = vbox(10)
+        bar = hbox(8)
+        self.jr_scope = Gtk.ComboBoxText()
+        for key, text in (("boot", _("This boot")), ("day", _("Last 24 hours")), ("week", _("Last 7 days"))):
+            self.jr_scope.append(key, text)
+        self.jr_scope.set_active_id("boot")
+        self.jr_level = Gtk.ComboBoxText()
+        for key, text in (("3", _("Errors")), ("4", _("Warnings and errors")), ("7", _("Everything"))):
+            self.jr_level.append(key, text)
+        self.jr_level.set_active_id("3")
+        self.jr_find = Gtk.SearchEntry(placeholder_text=_("Filter by program or text…"))
+        self.jr_scope.connect("changed", lambda *_x: self.load_journal())
+        self.jr_level.connect("changed", lambda *_x: self.load_journal())
+        self.jr_find.connect("activate", lambda *_x: self.load_journal())
+        bar.pack_start(self.jr_scope, False, False, 0)
+        bar.pack_start(self.jr_level, False, False, 0)
+        bar.pack_start(self.jr_find, True, True, 0)
+        bar.pack_end(self._btn(_("Refresh"), self.load_journal, icon_name="view-refresh-symbolic"), False, False, 0)
+        box.pack_start(bar, False, False, 0)
+        self.jr_view = Gtk.TextView(editable=False, monospace=True, wrap_mode=Gtk.WrapMode.WORD_CHAR,
+                                    left_margin=12, right_margin=12, top_margin=10, bottom_margin=10)
+        css(self.jr_view, "log")
+        self.jr_buf = self.jr_view.get_buffer()
+        sw = Gtk.ScrolledWindow(vexpand=True)
+        sw.add(self.jr_view)
+        c = card("tight")
+        c.pack_start(sw, True, True, 0)
+        box.pack_start(c, True, True, 0)
+        return box
+
+    def load_journal(self):
+        from . import journal
+        scope, level, text = self.jr_scope.get_active_id(), self.jr_level.get_active_id(), self.jr_find.get_text()
+
+        def done(res):
+            rc, rows = res or (1, [])
+            if rc != 0 and not rows:
+                msg = _("Couldn't read the system journal. Your account may need to be in the adm group.")
+            elif not rows:
+                msg = _("Nothing matches these filters.")
+            else:
+                msg = "\n".join(f"{t}  {who}: {m}" for t, who, m in rows)
+            self.jr_buf.set_text(msg)
+        self.bg(lambda: journal.browse(scope, level, text), done)
 
 
 class MintCareApp(Gtk.Application):

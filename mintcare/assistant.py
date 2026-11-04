@@ -14,6 +14,8 @@ import os
 import re
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from gi.repository import GLib
@@ -25,6 +27,8 @@ DATA = Path(GLib.get_user_data_dir()) / "mintcare"
 VENV = DATA / "ai-venv"
 KEY_FILE = Path(GLib.get_user_config_dir()) / "mintcare" / "anthropic-key"
 MODEL = "claude-opus-5-5"
+OLLAMA = "http://127.0.0.1:11434"                                    # only this PC: local chats never leave it
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # no proxy, so loopback is what gets used
 SYSTEM = ("You are MintCare's built-in helper for Linux Mint 22 (Ubuntu 24.04 'noble' base, Cinnamon desktop). "
           "Answer questions about the user's computer clearly and briefly, for a non-expert. Prefer Mint's own "
           "graphical tools and MintCare pages when they solve the problem (MintCare has pages for Diagnose & Fix, "
@@ -180,6 +184,99 @@ def echo_blocks(content):
     return [b for i, b in enumerate(content) if i >= cut or b.type == "text"]
 
 
+def backend():
+    from . import maintenance
+    return maintenance.load_settings().get("assistant_backend", "claude")
+
+
+def set_backend(name):
+    from . import maintenance
+    st = maintenance.load_settings()
+    st["assistant_backend"] = name
+    maintenance.save_settings(st)
+
+
+def local_model():
+    from . import maintenance
+    return maintenance.load_settings().get("assistant_model", "")
+
+
+def set_local_model(name):
+    from . import maintenance
+    st = maintenance.load_settings()
+    st["assistant_model"] = name
+    maintenance.save_settings(st)
+
+
+def model_name():
+    return local_model() if backend() == "local" else MODEL
+
+
+def ollama_models():
+    """Names of the models Ollama has on this PC, or None when Ollama isn't running."""
+    try:
+        with _OPENER.open(f"{OLLAMA}/api/tags", timeout=3) as r:
+            return [m["name"] for m in json.load(r).get("models", []) if m.get("name")]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _block_text(b):
+    if isinstance(b, str):
+        return b
+    if isinstance(b, dict):
+        return b.get("text", "") if b.get("type") == "text" else ""
+    return getattr(b, "text", "") if getattr(b, "type", "") == "text" else ""
+
+
+def _ollama_messages(history):
+    """The conversation as plain chat messages. Checks and other non-text blocks from Claude's turns are dropped."""
+    msgs = [{"role": "system", "content": SYSTEM}]
+    for turn in history:
+        content = turn["content"]
+        text = content if isinstance(content, str) else "".join(_block_text(b) for b in content)
+        if text.strip():
+            msgs.append({"role": turn["role"], "content": text})
+    return msgs
+
+
+def local_reply(history, on_text, stop=lambda: False, on_status=lambda text: None):
+    """Answer with a model Ollama runs on this PC. Returns the same shape as stream_reply, without a cost."""
+    model = local_model()
+    res = {"text": "", "messages": [], "stop_reason": None, "model": model, "cost": None, "approx": False,
+           "error": None}
+    if not model:
+        res["error"] = _("Choose a model for the local assistant first.")
+        return res
+    body = json.dumps({"model": model, "messages": _ollama_messages(history), "stream": True}).encode()
+    req = urllib.request.Request(f"{OLLAMA}/api/chat", data=body, headers={"Content-Type": "application/json"})
+    parts = []
+    on_status(_("Thinking…"))
+    try:
+        with _OPENER.open(req, timeout=300) as r:
+            for line in r:
+                if stop():
+                    break
+                msg = json.loads(line)
+                if "error" in msg:
+                    res["error"] = str(msg["error"])[:300]
+                    break
+                chunk = (msg.get("message") or {}).get("content", "")
+                if chunk:
+                    parts.append(chunk)
+                    on_text(chunk)
+                if msg.get("done"):
+                    break
+    except urllib.error.HTTPError as e:
+        res["error"] = (_("{0} isn't installed in Ollama. Install it with: ollama pull {0}").format(model)
+                        if e.code == 404 else _("Ollama returned an error ({0}).").format(e.code))
+    except (OSError, ValueError):
+        res["error"] = _("Couldn't reach Ollama on this PC. Start it, then try again.")
+    text = "".join(parts)
+    res.update(text=text, messages=[{"role": "assistant", "content": text}] if text else [])
+    return res
+
+
 def stream_reply(history, on_text, stop=lambda: False, allow_checks=False, effort="medium",
                  on_status=lambda text: None):
     """Send the conversation, stream the answer and run any checks Claude asks for.
@@ -188,6 +285,8 @@ def stream_reply(history, on_text, stop=lambda: False, allow_checks=False, effor
     Returns {'messages', 'text', 'stop_reason', 'model', 'cost', 'approx', 'error'}, where
     'messages' are the turns to append to history (assistant turns as returned, tool results).
     """
+    if backend() == "local":
+        return local_reply(history, on_text, stop, on_status)
     anthropic = _load_sdk()
     if anthropic is None:
         return {"text": "", "messages": [], "error": "AI support isn't installed."}

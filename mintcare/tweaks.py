@@ -37,6 +37,7 @@ class Tweak:
     available: Callable[[], bool] = lambda: True
     conflicts: list = field(default_factory=list)
     user: bool = False                  # runs as you (no password), not as root
+    limit: Optional[Callable[[], int]] = None   # fills @LIMIT@ in apply: the charge threshold
 
     @property
     def markers(self):
@@ -54,7 +55,8 @@ class Tweak:
 
     def apply_script(self):
         # set -e is ignored inside "( ... ) && x", so test the status separately
-        return (f"mkdir -p {q(str(self.markers))}\n( set -e\n{self.apply}\n)\nrc=$?\n"
+        body = self.apply.replace("@LIMIT@", str(self.limit())) if self.limit else self.apply
+        return (f"mkdir -p {q(str(self.markers))}\n( set -e\n{body}\n)\nrc=$?\n"
                 f"[ $rc -eq 0 ] && touch {q(str(self.markers / self.id))}\nexit $rc")
 
     def revert_script(self):
@@ -235,6 +237,20 @@ def _flatpak_has(app):
 
 def _charge_files():
     return glob("/sys/class/power_supply/BAT*/charge_control_end_threshold")
+
+
+def charge_limit():
+    """The level chosen on the Optimise page: 50 to 100 in steps of 5; 80 when unset or invalid."""
+    from . import maintenance
+    v = maintenance.load_settings().get("charge_limit", 80)
+    return v if isinstance(v, int) and 50 <= v <= 100 and v % 5 == 0 else 80
+
+
+def set_charge_limit(v):
+    from . import maintenance
+    st = maintenance.load_settings()
+    st["charge_limit"] = int(v)
+    maintenance.save_settings(st)
 
 
 def _gamemode_ini():
@@ -526,21 +542,22 @@ else rm -f {GAMEMODE_INI}; fi""",
               "systemctl enable --now power-profiles-daemon",
         available=is_laptop),
     Tweak(
-        "chargelimit", _("Battery charge limit (80%)"), _("Laptop"),
-        _("Stop charging at 80% to roughly double battery lifespan when the laptop lives on "
-        "the charger. Only shown when the battery firmware supports it."),
-        probe=lambda: bool(_charge_files()) and all(read(f, "100").isdigit() and int(read(f, "100")) <= 80
+        "chargelimit", _("Battery charge limit"), _("Laptop"),
+        _("Stop charging at the level in the box to help the battery last longer when the laptop lives on "
+        "the charger. Switch the tweak off and on again after changing the level. Only shown when the battery "
+        "firmware supports it."),
+        probe=lambda: bool(_charge_files()) and all(read(f, "100").isdigit() and int(read(f, "100")) <= charge_limit()
                                                     for f in _charge_files()),
         apply=f"""cat > {CHARGE_RULE} <<'EOF'
 # Managed by MintCare
-SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{{charge_control_end_threshold}}="80"
+SUBSYSTEM=="power_supply", KERNEL=="BAT*", ATTR{{charge_control_end_threshold}}="@LIMIT@"
 EOF
-for f in /sys/class/power_supply/BAT*/charge_control_end_threshold; do echo 80 > "$f"; done
+for f in /sys/class/power_supply/BAT*/charge_control_end_threshold; do echo @LIMIT@ > "$f"; done
 udevadm control --reload""",
         revert=f"""rm -f {CHARGE_RULE}
 for f in /sys/class/power_supply/BAT*/charge_control_end_threshold; do echo 100 > "$f" || true; done
 udevadm control --reload""",
-        available=lambda: is_laptop() and bool(_charge_files())),
+        available=lambda: is_laptop() and bool(_charge_files()), limit=charge_limit),
     Tweak(
         "autopower", _("Power saver on battery"), _("Laptop"),
         _("Switch to the power-saver profile when you unplug and back to balanced when you "

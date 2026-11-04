@@ -158,10 +158,17 @@ def cmd_report(args):
 
 def cmd_backup(args):
     from . import backup
-    r = backup.run_backup(progress=lambda pct, text: print(f"\r{text}", end="", flush=True))
-    print()
-    print(f"Backup: {r['files']} changed file(s) -> {r['snapshot']}" if r["ok"] else f"Backup failed: {r['error']}")
-    return 0 if r["ok"] else 1
+    b, rc = backup.config(), 0
+    if b["dest"] or not b.get("restic_repo"):
+        r = backup.run_backup(progress=lambda pct, text: print(f"\r{text}", end="", flush=True))
+        print()
+        print(f"Backup: {r['files']} changed file(s) -> {r['snapshot']}" if r["ok"] else f"Backup failed: {r['error']}")
+        rc = 0 if r["ok"] else 1
+    if b.get("restic_repo"):                       # the encrypted copy, once it has been set up
+        ok, text = backup.restic_backup(b)
+        print(f"Encrypted copy: {text}" if ok else f"Encrypted copy failed: {text}")
+        rc = max(rc, 0 if ok else 1)
+    return rc
 
 
 def main(argv):

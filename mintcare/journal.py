@@ -68,8 +68,9 @@ def _text(v):
     return "" if v is None else str(v)
 
 
-def entries(boot="-b"):
-    rc, o = run(["journalctl", boot, "-p", "3", "-q", "--no-pager", "-o", "json"], timeout=30)
+def _read(args):
+    """(exit code, entries) from journalctl's JSON output, with blank and noisy lines left out."""
+    rc, o = run(["journalctl", *args, "-q", "--no-pager", "-o", "json"], timeout=30)
     out = []
     for line in o.splitlines():
         try:
@@ -88,7 +89,24 @@ def entries(boot="-b"):
             msg = msg.split("\n")[0] + (f" Command: {cmd[:200]}" if cmd else "")
         ts = int(e.get("__REALTIME_TIMESTAMP", "0") or 0) / 1e6
         out.append({"who": who, "msg": msg.split("\n")[0][:300], "ts": ts})
-    return out
+    return rc, out
+
+
+def entries(boot="-b", priority="3", extra=()):
+    return _read([*([boot] if boot else []), "-p", priority, *extra])[1]
+
+
+SINCE = {"day": "-1 day", "week": "-7 days"}
+
+
+def browse(period, priority, text=""):
+    """(exit code, [(time, program, message)]) for the System journal view: the newest 500 lines matching `text`."""
+    scope = ["-b"] if period == "boot" else [f"--since={SINCE[period]}"]
+    rc, found = _read([*scope, "-p", priority, "-n", "1000"])
+    needle = text.strip().lower()
+    rows = [(time.strftime("%d %b %H:%M:%S", time.localtime(e["ts"])), e["who"], e["msg"]) for e in found
+            if needle in f"{e['who']} {e['msg']}".lower()]
+    return rc, rows[-500:]
 
 
 def explain(who, msg):
