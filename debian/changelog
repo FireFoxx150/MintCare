@@ -1,3 +1,31 @@
+mintcare (1.12.11) noble; urgency=medium
+
+  * Processes: graphics memory used by each program on an NVIDIA card.
+  * Optimise: a power profile switch through power-profiles-daemon, shown when
+    the daemon offers profiles. The battery charge limit can be set from 50 to
+    100%, in steps of 5.
+  * Clean (all opt-in): unused Docker images and build cache; AI model
+    downloads and unused project folders (node_modules, Rust target, Python
+    venvs), both moved to the Trash.
+  * Security: a SYSTEM SECURITY card with the Secure Boot state and the
+    programs that run with set-user-ID or set-group-ID rights.
+  * Troubleshoot: a DNS servers card that times four public resolvers.
+  * Activity log: a System journal tab with scope, level and text filters.
+  * Backup: an encrypted copy with restic, set up with a repository and a
+    password. Automatic backups run it too once it is set up.
+  * Assistant: answers can come from a model on this PC through Ollama, so
+    questions need not leave the machine.
+  * Backup check: information, not a warning, when automatic backup is off.
+  * Dashboard shows every graphics card, not only the first two.
+  * Settings import keeps this PC's report folder; startup-delay names must be
+    plain file names.
+  * Malware scan lists the file names it skipped because they contain line
+    breaks.
+  * Fix: I/O scheduler rules apply to whole disks only, so partitions no longer
+    log errors at boot.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 04 Nov 2026 09:13:56 +0000
+
 mintcare (1.12.10) noble; urgency=medium
 
   * Dashboard: a second card for a second graphics card, such as an integrated
