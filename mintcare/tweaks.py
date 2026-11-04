@@ -428,9 +428,9 @@ ufw --force enable""",
 echo bfq > /etc/modules-load.d/mintcare-bfq.conf
 cat > {IOSCHED_RULE} <<'EOF'
 # Managed by MintCare
-ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{{queue/scheduler}}="none"
-ACTION=="add|change", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{{queue/rotational}}=="0", ATTR{{queue/scheduler}}="mq-deadline"
-ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{{queue/rotational}}=="1", ATTR{{queue/scheduler}}="bfq"
+ACTION=="add|change", ENV{{DEVTYPE}}=="disk", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{{queue/scheduler}}="none"
+ACTION=="add|change", ENV{{DEVTYPE}}=="disk", KERNEL=="sd[a-z]*|mmcblk[0-9]*", ATTR{{queue/rotational}}=="0", ATTR{{queue/scheduler}}="mq-deadline"
+ACTION=="add|change", ENV{{DEVTYPE}}=="disk", KERNEL=="sd[a-z]*", ATTR{{queue/rotational}}=="1", ATTR{{queue/scheduler}}="bfq"
 EOF
 udevadm control --reload
 udevadm trigger --subsystem-match=block --action=change
