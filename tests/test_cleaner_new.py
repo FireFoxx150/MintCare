@@ -23,3 +23,20 @@ class Leftovers(TempDirTest):
         with mock.patch.object(cleaner, "SPICES", root):
             self.assertEqual([d.name for d in cleaner.unused_spices(enabled)], ["weather@x", "clock@y"])
             self.assertEqual(cleaner.unused_spices("   "), [])             # gsettings failed: keep everything
+
+    def test_ai_model_downloads_are_sized(self):
+        root = Path(self.tmp) / "models"
+        (root / "hub").mkdir(parents=True)
+        (root / "hub" / "model.bin").write_bytes(b"x" * 4096)
+        with mock.patch.object(cleaner, "AI_MODELS", [root / "hub", root / "missing"]):
+            size, names = cleaner.s_aimodels()
+        self.assertGreaterEqual(size, 4096)
+        self.assertIn("hub", names)
+
+    def test_docker_summary_is_shown_as_text(self):
+        with mock.patch.object(cleaner, "run", return_value=(0, "Images: 1.2GB\nBuild Cache: 300MB\n")):
+            size, text = cleaner.s_docker()
+        self.assertIsNone(size)
+        self.assertEqual(text, "Images: 1.2GB; Build Cache: 300MB")
+        with mock.patch.object(cleaner, "run", return_value=(1, "")):
+            self.assertIsNone(cleaner.s_docker()[0])          # docker not reachable: no size, no guess

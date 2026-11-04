@@ -5,7 +5,7 @@ import signal
 import time
 
 from .i18n import _
-from .util import out, read
+from .util import has_cmd, out, read, run
 
 KNOWN = {
     "Xorg": _("The display server that draws your screen."),
@@ -128,6 +128,26 @@ def describe(p):
 def end(pid, force=False):
     """End one of your own processes. Raises PermissionError for other users' processes."""
     os.kill(pid, signal.SIGKILL if force else signal.SIGTERM)
+
+
+def parse_gpu_processes(text):
+    """[(pid, name, MB)] from `nvidia-smi --query-compute-apps=pid,process_name,used_memory`, largest first."""
+    found = []
+    for line in text.splitlines():
+        parts = [x.strip() for x in line.split(",")]
+        if len(parts) < 3 or not parts[0].isdigit() or not parts[-1].isdigit():
+            continue                                  # "[N/A]" or a header: not a program
+        found.append((int(parts[0]), ", ".join(parts[1:-1]), int(parts[-1])))
+    return sorted(found, key=lambda f: -f[2])
+
+
+def gpu_processes():
+    """Programs holding NVIDIA graphics memory right now. Empty without nvidia-smi or without such a program."""
+    if not has_cmd("nvidia-smi"):
+        return []
+    rc, o = run(["nvidia-smi", "--query-compute-apps=pid,process_name,used_memory", "--format=csv,noheader,nounits"],
+                timeout=5)
+    return parse_gpu_processes(o) if rc == 0 else []
 
 
 def end_step(pid, name, force=False):

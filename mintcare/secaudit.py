@@ -3,11 +3,12 @@
 import glob
 import os
 import re
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
 
-from .i18n import _
+from .i18n import _, ngettext
 from .util import has_cmd, out, pkg_installed, q, read, run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -95,6 +96,61 @@ def audit():
     admins = [u for u in out(["getent", "group", "sudo"]).split(":")[-1].split(",") if u]
     items.append((OK if len(admins) <= 2 else INFO, "Administrators", f"{len(admins)} account(s) can use sudo: "
                   + ", ".join(admins), None))
+    return items
+
+
+EFI_SECURE_BOOT = Path("/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c")
+SETUID_DIRS = ("/usr/bin", "/usr/sbin", "/usr/lib", "/usr/libexec", "/bin", "/sbin")
+
+
+def parse_secure_boot(data):
+    """The SecureBoot EFI variable is 4 attribute bytes, then the value: 1 when Secure Boot is on."""
+    return data[4] == 1 if len(data) >= 5 else None
+
+
+def secure_boot(path=EFI_SECURE_BOOT):
+    """True or False from the firmware; None without UEFI, or when the variable can't be read."""
+    try:
+        return parse_secure_boot(path.read_bytes())
+    except OSError:
+        return None
+
+
+def setuid_programs(folders=SETUID_DIRS):
+    """Program files (not links) that run with their owner's rights: set-user-ID or set-group-ID."""
+    found = []
+    for top in dict.fromkeys(os.path.realpath(d) for d in folders):     # /bin is a link to /usr/bin on Mint
+        for root, _dirs, names in os.walk(top):
+            for name in names:
+                path = os.path.join(root, name)
+                try:
+                    mode = os.lstat(path).st_mode
+                except OSError:
+                    continue
+                if stat.S_ISREG(mode) and mode & (stat.S_ISUID | stat.S_ISGID):
+                    found.append(path)
+    return sorted(found)
+
+
+def system_items():
+    """[(level, title, text)] for the system part of the Security page."""
+    items = []
+    sb = secure_boot()
+    if sb is None:
+        items.append((INFO, "Secure Boot", _("Unknown: the firmware doesn't report it (no UEFI, or the setting can't be read)")))
+    elif sb:
+        items.append((OK, "Secure Boot", _("On: the firmware starts only signed boot software")))
+    else:
+        items.append((INFO, "Secure Boot", _("Off: the firmware starts any boot software. Turn it on in the firmware "
+                                             "settings if your PC supports it.")))
+    progs = setuid_programs()
+    if progs:
+        names = ", ".join(os.path.basename(p) for p in progs[:12]) + (", …" if len(progs) > 12 else "")
+        items.append((INFO, _("Programs with extra rights"), ngettext(
+            "{0} program runs with its owner's rights, whoever starts it: {1}",
+            "{0} programs run with their owner's rights, whoever starts them: {1}", len(progs)).format(len(progs), names)))
+    else:
+        items.append((OK, _("Programs with extra rights"), _("No programs with extra rights were found")))
     return items
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .i18n import _, ngettext
-from .util import dir_size, has_cmd, out, q
+from .util import dir_size, has_cmd, out, q, run
 
 HOME = Path.home()
 
@@ -123,6 +123,23 @@ DEV_CACHES = [HOME / ".cache/pip", HOME / ".npm/_cacache", HOME / ".cache/yarn",
 def s_devcache():
     present = [p for p in DEV_CACHES if p.exists()]
     names = ", ".join(p.relative_to(HOME).as_posix() for p in present) or _("none found")
+    return sum(dir_size(p) for p in present), names
+
+
+def s_docker():
+    """Docker's own summary of what it could reclaim. None for the size: docker reports it in words."""
+    rc, o = run(["docker", "system", "df", "--format", "{{.Type}}: {{.Reclaimable}}"], timeout=30)
+    if rc != 0 or not o.strip():
+        return None, _("Docker isn't reachable from your account")
+    return None, "; ".join(line.strip() for line in o.splitlines() if line.strip())
+
+
+AI_MODELS = [HOME / ".cache/huggingface/hub", HOME / ".ollama/models"]
+
+
+def s_aimodels():
+    present = [p for p in AI_MODELS if p.exists()]
+    names = ", ".join(p.as_posix().replace(str(HOME), "~") for p in present) or _("none found")
     return sum(dir_size(p) for p in present), names
 
 
@@ -286,6 +303,16 @@ ITEMS = [
     CleanItem("devcache", _("Developer caches"), _("pip, npm, yarn, Go and Cargo download caches."),
               s_devcache, default=False,
               user_script="\n".join(f"rm -rf {q(p)}" for p in DEV_CACHES)),
+    CleanItem("docker", _("Unused Docker images and build cache"),
+              _("Dangling images and the build cache. Containers, volumes and images in use are kept."),
+              s_docker, root_script="docker image prune -f\ndocker builder prune -f", default=False,
+              available=lambda: has_cmd("docker")),
+    CleanItem("aimodels", _("AI model downloads"),
+              _("Hugging Face and Ollama models in your account. They download again when you need them. "
+                "Moved to the Trash; empty the Trash to free the space."),
+              s_aimodels, default=False,
+              user_script="\n".join(f"if [ -e {q(p)} ]; then gio trash {q(p)}; fi" for p in AI_MODELS),
+              available=lambda: any(p.exists() for p in AI_MODELS)),
     CleanItem("trash", _("Empty Trash"), _("Permanently deletes everything in your Trash."),
               s_trash, default=False, user_script="gio trash --empty"),
 ]

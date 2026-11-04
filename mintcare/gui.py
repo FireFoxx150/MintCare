@@ -846,7 +846,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         if self.busy:
             return
         loaders = {
-            "dashboard": self.run_diagnose, "diagnose": self.run_diagnose, "optimise": self._refresh_tweaks,
+            "dashboard": self.run_diagnose, "diagnose": self.run_diagnose, "optimise": lambda: (self._refresh_tweaks(), self._refresh_power_profile()),
             "clean": self.run_clean_scan, "software": self.load_software, "packages": self.load_packages,
             "flatpak": lambda: self.load_flatpaks(check_updates=True), "processes": lambda: self._poll_procs(True),
             "hardware": self.load_drives, "security": self.load_security, "troubleshoot": self.load_troubleshoot,
@@ -945,6 +945,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         name = stack.get_visible_child_name()
         if name == "maintenance":
             self.refresh_maintenance()
+        if name == "optimise":
+            self._refresh_power_profile()          # the profile can be changed outside MintCare
         if name == "hardware" and not self._hw_loaded:
             self._hw_loaded = True
             self.load_drives()
@@ -1960,6 +1962,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.login_card, self.login_list = list_card()
         page.pack_start(self.login_card, False, False, 0)
 
+        page.pack_start(label(_("SYSTEM SECURITY"), ("kicker",)), False, False, 0)
+        self.system_card, self.system_list = list_card()
+        page.pack_start(self.system_card, False, False, 0)
+
         page.pack_start(label(_("MALWARE SCAN"), ("kicker",)), False, False, 0)
         mc = card()
         mh = hbox(8)
@@ -1982,6 +1988,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                                                 root_details=getattr(self, 'root_port_details', {}))),
                 self._render_security)
         self.bg(secaudit.audit, self._render_login)
+        self.bg(secaudit.system_items, self._render_system)
         self._render_malware()
 
     def _render_login(self, items):
@@ -2000,6 +2007,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                       primary=True, tag="login_row"))
             self.login_list.add(self._row(title, text, "", STATUS_ICON[lvl][0], [], btns))
         self.login_list.show_all()
+
+    def _render_system(self, items):
+        self._clear(self.system_list)
+        for lvl, title, text in items or []:
+            self.system_list.add(self._row(title, text, "", STATUS_ICON[lvl][0]))
+        self.system_list.show_all()
 
     def _render_malware(self):
         sc = secaudit.scanners()
@@ -2434,6 +2447,46 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     # ------------------------------------------------------------ optimise
 
+    def _power_profile_row(self):
+        row = hbox(10)
+        row.set_no_show_all(True)                  # shown only when power-profiles-daemon is installed
+        row.pack_start(label(_("Power profile"), ("h3",)), False, False, 0)
+        self.power_btns = {}
+        for name, text in (("performance", _("Performance")), ("balanced", _("Balanced")),
+                           ("power-saver", _("Power saver"))):
+            b = self.action_button(text, lambda n=name: self._set_power_profile(n))
+            b.set_no_show_all(True)                # hidden unless the daemon offers this profile
+            self.power_btns[name] = b
+            row.pack_start(b, False, False, 0)
+        return row
+
+    def _refresh_power_profile(self):
+        from . import powerprof
+
+        def work():
+            names = powerprof.profiles() if powerprof.available() else []
+            return names, (powerprof.active() if names else "")
+
+        def done(res):
+            names, now = res
+            self.power_row.set_visible(bool(names))
+            for name, b in self.power_btns.items():
+                b.set_visible(name in names)
+                ctx = b.get_style_context()
+                ctx.remove_class("primary")
+                ctx.remove_class("ghost")
+                css(b, "primary" if name == now else "ghost")
+        self.bg(work, done)
+
+    def _set_power_profile(self, name):
+        from . import powerprof
+
+        def done(ok):
+            if not ok:
+                self.set_status(_("Couldn't switch the power profile"), bad=True)
+            self._refresh_power_profile()
+        self.bg(lambda: powerprof.set_profile(name), done)
+
     def _build_optimise(self):
         page = vbox(14, "page")
         self.opt_header = self.page_header(
@@ -2446,6 +2499,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.pending_lbl = self.opt_header.subtitle
         page.pack_start(self.opt_header, False, False, 0)
 
+        self.power_row = self._power_profile_row()
+        page.pack_start(self.power_row, False, False, 0)
         page.pack_start(label(_("PROFILES"), ("kicker",)), False, False, 0)
         prow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=True, min_children_per_line=1,
                            max_children_per_line=4, column_spacing=12, row_spacing=12)
@@ -3772,6 +3827,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(bar, False, False, 0)
         self.proc_head = label("", ("faint", "mono"))
         page.pack_start(self.proc_head, False, False, 0)
+        self.proc_gpu = label("", ("faint", "mono"), wrap=True)
+        page.pack_start(self.proc_gpu, False, False, 0)
         self.proc_card, self.proc_list = list_card()
         page.pack_start(self.proc_card, False, False, 0)
         self._proc_prev = None
@@ -3789,12 +3846,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
             return True
         self._proc_busy = True
 
+        def work():
+            return processes.processes(self._proc_prev), processes.gpu_processes()
+
         def done(res):
             self._proc_busy = False
             if res:
-                rows, self._proc_prev = res
+                (rows, self._proc_prev), gpu = res
                 self._render_procs(rows)
-        self.bg(lambda: processes.processes(self._proc_prev), done)
+                self._render_gpu_procs(gpu)
+        self.bg(work, done)
         return True
 
     def _render_procs(self, rows):
@@ -3821,6 +3882,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 row.text_box.pack_start(label(txt, ("muted",), wrap=True), False, False, 0)
             self.proc_list.add(row)
         self.proc_list.show_all()
+
+    def _render_gpu_procs(self, procs):
+        if not procs:
+            self.proc_gpu.set_text("")
+            return
+        self.proc_gpu.set_text(_("Graphics memory: {0}").format(" · ".join(
+            f"{name} ({pid}) {human(mb * 2 ** 20)}" for pid, name, mb in procs[:8])))
 
     def _proc_info(self, r):
         (self._proc_open.discard if r["pid"] in self._proc_open else self._proc_open.add)(r["pid"])
@@ -4020,6 +4088,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sr.pack_end(self._btn(_("Test speed"), self.speed_test, primary=True, tag="ts_network"), False, False, 0)
         sc.pack_start(sr, False, False, 0)
         box.pack_start(sc, False, False, 0)
+        dc = card()
+        dr = hbox(12)
+        dt = vbox(2)
+        dt.pack_start(label(_("DNS servers"), ("h3",)), False, False, 0)
+        self.dns_lbl = label(getattr(self, "_dns_text", None) or
+                             _("Times how quickly four public DNS servers answer, fastest first."), ("muted",), wrap=True)
+        dt.pack_start(self.dns_lbl, False, False, 0)
+        dr.pack_start(dt, True, True, 0)
+        dr.pack_end(self._btn(_("Compare DNS servers"), self.dns_benchmark, tag="ts_network"), False, False, 0)
+        dc.pack_start(dr, False, False, 0)
+        box.pack_start(dc, False, False, 0)
         if n["nearby"]:
             box.pack_start(label(_("NEARBY WI-FI"), ("kicker",)), False, False, 0)
             nc, nl = list_card()
@@ -4028,6 +4107,19 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                  None, [(_("connected"), "ok")] if w["active"] else [], (), f"{w['signal']}%"))
             box.pack_start(nc, False, False, 0)
         box.show_all()
+
+    def dns_benchmark(self):
+        from . import dnsbench
+        self.dns_lbl.set_text(_("Testing DNS servers…"))
+        self.bg(dnsbench.benchmark, self._render_dns)
+
+    def _render_dns(self, rows):
+        if rows is None:
+            text = _("The DNS test failed. See the Activity log for details.")
+        else:
+            text = " · ".join(f"{name}: " + (f"{ms:.0f} ms" if ms is not None else _("no answer")) for name, ms in rows)
+        self._dns_text = text
+        self.dns_lbl.set_text(text)
 
     def _net_fix(self, action):
         if action == "reset":
