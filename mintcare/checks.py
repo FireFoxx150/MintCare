@@ -143,6 +143,11 @@ def c_updates():
 _FLATPAK_CACHE = {"at": 0.0, "n": None}
 
 
+def forget_flatpak_count():
+    """Make the next Flatpak check ask the network again: a user's Rescan, or a Flatpak update that just finished."""
+    _FLATPAK_CACHE.update(at=0.0, n=None)
+
+
 def c_flatpak_updates():
     """Pending Flatpak app and runtime updates. Asks the network at most every six hours (shortcut: the
     count can be up to six hours stale, so the Flatpak page is the place to act on it)."""
