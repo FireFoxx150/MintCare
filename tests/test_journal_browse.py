@@ -37,5 +37,13 @@ class Browse(unittest.TestCase):
         self.assertEqual(rows, [])
 
 
+class NonUtf8Identifier(unittest.TestCase):
+    def test_a_program_name_journalctl_sends_as_bytes_is_text_so_grouping_works(self):
+        line = json.dumps({"SYSLOG_IDENTIFIER": [104, 105], "MESSAGE": "boom", "__REALTIME_TIMESTAMP": "1700000000000000"})
+        with mock.patch.object(journal, "run", return_value=(0, line)):
+            groups = journal.grouped()
+        self.assertEqual([g["who"] for g in groups], ["hi"])
+
+
 if __name__ == "__main__":
     unittest.main()
