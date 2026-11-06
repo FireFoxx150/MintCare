@@ -30,6 +30,13 @@ class FlatpakUpdates(unittest.TestCase):
         self.assertEqual(ask.call_count, 0)
         self.assertIn("2", r.summary)
 
+    def test_a_rescan_asks_again_after_an_update(self):
+        self.run_check(2)                                # the Flatpaks were updated after this count
+        checks.forget_flatpak_count()                    # what a Rescan or a finished Flatpak update does
+        r, ask = self.run_check(0)
+        self.assertEqual(ask.call_count, 1)
+        self.assertEqual(r.status, checks.OK)
+
 
 if __name__ == "__main__":
     unittest.main()
