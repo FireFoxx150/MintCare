@@ -189,14 +189,48 @@ class SelfUpdate(TempDirTest):
     def test_download_verifies_checksum(self):
         data = os.urandom(5000)
         good = self._info(data, hashlib.sha256(data).hexdigest())
-        path = selfupdate.download(good)
-        self.assertEqual(Path(path).read_bytes(), data)
-        self.assertEqual(oct(os.stat(os.path.dirname(path)).st_mode & 0o777), "0o755")
+        self.assertEqual(selfupdate.download(good), data)
         bad = self._info(data, "0" * 64)
         with self.assertRaises(RuntimeError):
             selfupdate.download(bad)
         with self.assertRaises(RuntimeError):
             selfupdate.download(self._info(data, None))
+
+    def _run_install(self, body):
+        """Run a root step's body with a stub apt-get that records the package it was given."""
+        bindir = Path(self.tmp) / "bin"
+        bindir.mkdir(exist_ok=True)
+        apt = bindir / "apt-get"
+        apt.write_text('#!/bin/sh\ncp "$3" "$RECORD"\n')
+        apt.chmod(0o755)
+        record = Path(self.tmp) / "installed.deb"
+        env = dict(os.environ, PATH=f"{bindir}:{os.environ['PATH']}", RECORD=str(record))
+        done = subprocess.run(["bash", "-c", body], env=env, capture_output=True, text=True)
+        return done, record
+
+    def test_install_step_installs_the_checked_copy(self):
+        data = os.urandom(5000)
+        done, record = self._run_install(
+            selfupdate.install_step(data, hashlib.sha256(data).hexdigest(), "9.9.9")[2])
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(record.read_bytes(), data)
+
+    def test_install_step_installs_nothing_when_the_checksum_is_wrong(self):
+        data = os.urandom(5000)
+        done, record = self._run_install(selfupdate.install_step(data, "0" * 64, "9.9.9")[2])
+        self.assertNotEqual(done.returncode, 0)
+        self.assertFalse(record.exists())
+
+    def test_install_step_needs_a_lowercase_hex_checksum(self):
+        for bad in (None, "", "not-a-digest", "A" * 64):
+            with self.subTest(checksum=bad), self.assertRaises(ValueError):
+                selfupdate.install_step(b"x", bad, "9.9.9")
+
+    def test_the_live_answer_is_used_only_for_the_release_the_user_agreed_to(self):
+        live = {"version": "9.9.9", "asset": None}
+        with mock.patch.object(selfupdate, "check", return_value=live):
+            self.assertIs(selfupdate.latest_for("9.9.9"), live)
+            self.assertIsNone(selfupdate.latest_for("9.9.8"))
 
 
 class Trend(TempDirTest):

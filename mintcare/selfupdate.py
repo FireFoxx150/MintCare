@@ -1,9 +1,9 @@
 """Check GitHub for a newer MintCare release, download it, verify its SHA-256 and install it."""
 
+import base64
 import hashlib
 import json
-import os
-import tempfile
+import re
 import time
 import urllib.request
 from pathlib import Path
@@ -87,36 +87,57 @@ def latest(max_age=6 * 3600, timeout=8):
         return None
 
 
+def latest_for(version, timeout=10):
+    """A live answer from GitHub, but only while it still names the release the user agreed to.
+
+    The cached answer only decides whether to offer the update. The URL and checksum
+    that get installed come from here.
+    """
+    info = check(timeout)
+    return info if info["version"] == version else None
+
+
 def download(info, progress=lambda done, total: None):
-    """Fetch the .deb into a fresh /tmp folder (readable by apt's _apt user) and verify it."""
+    """Fetch the .deb into memory and check it against the release's SHA-256. Returns the bytes."""
     if not info.get("asset"):
         raise RuntimeError(_("This release has no .deb attached"))
-    folder = tempfile.mkdtemp(prefix="mintcare-update-", dir="/tmp")
-    os.chmod(folder, 0o755)
-    path = os.path.join(folder, info["asset_name"])
     h = hashlib.sha256()
+    chunks = []
     req = urllib.request.Request(info["asset"], headers={"User-Agent": f"MintCare/{__version__}"})
-    with urllib.request.urlopen(req, timeout=30) as r, open(path, "wb") as f:
+    with urllib.request.urlopen(req, timeout=30) as r:
         total = int(r.headers.get("Content-Length") or info.get("size") or 0)
         done = 0
         while True:
             chunk = r.read(1 << 16)
             if not chunk:
                 break
-            f.write(chunk)
+            chunks.append(chunk)
             h.update(chunk)
             done += len(chunk)
             progress(done, total)
-    os.chmod(path, 0o644)
     if info.get("sha256"):
         if h.hexdigest() != info["sha256"]:
-            os.unlink(path)
             raise RuntimeError(_("Downloaded file does not match the release checksum — not installing it"))
     else:
         raise RuntimeError(_("The release has no checksum to verify against — not installing it"))
-    return path
+    return b"".join(chunks)
 
 
-def install_step(path, version):
-    return ("selfupdate", f"Install MintCare {version}",
-            f"DEBIAN_FRONTEND=noninteractive apt-get install -y {q(path)}")
+def install_step(data, sha256, version):
+    """Root step: write the verified .deb into a folder root owns, check it there, install that copy.
+
+    The package travels inside the sealed batch, so root never opens a path the user could change.
+    """
+    if not re.fullmatch(r"[0-9a-f]{64}", sha256 or ""):
+        raise ValueError("a SHA-256 checksum is needed before installing")
+    body = "\n".join([
+        'd=$(mktemp -d /tmp/mintcare-update.XXXXXXXX) || exit 1',
+        'trap \'rm -rf -- "$d"\' EXIT',
+        'chmod 755 "$d"',  # apt's _apt user must read the copy; only root can write to the folder
+        "base64 -d > \"$d/mintcare.deb\" <<'MINTCARE_DEB'",
+        base64.encodebytes(data).decode().rstrip("\n"),
+        "MINTCARE_DEB",
+        f"printf '%s  %s\\n' {q(sha256)} \"$d/mintcare.deb\" | sha256sum -c - || exit 1",
+        'DEBIAN_FRONTEND=noninteractive apt-get install -y "$d/mintcare.deb"',
+    ])
+    return ("selfupdate", f"Install MintCare {version}", body)
