@@ -1743,10 +1743,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         def work():
             self.log(_('\n━━━ Updating MintCare to {0} ━━━').format(info['version']))
-            path = selfupdate.download(info, lambda d, t: GLib.idle_add(
+            # The cached answer only offered the update. Install from a live GitHub answer for the same release.
+            try:
+                fresh = selfupdate.latest_for(info["version"])
+            except (OSError, ValueError):
+                raise RuntimeError(_("Couldn't reach GitHub to check for updates"))
+            if fresh is None:
+                raise RuntimeError(_("The latest MintCare release has changed. Check for updates again."))
+            data = selfupdate.download(fresh, lambda d, t: GLib.idle_add(
                 self.set_status, f"Downloading… {human(d)} of {human(t)}") if t else None)
-            self.log(_('Downloaded and verified {0} (sha256 {1}…)').format(path, info['sha256'][:16]))
-            return self.execute([selfupdate.install_step(path, info["version"])], [], "Update")
+            self.log(_('Downloaded and verified {0} (sha256 {1}…)').format(fresh['asset_name'], fresh['sha256'][:16]))
+            return self.execute([selfupdate.install_step(data, fresh["sha256"], info["version"])], [], "Update")
 
         def done(results):
             if not results or results.get("selfupdate") != 0:
