@@ -8,6 +8,8 @@ import subprocess
 
 BEGIN, END = "@@MINTCARE-BEGIN", "@@MINTCARE-END"
 HELPER = "/usr/lib/mintcare/mintcare-root"
+# An absolute path, so a pkexec earlier in a user's PATH never receives the batch.
+PKEXEC = "/usr/bin/pkexec"
 # Runs the batch that arrives on stdin, from a private copy in a folder only its owner can write to.
 # packaging/mintcare-root has the same logic; keep the two in step.
 ROOT_RUN = (
@@ -57,7 +59,7 @@ def run_steps(steps, root, on_line=print):
     if root and os.geteuid() != 0:
         # The .deb ships a helper with its own polkit action, so the prompt
         # names MintCare; running from source falls back to plain bash.
-        cmd = ["pkexec", HELPER] if os.access(HELPER, os.X_OK) else ["pkexec", "/bin/bash", "-c", ROOT_RUN]
+        cmd = [PKEXEC, HELPER] if os.access(HELPER, os.X_OK) else [PKEXEC, "/bin/bash", "-c", ROOT_RUN]
     else:
         cmd = ["/bin/bash", "-c", ROOT_RUN]
     results = {}

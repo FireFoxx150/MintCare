@@ -82,7 +82,7 @@ class SealedBatch(unittest.TestCase):
                 mock.patch.object(runner.os, "geteuid", return_value=1000), \
                 mock.patch.object(runner.os, "access", return_value=True):
             run_steps(steps, root=True, on_line=lambda _l: None)
-        self.assertEqual(seen["cmd"], ["pkexec", runner.HELPER])
+        self.assertEqual(seen["cmd"], [runner.PKEXEC, runner.HELPER])
         self.assertEqual(seen["batch"].decode(), runner._script(steps))
 
     def test_without_the_installed_helper_the_same_logic_runs_under_pkexec_bash(self):
@@ -91,7 +91,7 @@ class SealedBatch(unittest.TestCase):
                 mock.patch.object(runner.os, "geteuid", return_value=1000), \
                 mock.patch.object(runner.os, "access", return_value=False):
             run_steps([("a", "ok", "echo hi")], root=True, on_line=lambda _l: None)
-        self.assertEqual(seen["cmd"], ["pkexec", "/bin/bash", "-c", runner.ROOT_RUN])
+        self.assertEqual(seen["cmd"], [runner.PKEXEC, "/bin/bash", "-c", runner.ROOT_RUN])
 
 
 class RootHelper(TempDirTest):
@@ -131,6 +131,11 @@ class RootHelper(TempDirTest):
         self.assertEqual(p.returncode, 126)
 
 
+class PkexecPath(unittest.TestCase):
+    def test_pkexec_is_called_by_its_absolute_path(self):
+        self.assertEqual(runner.PKEXEC, "/usr/bin/pkexec")
+
+
 class ChainThroughHelper(TempDirTest):
     """run_steps -> pkexec -> packaging/mintcare-root -> the batch, with stubs for pkexec, id and apt-get."""
 
@@ -148,6 +153,7 @@ class ChainThroughHelper(TempDirTest):
         env = dict(env, PATH=f"{self.bin}:{os.environ['PATH']}")
         with mock.patch.dict(os.environ, env), \
                 mock.patch.object(runner, "HELPER", HELPER_SRC), \
+                mock.patch.object(runner, "PKEXEC", os.path.join(self.bin, "pkexec")), \
                 mock.patch.object(runner.os, "geteuid", return_value=1000):
             return run_steps(steps, root=True, on_line=lambda _l: None)
 
