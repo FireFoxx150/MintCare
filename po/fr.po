@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 21:09+0000\n"
+"POT-Creation-Date: 2026-11-07 21:39+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: French\n"
@@ -55,7 +55,7 @@ msgstr "système de fichiers inconnu"
 msgid "{0} free on the destination ({1})"
 msgstr "{0} libres sur la destination ({1})"
 
-#: mintcare/backup.py:114 mintcare/backup.py:256
+#: mintcare/backup.py:114 mintcare/backup.py:257
 msgid "None of the chosen folders exist"
 msgstr "Aucun des dossiers choisis n'existe"
 
@@ -78,11 +78,11 @@ msgstr "{0} fichiers modifiés"
 msgid "Choose a folder or repository first"
 msgstr "Choisissez d'abord un dossier ou un dépôt"
 
-#: mintcare/backup.py:236
+#: mintcare/backup.py:237
 msgid "Type a password first"
 msgstr "Saisissez d'abord un mot de passe"
 
-#: mintcare/backup.py:329
+#: mintcare/backup.py:330
 msgid "This isn't a MintCare settings file"
 msgstr "Ce n'est pas un fichier de réglages MintCare"
 
@@ -481,7 +481,7 @@ msgid "No swap configured; the system may freeze when RAM runs out"
 msgstr ""
 "Aucun swap configuré ; le système peut se figer quand la RAM est pleine"
 
-#: mintcare/checks.py:277 mintcare/checks.py:283 mintcare/journal.py:24
+#: mintcare/checks.py:277 mintcare/checks.py:283 mintcare/journal.py:31
 msgid "Enable zram"
 msgstr "Activer zram"
 
@@ -646,7 +646,7 @@ msgstr ""
 "ecryptfs est installé mais inutilisé ; son module de connexion écrit « "
 "seteuid error » à chaque déverrouillage"
 
-#: mintcare/checks.py:409 mintcare/journal.py:34
+#: mintcare/checks.py:409 mintcare/journal.py:41
 msgid "Remove ecryptfs"
 msgstr "Supprimer ecryptfs"
 
@@ -2168,7 +2168,7 @@ msgstr "Rapport de santé exporté ({0})"
 msgid "Health report saved: {0}"
 msgstr "Rapport de santé enregistré : {0}"
 
-#: mintcare/gui.py:1308 mintcare/maintenance.py:362
+#: mintcare/gui.py:1308 mintcare/maintenance.py:367
 #, python-brace-format
 msgid "Report saved: {0}"
 msgstr "Rapport enregistré : {0}"
@@ -2888,7 +2888,7 @@ msgstr "Installer Lynis"
 msgid "Installing Lynis…"
 msgstr "Installation de Lynis…"
 
-#: mintcare/gui.py:2088 mintcare/secaudit.py:218
+#: mintcare/gui.py:2088 mintcare/secaudit.py:248
 msgid "Hardening audit (Lynis)"
 msgstr "Audit de durcissement (Lynis)"
 
@@ -5958,7 +5958,7 @@ msgstr "Bilan planifié activé"
 msgid "Scheduled check-up turned off"
 msgstr "Bilan planifié désactivé"
 
-#: mintcare/gui.py:5924 mintcare/maintenance.py:365
+#: mintcare/gui.py:5924 mintcare/maintenance.py:370
 #, python-brace-format
 msgid "Scheduled check-up: {0}"
 msgstr "Bilan planifié : {0}"
@@ -6352,7 +6352,7 @@ msgstr "pilote {0}"
 msgid "Wireless adapter"
 msgstr "Adaptateur sans fil"
 
-#: mintcare/journal.py:17
+#: mintcare/journal.py:24
 msgid ""
 "A disk reported read/write errors. Check Hardware › drives (SMART) and back "
 "up important files."
@@ -6360,11 +6360,11 @@ msgstr ""
 "Un disque a signalé des erreurs de lecture/écriture. Vérifiez Matériel › "
 "disques (SMART) et sauvegardez vos fichiers importants."
 
-#: mintcare/journal.py:18
+#: mintcare/journal.py:25
 msgid "Check drives"
 msgstr "Vérifier les disques"
 
-#: mintcare/journal.py:20
+#: mintcare/journal.py:27
 msgid ""
 "A program crashed. If it keeps happening, update or reinstall it; the "
 "program name is shown above."
@@ -6372,11 +6372,11 @@ msgstr ""
 "Un programme a planté. Si cela se répète, mettez-le à jour ou réinstallez-"
 "le ; son nom figure ci-dessus."
 
-#: mintcare/journal.py:21
+#: mintcare/journal.py:28
 msgid "View crash reports"
 msgstr "Voir les rapports de plantage"
 
-#: mintcare/journal.py:23
+#: mintcare/journal.py:30
 msgid ""
 "The system ran out of memory and closed a program. Consider zram (Optimise) "
 "or closing heavy apps."
@@ -6384,7 +6384,7 @@ msgstr ""
 "Le système a manqué de mémoire et a fermé un programme. Pensez à zram "
 "(Optimiser) ou fermez les applications gourmandes."
 
-#: mintcare/journal.py:26
+#: mintcare/journal.py:33
 msgid ""
 "The HP printer/scanner driver probed your USB device without permission "
 "(colour-management service). Harmless — printing and scanning still work."
@@ -6393,7 +6393,7 @@ msgstr ""
 "permission (service de gestion des couleurs). Sans gravité — impression et "
 "numérisation fonctionnent toujours."
 
-#: mintcare/journal.py:29
+#: mintcare/journal.py:36
 msgid ""
 "Your keyring password doesn't match your login password, so it didn't unlock "
 "at login. Fix: open Passwords and Keys › right-click Login › Change "
@@ -6404,11 +6404,11 @@ msgstr ""
 "Mots de passe et clés › clic droit sur Connexion › Changer le mot de passe, "
 "et mettez votre mot de passe de session."
 
-#: mintcare/journal.py:31
+#: mintcare/journal.py:38
 msgid "Open Passwords and Keys"
 msgstr "Ouvrir Mots de passe et clés"
 
-#: mintcare/journal.py:33
+#: mintcare/journal.py:40
 msgid ""
 "The ecryptfs login module is installed but unused. MintCare's scan offers to "
 "remove it."
@@ -6416,7 +6416,7 @@ msgstr ""
 "Le module de connexion ecryptfs est installé mais inutilisé. L'analyse de "
 "MintCare propose de le supprimer."
 
-#: mintcare/journal.py:36
+#: mintcare/journal.py:43
 msgid ""
 "Bluetooth's SIM Access plugin failed to start. Harmless; MintCare's scan can "
 "switch the plugin off."
@@ -6424,22 +6424,22 @@ msgstr ""
 "Le module SIM Access du Bluetooth n'a pas pu démarrer. Sans gravité ; "
 "l'analyse de MintCare peut le désactiver."
 
-#: mintcare/journal.py:37
+#: mintcare/journal.py:44
 msgid "Switch the plugin off"
 msgstr "Désactiver le module"
 
-#: mintcare/journal.py:39
+#: mintcare/journal.py:46
 msgid "A keyboard hot-key mapping the kernel didn't accept. Harmless."
 msgstr ""
 "Une association de touche spéciale que le noyau n'a pas acceptée. Sans "
 "gravité."
 
-#: mintcare/journal.py:41
+#: mintcare/journal.py:48
 msgid "A command asked for an administrator password and didn't get one."
 msgstr ""
 "Une commande a demandé un mot de passe administrateur et ne l'a pas reçu."
 
-#: mintcare/journal.py:43
+#: mintcare/journal.py:50
 msgid ""
 "Your motherboard's firmware tables contain a small bug. Usually harmless; a "
 "BIOS update can fix it."
@@ -6447,7 +6447,7 @@ msgstr ""
 "Les tables du firmware de votre carte mère contiennent un petit bogue. "
 "Généralement sans gravité ; une mise à jour du BIOS peut le corriger."
 
-#: mintcare/journal.py:45
+#: mintcare/journal.py:52
 msgid ""
 "A message from the NVIDIA driver. If you see glitches, check Driver Manager "
 "for a newer driver."
@@ -6455,13 +6455,13 @@ msgstr ""
 "Un message du pilote NVIDIA. En cas de défauts d'affichage, cherchez un "
 "pilote plus récent dans le Gestionnaire de pilotes."
 
-#: mintcare/journal.py:47
+#: mintcare/journal.py:54
 msgid "The Bluetooth adapter reported a firmware quirk. Usually harmless."
 msgstr ""
 "L'adaptateur Bluetooth a signalé une particularité du firmware. Généralement "
 "sans gravité."
 
-#: mintcare/journal.py:49
+#: mintcare/journal.py:56
 msgid ""
 "A USB device failed to connect properly — try another port or cable, or an "
 "unpowered hub may be the cause."
@@ -6469,14 +6469,14 @@ msgstr ""
 "Un périphérique USB ne s'est pas connecté correctement — essayez un autre "
 "port ou câble ; un hub non alimenté peut aussi être en cause."
 
-#: mintcare/journal.py:51
+#: mintcare/journal.py:58
 msgid ""
 "A system service failed to start. See the Failed services check for details."
 msgstr ""
 "Un service système n'a pas pu démarrer. Voir la vérification Services en "
 "échec."
 
-#: mintcare/journal.py:54
+#: mintcare/journal.py:61
 msgid ""
 "A driver couldn't find an optional firmware file. Usually harmless unless "
 "that device misbehaves."
@@ -6484,74 +6484,99 @@ msgstr ""
 "Un pilote n'a pas trouvé un fichier de firmware facultatif. Généralement "
 "sans gravité, sauf si le périphérique fonctionne mal."
 
-#: mintcare/journal.py:55
+#: mintcare/journal.py:62
 msgid "A message from the sound system (PipeWire)."
 msgstr "Un message du système audio (PipeWire)."
 
-#: mintcare/journal.py:56
+#: mintcare/journal.py:63
 msgid "Open sound troubleshooter"
 msgstr "Ouvrir le dépannage audio"
 
-#: mintcare/journal.py:144
+#: mintcare/journal.py:155
+msgid "(other kinds)"
+msgstr "(autres types)"
+
+#: mintcare/journal.py:156
+msgid ""
+"More kinds of error than MintCare lists one by one. Open the System journal "
+"to see them."
+msgstr "Il existe plus de types d'erreur que ceux que MintCare énumère un par un. Ouvrez le journal système pour les voir."
+
+#: mintcare/journal.py:162
+msgid "(long entries)"
+msgstr "(entrées longues)"
+
+#: mintcare/journal.py:163
+msgid ""
+"Journal entries too long to read were skipped, and are counted here. Open "
+"the System journal to see them."
+msgstr "Les entrées du journal trop longues pour être lues ont été ignorées et sont comptées ici. Ouvrez le journal système pour les voir."
+
+#: mintcare/journal.py:218
+msgid ""
+"The journal was too long to read in time, so this list may be incomplete."
+msgstr "Le journal était trop long pour être lu à temps : cette liste est peut-être incomplète."
+
+#: mintcare/journal.py:236
 msgid "No errors have been logged since this boot."
 msgstr "Aucune erreur enregistrée depuis ce démarrage."
 
-#: mintcare/maintenance.py:202
+#: mintcare/maintenance.py:207
 #, python-brace-format
 msgid "Re-enable boot service {0}"
 msgstr "Réactiver le service de démarrage {0}"
 
-#: mintcare/maintenance.py:206
+#: mintcare/maintenance.py:211
 #, python-brace-format
 msgid "Re-enable startup app {0}"
 msgstr "Réactiver l'application au démarrage {0}"
 
-#: mintcare/maintenance.py:207
+#: mintcare/maintenance.py:212
 #, python-brace-format
 msgid "Disable startup app {0} again"
 msgstr "Désactiver de nouveau l'application au démarrage {0}"
 
-#: mintcare/maintenance.py:209
+#: mintcare/maintenance.py:214
 #, python-brace-format
 msgid "Reset Flatpak permissions of {0}"
 msgstr "Réinitialiser les permissions Flatpak de {0}"
 
-#: mintcare/maintenance.py:236
+#: mintcare/maintenance.py:241
 msgid "Timeshift is not installed."
 msgstr "Timeshift n'est pas installé."
 
-#: mintcare/maintenance.py:239
+#: mintcare/maintenance.py:244
 msgid "Timeshift has no backup drive set up yet."
 msgstr "Timeshift n'a pas encore de disque de sauvegarde configuré."
 
-#: mintcare/maintenance.py:252
+#: mintcare/maintenance.py:257
 #, python-brace-format
 msgid "Timeshift snapshot ({0})"
 msgstr "Instantané Timeshift ({0})"
 
-#: mintcare/maintenance.py:329 mintcare/report.py:30
+#: mintcare/maintenance.py:334 mintcare/report.py:30
 msgid "Running checks…"
 msgstr "Vérifications en cours…"
 
-#: mintcare/maintenance.py:357
+#: mintcare/maintenance.py:362
 msgid "Saving a health report…"
 msgstr "Enregistrement d'un rapport de santé…"
 
-#: mintcare/maintenance.py:364
+#: mintcare/maintenance.py:369
 #, python-brace-format
 msgid "Couldn't save the report: {0}"
 msgstr "Impossible d'enregistrer le rapport : {0}"
 
-#: mintcare/maintenance.py:371
+#: mintcare/maintenance.py:376
 msgid "all good"
 msgstr "tout va bien"
 
-#: mintcare/maintenance.py:371
+#: mintcare/maintenance.py:376
 #, python-brace-format
 msgid "{0} thing(s) need attention"
 msgstr "{0} point(s) demandent votre attention"
 
-#: mintcare/maintenance.py:372
+#: mintcare/maintenance.py:377
 msgid "Your system passed every check."
 msgstr "Votre système a réussi toutes les vérifications."
 
@@ -7071,18 +7096,18 @@ msgstr "en échec"
 msgid "Authentication was cancelled or failed."
 msgstr "L'authentification a été annulée ou a échoué."
 
-#: mintcare/secaudit.py:51 mintcare/secaudit.py:53 mintcare/secaudit.py:55
+#: mintcare/secaudit.py:81 mintcare/secaudit.py:83 mintcare/secaudit.py:85
 msgid "Failed logins"
 msgstr "Connexions échouées"
 
-#: mintcare/secaudit.py:51
+#: mintcare/secaudit.py:81
 #, python-brace-format
 msgid "{0} failed SSH logins in 7 days — someone may be guessing passwords"
 msgstr ""
 "{0} connexions SSH échouées en 7 jours — quelqu'un essaie peut-être de "
 "deviner les mots de passe"
 
-#: mintcare/secaudit.py:53
+#: mintcare/secaudit.py:83
 #, python-brace-format
 msgid ""
 "{0} wrong password(s) in 7 days ({1}). Usually just typos at the lock screen."
@@ -7090,20 +7115,20 @@ msgstr ""
 "{0} mauvais mot(s) de passe en 7 jours ({1}). Généralement de simples fautes "
 "de frappe sur l'écran de verrouillage."
 
-#: mintcare/secaudit.py:55
+#: mintcare/secaudit.py:85
 msgid "No failed password attempts in the last 7 days"
 msgstr "Aucune tentative de mot de passe échouée ces 7 derniers jours"
 
-#: mintcare/secaudit.py:63
+#: mintcare/secaudit.py:93
 msgid "Allows root to log in with a password"
 msgstr "Autorise root à se connecter avec un mot de passe"
 
-#: mintcare/secaudit.py:63 mintcare/secaudit.py:65 mintcare/secaudit.py:68
-#: mintcare/secaudit.py:70
+#: mintcare/secaudit.py:93 mintcare/secaudit.py:95 mintcare/secaudit.py:98
+#: mintcare/secaudit.py:100
 msgid "SSH server"
 msgstr "Serveur SSH"
 
-#: mintcare/secaudit.py:65
+#: mintcare/secaudit.py:95
 msgid ""
 "Running and accepts passwords. Keys are safer; make sure your password is "
 "strong."
@@ -7111,37 +7136,37 @@ msgstr ""
 "Actif et accepte les mots de passe. Les clés sont plus sûres ; assurez-vous "
 "que votre mot de passe est solide."
 
-#: mintcare/secaudit.py:68
+#: mintcare/secaudit.py:98
 msgid "Installed but stopped"
 msgstr "Installé mais arrêté"
 
-#: mintcare/secaudit.py:68
+#: mintcare/secaudit.py:98
 msgid "Running"
 msgstr "Actif"
 
-#: mintcare/secaudit.py:68
+#: mintcare/secaudit.py:98
 #, python-brace-format
 msgid "{0}; root login {1}, passwords {2}"
 msgstr "{0} ; connexion root {1}, mots de passe {2}"
 
-#: mintcare/secaudit.py:70
+#: mintcare/secaudit.py:100
 msgid "Not installed, so nobody can log in remotely"
 msgstr "Non installé : personne ne peut se connecter à distance"
 
-#: mintcare/secaudit.py:73
+#: mintcare/secaudit.py:103
 msgid "Enabled: apps with profiles are confined"
 msgstr "Activé : les applications avec un profil sont confinées"
 
-#: mintcare/secaudit.py:74
+#: mintcare/secaudit.py:104
 msgid "Disabled: apps aren't confined by AppArmor profiles"
 msgstr ""
 "Désactivé : les applications ne sont pas confinées par les profils AppArmor"
 
-#: mintcare/secaudit.py:81
+#: mintcare/secaudit.py:111
 msgid "Automatic login"
 msgstr "Connexion automatique"
 
-#: mintcare/secaudit.py:82
+#: mintcare/secaudit.py:112
 #, python-brace-format
 msgid ""
 "{0} is logged in automatically — anyone who switches the PC on gets your "
@@ -7150,38 +7175,38 @@ msgstr ""
 "{0} est connecté automatiquement — quiconque allume le PC obtient votre "
 "bureau"
 
-#: mintcare/secaudit.py:83
+#: mintcare/secaudit.py:113
 msgid "Off — a password is needed at start-up"
 msgstr "Désactivée — un mot de passe est demandé au démarrage"
 
-#: mintcare/secaudit.py:89 mintcare/secaudit.py:91 mintcare/secaudit.py:94
+#: mintcare/secaudit.py:119 mintcare/secaudit.py:121 mintcare/secaudit.py:124
 msgid "Screen lock"
 msgstr "Verrouillage de l'écran"
 
-#: mintcare/secaudit.py:89
+#: mintcare/secaudit.py:119
 msgid "The screen doesn't lock when you're away"
 msgstr "L'écran ne se verrouille pas quand vous vous absentez"
 
-#: mintcare/secaudit.py:91
+#: mintcare/secaudit.py:121
 #, python-brace-format
 msgid "Locks only after {0} idle"
 msgstr "Ne se verrouille qu'après {0} d'inactivité"
 
-#: mintcare/secaudit.py:91
+#: mintcare/secaudit.py:121
 msgid "never"
 msgstr "jamais"
 
-#: mintcare/secaudit.py:91
+#: mintcare/secaudit.py:121
 #, python-brace-format
 msgid "{0} min"
 msgstr "{0} min"
 
-#: mintcare/secaudit.py:94
+#: mintcare/secaudit.py:124
 #, python-brace-format
 msgid "Locks after {0} minutes idle"
 msgstr "Se verrouille après {0} minutes d'inactivité"
 
-#: mintcare/secaudit.py:140
+#: mintcare/secaudit.py:170
 msgid ""
 "Unknown: the firmware doesn't report it (no UEFI, or the setting can't be "
 "read)"
@@ -7189,12 +7214,12 @@ msgstr ""
 "Inconnu : le micrologiciel ne l'indique pas (pas d'UEFI, ou le réglage est "
 "illisible)"
 
-#: mintcare/secaudit.py:142
+#: mintcare/secaudit.py:172
 msgid "On: the firmware starts only signed boot software"
 msgstr ""
 "Activé : le micrologiciel ne démarre que des logiciels de démarrage signés"
 
-#: mintcare/secaudit.py:144
+#: mintcare/secaudit.py:174
 msgid ""
 "Off: the firmware starts any boot software. Turn it on in the firmware "
 "settings if your PC supports it."
@@ -7202,11 +7227,11 @@ msgstr ""
 "Désactivé : le micrologiciel démarre n'importe quel logiciel de démarrage. "
 "Activez-le dans les réglages du micrologiciel si votre PC le permet."
 
-#: mintcare/secaudit.py:149 mintcare/secaudit.py:153
+#: mintcare/secaudit.py:179 mintcare/secaudit.py:183
 msgid "Programs with extra rights"
 msgstr "Programmes avec des droits supplémentaires"
 
-#: mintcare/secaudit.py:150
+#: mintcare/secaudit.py:180
 #, python-brace-format
 msgid "{0} program runs with its owner's rights, whoever starts it: {1}"
 msgid_plural ""
@@ -7218,11 +7243,11 @@ msgstr[1] ""
 "{0} programmes s'exécutent avec les droits de leur propriétaire, quel que "
 "soit celui qui les lance : {1}"
 
-#: mintcare/secaudit.py:153
+#: mintcare/secaudit.py:183
 msgid "No programs with extra rights were found"
 msgstr "Aucun programme avec des droits supplémentaires n'a été trouvé"
 
-#: mintcare/secaudit.py:311
+#: mintcare/secaudit.py:341
 msgid "Rootkit check (rkhunter)"
 msgstr "Recherche de rootkits (rkhunter)"
 
@@ -7282,15 +7307,19 @@ msgstr ""
 msgid "Test all software sources (apt-get update)"
 msgstr "Tester toutes les sources de logiciels (apt-get update)"
 
-#: mintcare/space.py:279
+#: mintcare/space.py:141
+msgid "Folders are nested too deeply to scan."
+msgstr "Les dossiers sont imbriqués trop profondément pour être analysés."
+
+#: mintcare/space.py:307
 msgid "Timeshift is not set up."
 msgstr "Timeshift n'est pas configuré."
 
-#: mintcare/space.py:281
+#: mintcare/space.py:309
 msgid "BTRFS snapshots are managed inside Timeshift."
 msgstr "Les instantanés BTRFS sont gérés dans Timeshift."
 
-#: mintcare/space.py:284
+#: mintcare/space.py:312
 msgid ""
 "The Timeshift backup drive isn't mounted, so snapshots can't be listed here."
 msgstr ""

@@ -13,11 +13,11 @@ from mintcare import backup
 from tests.helpers import TempDirTest
 
 FAKE_RESTIC = """#!/bin/sh
-echo "$@" >> "$RESTIC_LOG"
+echo "$@ [repo=$RESTIC_REPOSITORY]" >> "$RESTIC_LOG"
 case "$1" in
   init)
-    case "$3" in *fail*) echo "Fatal: repository already exists" >&2; exit 1;; esac
-    mkdir -p "$3"; echo "created restic repository"; exit 0;;
+    case "$RESTIC_REPOSITORY" in *fail*) echo "Fatal: repository already exists" >&2; exit 1;; esac
+    mkdir -p "$RESTIC_REPOSITORY"; echo "created restic repository"; exit 0;;
   backup) echo "Files: 2 new, 0 changed"; echo "snapshot 1a2b saved"; exit 0;;
   snapshots) echo '[{"time": "2026-11-04T08:00:00.123456789+00:00"}]'; exit 0;;
 esac
@@ -71,7 +71,8 @@ class Restic(TempDirTest):
         self.assertTrue(ok)
         self.assertEqual(last, "snapshot 1a2b saved")
         logged = self.log.read_text().splitlines()[-1]
-        self.assertTrue(logged.startswith(f"backup --exclude *.tmp {self.folder} --repo "), logged)
+        self.assertTrue(logged.startswith(f"backup --exclude *.tmp {self.folder} --password-file "), logged)
+        self.assertTrue(logged.endswith(f"[repo={self.b['restic_repo']}]"), logged)   # the repository comes from the environment
 
     def test_latest_snapshot_time_is_read_from_restic(self):
         self.assertEqual(backup.restic_latest(self.b), "2026-11-04T08:00:00.123456789+00:00")
