@@ -1,4 +1,5 @@
 """The System journal view: scope and level go to journalctl, the text filter runs here, and a failed read is reported."""
+import io
 import json
 import unittest
 from unittest import mock
@@ -40,7 +41,8 @@ class Browse(unittest.TestCase):
 class NonUtf8Identifier(unittest.TestCase):
     def test_a_program_name_journalctl_sends_as_bytes_is_text_so_grouping_works(self):
         line = json.dumps({"SYSLOG_IDENTIFIER": [104, 105], "MESSAGE": "boom", "__REALTIME_TIMESTAMP": "1700000000000000"})
-        with mock.patch.object(journal, "run", return_value=(0, line)):
+        journalctl = mock.Mock(stdout=io.StringIO(line + "\n"))
+        with mock.patch.object(journal.subprocess, "Popen", return_value=journalctl):
             groups = journal.grouped()
         self.assertEqual([g["who"] for g in groups], ["hi"])
 

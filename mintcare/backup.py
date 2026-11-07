@@ -143,6 +143,7 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
                 stats[key] = line.split(":", 1)[1].strip().split(" bytes")[0]
         tail = (tail + [line.rstrip()])[-6:]
     rc = proc.wait()
+    proc.stdout.close()                # the pipe stays open otherwise, and Python warns about it
     if cancel():
         shutil.rmtree(partial, ignore_errors=True)
         return {"ok": False, "error": "Cancelled"}
@@ -226,8 +227,9 @@ def _restic(args, repo, password_file=None, timeout=600):
     """Run restic on `repo`. The arguments are a list, so nothing in them is read by a shell."""
     if not repo or repo.startswith("-"):
         return 2, _("Choose a folder or repository first")
-    return run(["restic", *args, "--repo", repo, "--password-file", str(password_file or RESTIC_PASSWORD)],
-               timeout=timeout)
+    # The repository goes in the environment: a command line can be read by every user on the PC.
+    return run(["restic", *args, "--password-file", str(password_file or RESTIC_PASSWORD)],
+               timeout=timeout, env_extra={"RESTIC_REPOSITORY": repo})
 
 
 def restic_init(repo, password):
