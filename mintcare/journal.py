@@ -81,7 +81,7 @@ def _parse(line):
         e = json.loads(line)
     except ValueError:
         return None
-    who = e.get("SYSLOG_IDENTIFIER") or e.get("_COMM") or "unknown"
+    who = _text(e.get("SYSLOG_IDENTIFIER") or e.get("_COMM")) or "unknown"
     msg = _text(e.get("MESSAGE")).strip()
     if not msg or "a password is required" in msg:
         return None            # blank kernel lines, failed non-interactive sudo checks
