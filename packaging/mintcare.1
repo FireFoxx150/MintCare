@@ -1,0 +1,76 @@
+.TH MINTCARE 1 "2026-11-04" "MintCare 1.12.11" "User Commands"
+.SH NAME
+mintcare \- clean, optimise and repair Linux Mint
+.SH SYNOPSIS
+.B mintcare
+.RB [ \-\-tray ]
+.br
+.B mintcare
+.I command
+.RI [ options ]
+.SH DESCRIPTION
+Without a command, MintCare opens its graphical window: diagnostics with one-click fixes,
+reversible optimisations and profiles, a junk cleaner, disk-space and duplicate analysis,
+Flatpak permissions, packages, processes, hardware health, security, troubleshooting, boot analysis,
+home-folder backups and scheduled check-ups.
+Changes that need administrator rights ask for a password through polkit.
+.SH COMMANDS
+.TP
+.BR scan " [" \-\-fix ]
+Run every check; with \-\-fix, apply the automatic fixes.
+.TP
+.BR tweaks " [" \-\-apply " ID...|recommended|profile:NAME | " \-\-revert " ID...]"
+List, apply or revert optimisations. Profiles: desktop, gaming, laptop, developer.
+.TP
+.BR clean " [" \-\-run " [ID...]]"
+Show what can be cleaned, or clean the default (or listed) items.
+.TP
+.B hardware
+Drive SMART health, temperatures, throttling and boot time.
+.TP
+.BR space " [" PATH ]
+Largest folders and files, and the number of Timeshift snapshots.
+.TP
+.BR report " [" \-o " FILE] [" \-\-personal ]
+Write an HTML health report. Personal details are removed unless \-\-personal is given.
+.TP
+.BR maintain " [" \-\-no\-notify ]
+The scheduled check-up: scan, safe user-level cleaning, desktop notification.
+.TP
+.B backup
+Back up the folders chosen on the Backup page now (what the backup timer runs).
+.SH OPTIONS
+.TP
+.B \-\-tray
+Start the window hidden in the system tray.
+.TP
+.B \-\-version
+Print the version.
+.SH KEYBOARD
+.TP
+.B Ctrl+F
+Search pages, checks, tweaks and settings.
+.TP
+.B Ctrl+1 to Ctrl+9, Ctrl+Page Up/Down
+Go to a sidebar page, or the previous/next one.
+.TP
+.B F5
+Refresh the current page.
+.TP
+.B Ctrl+E
+Export a health report.
+.TP
+.B Ctrl+?
+List the keyboard shortcuts.
+.SH FILES
+.TP
+.I ~/.config/mintcare/settings.json
+Settings.
+.TP
+.I ~/.local/state/mintcare/history.jsonl
+History of changes.
+.TP
+.I /var/lib/mintcare/
+Records of applied optimisations, used to revert them.
+.SH LICENSE
+GPL-3.0-or-later.

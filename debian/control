@@ -1,0 +1,18 @@
+Source: mintcare
+Section: admin
+Priority: optional
+Maintainer: Matthew Allwood <matthewallwood@protonmail.com>
+Build-Depends: debhelper-compat (= 13), python3, python3-gi, gir1.2-gtk-3.0, gettext
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: mintcare
+Architecture: all
+Depends: ${misc:Depends}, python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, pkexec | policykit-1
+Recommends: timeshift, ufw, udisks2, gir1.2-xapp-1.0, gir1.2-webkit2-4.1, libnotify-bin
+Suggests: smartmontools, flatpak
+Description: Clean, optimise and repair Linux Mint
+ MintCare diagnoses common problems (TCP BBR, broken packages, disk space,
+ drivers, firewall, failed services, SMART health...) and fixes them, applies
+ reversible performance tweaks and profiles, cleans junk, finds large and
+ duplicate files, manages Flatpak permissions and schedules check-ups.

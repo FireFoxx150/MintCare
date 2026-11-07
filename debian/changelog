@@ -1,0 +1,254 @@
+mintcare (1.12.11) noble; urgency=medium
+
+  * Processes: graphics memory used by each program on an NVIDIA card.
+  * Optimise: a power profile switch through power-profiles-daemon, shown when
+    the daemon offers profiles. The battery charge limit can be set from 50 to
+    100%, in steps of 5.
+  * Clean (all opt-in): unused Docker images and build cache; AI model
+    downloads and unused project folders (node_modules, Rust target, Python
+    venvs), both moved to the Trash.
+  * Security: a SYSTEM SECURITY card with the Secure Boot state and the
+    programs that run with set-user-ID or set-group-ID rights.
+  * Troubleshoot: a DNS servers card that times four public resolvers.
+  * Activity log: a System journal tab with scope, level and text filters.
+  * Backup: an encrypted copy with restic, set up with a repository and a
+    password. Automatic backups run it too once it is set up.
+  * Assistant: answers can come from a model on this PC through Ollama, so
+    questions need not leave the machine.
+  * Backup check: information, not a warning, when automatic backup is off.
+  * Dashboard shows every graphics card, not only the first two.
+  * Settings import keeps this PC's report folder; startup-delay names must be
+    plain file names.
+  * Malware scan lists the file names it skipped because they contain line
+    breaks.
+  * Fix: I/O scheduler rules apply to whole disks only, so partitions no longer
+    log errors at boot.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 04 Nov 2026 09:13:56 +0000
+
+mintcare (1.12.10) noble; urgency=medium
+
+  * Dashboard: a second card for a second graphics card, such as an integrated
+    GPU, and a load and VRAM history for the first card.
+  * Duplicate finder: thumbnails are decoded in the background, and very large
+    pictures get none.
+  * Malware scan: clamscan gets an explicit list of files, and names with line
+    breaks are left out. A file is quarantined only if it is a plain file under
+    your home folder, checked again as root.
+  * Mint upgrade check: a directory listing over 1 MiB is refused.
+  * Software sources: a source is labelled Ubuntu or Linux Mint only when its
+    host name is that domain or a subdomain of it.
+  * Security: the root batch script is readable only by its owner, and imported
+    settings cannot name files outside the autostart folder.
+  * CI: the workflow's token is limited to reading the repository.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Sun, 01 Nov 2026 00:35:00 +0000
+
+mintcare (1.12.9) noble; urgency=medium
+
+  * Simpler by default: hide individual tips on Diagnose & Fix (show them
+    again any time); a "Start here" card for Beginners until dismissed.
+  * Plain-language hints on Processor load, swap, firewall and TCP congestion.
+  * At Beginner level the dashboard's card order and show/hide row are hidden.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 28 Oct 2026 23:20:00 +0000
+
+mintcare (1.12.8) noble; urgency=medium
+
+  * Appearance: a colour-blind friendly theme (blue, orange and vermilion for
+    health, warnings and problems).
+  * Keyboard focus is outlined in every theme.
+  * Accessibility: every button, combo box, spin button and text box has a
+    name for screen readers; the navigation scrollbar stays visible.
+  * Storage temperature range over the last week; cache growth on the
+    cleaning page; monthly summary; Ethernet link speed; thumbnails for
+    picture duplicates.
+  * Power history chart where the machine reports power.
+  * Support bundle includes warnings and errors from this start-up.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 28 Oct 2026 12:00:00 +0100
+
+mintcare (1.12.7) noble; urgency=medium
+
+  * Health check for pending Flatpak app and runtime updates, included in the
+    scheduled check-up's notification.
+  * Held-back packages say why they are held and what would unlock them.
+  * Assistant: "Copy command" buttons for commands in an answer (copies only).
+  * Backup: "Verify latest backup" reads a sample of the newest snapshot.
+  * Hardware: power history where the machine reports power; Wi-Fi signal and
+    driver; Ethernet link speed; drive temperature range over the last week.
+  * Dashboard: monthly line in the summary; cache growth on the cleaning page.
+  * Duplicates: thumbnails for picture copies.
+  * Support bundle includes warnings and errors from this start-up, with
+    addresses removed.
+  * Health score: tips no longer lower it; problems and warnings still do.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 28 Oct 2026 12:00:00 +0100
+
+mintcare (1.12.6) noble; urgency=medium
+
+  * Dashboard: the GPU temperature history is kept across restarts.
+  * Health report and `mintcare report` mark the page with your language.
+  * Project setup for contributors: CLAUDE.md and Claude Code settings.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 27 Oct 2026 16:00:00 +0100
+
+mintcare (1.12.5) noble; urgency=medium
+
+  * Dashboard: show, hide and reorder cards; a "This week" summary; a GPU
+    temperature chart with a warning when it stays hot.
+  * Hardware: "Read RAM details…" shows RAM type and speed (asks for your
+    password once).
+  * Assistant: finished chats can be reopened from "Saved chats".
+  * Disk space: filter the large files by type.
+  * Tray icon shows warnings and errors; power draw is shown where the
+    hardware reports it.
+  * Health report and its labels are translated.
+  * Buttons and check boxes have names for screen readers.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 27 Oct 2026 14:00:00 +0100
+
+mintcare (1.12.4) noble; urgency=medium
+
+  * Troubleshoot: "Support bundle…" saves a zip with the health report, the
+    hardware list and recent activity, with personal details removed. The
+    same bundle is available as `mintcare support-bundle`.
+  * Repairs report before and after: how many checks were fixed, are still
+    open, or are new, shown in the status bar and the Activity log.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 27 Oct 2026 12:00:00 +0100
+
+mintcare (1.12.3) noble; urgency=medium
+
+  * Dashboard: a Graphics Activity gauge shows GPU load, VRAM use and
+    temperature for NVIDIA and AMD graphics. It appears only when the GPU
+    reports its load.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 22 Oct 2026 12:00:00 +0100
+
+mintcare (1.12.2) noble; urgency=medium
+
+  * Assistant: AI support installed by the "Install AI support" button is
+    found again. Mint's older system packages were loaded first and stopped
+    the Anthropic SDK from importing.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 21 Oct 2026 12:00:00 +0100
+
+mintcare (1.12.1) noble; urgency=medium
+
+  * Hardware: USB Wi-Fi adapter names no longer include their USB ID, and
+    the processor core count no longer depends on a missing field. The list
+    is cached for a minute, so revisiting the page is quick.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 21 Oct 2026 09:00:00 +0100
+
+mintcare (1.12.0) noble; urgency=medium
+
+  * Hardware: a "Your hardware" card lists the board, processor, memory,
+    graphics cards with their video memory and driver, network and sound
+    devices, and disks. The same list appears in `mintcare hardware` and in
+    the health report.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Mon, 19 Oct 2026 09:00:00 +0100
+
+mintcare (1.11.0) noble; urgency=medium
+
+  * Assistant: can run MintCare's read-only checks when allowed (output
+    scrubbed of names, serials and MAC addresses), adaptive thinking with a
+    "Think harder" option, and the cost of each answer.
+  * Desktop tweaks for your account: turn off Cinnamon effects; full-screen
+    games skip the compositor (added to the Gaming profile).
+  * Cleaner: data left by removed Flatpak apps, unused Cinnamon add-ons
+    (both opt-in, moved to the Trash).
+  * Disk space: Old downloads tab; restore single files from Timeshift.
+  * Startup apps can start 10 s, 30 s or 1 min after login.
+  * Backup: restore files, folders or a whole snapshot without losing what
+    they replace.
+  * Security: names from outside MintCare (processes, files, Flatpak apps)
+    can no longer run commands in root steps; private reports and the
+    assistant no longer show passwords in software source addresses.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 15 Oct 2026 22:05:33 +0100
+
+mintcare (1.10.0) noble; urgency=medium
+
+  * SMART trend: drive error counters are recorded and a warning appears
+    when reallocated, pending, uncorrectable, media or CRC errors grow.
+  * Security: Identify now explains unknown listening ports (program,
+    owning package, systemd service) and suggests keeping or turning off.
+  * Troubleshoot: internet speed test (download, upload, latency).
+  * Mint upgrade checklist: held and half-installed packages, DKMS drivers,
+    battery power.
+  * Releases carry SHA256SUMS and a signed build-provenance attestation;
+    packaging/ppa.sh builds Launchpad source packages.
+  * README screenshots. Tests never touch the real ~/.config or ~/.local.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 15 Oct 2026 21:40:47 +0100
+
+mintcare (1.9.0) noble; urgency=low
+
+  * French, German, Portuguese and Italian translations.
+  * The rest of the interface is translatable: boot-service advice, port
+    names, error explanations, process descriptions, drive health notes,
+    troubleshooters, security audit, backup and history entries.
+  * Proper singular/plural forms for counts.
+  * Gauges stop animating when desktop animations are turned off.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Thu, 15 Oct 2026 21:25:30 +0100
+
+mintcare (1.8.0) noble; urgency=medium
+
+  * New pages: Packages (largest/installed by you/held, apt history with
+    undo, kernels, mirror speed test, Mint upgrade check), Processes,
+    Troubleshoot (sound, network, printers, Bluetooth, crashes), Backup
+    (rsync hard-linked snapshots, schedule, settings export/import) and an
+    optional Claude assistant using your own Anthropic API key.
+  * Security: login audit and ClamAV/rkhunter scans with quarantine.
+  * Hardware: disk and CPU benchmarks, battery health. Boot-time history.
+  * Scheduled check-ups can save a health report.
+  * Spanish translation; the whole interface is now translatable.
+  * Accessibility: screen-reader names and live values for switches,
+    gauges and charts; keyboard-driven disk-space map; shortcuts
+    (Ctrl+1-9, Ctrl+Page Up/Down, F5, Ctrl+E, Ctrl+?).
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Wed, 14 Oct 2026 00:30:39 +0100
+
+mintcare (1.7.1) noble; urgency=low
+
+  * Click any check to see the command behind it and its live output, with
+    Copy, Open in terminal and Refresh.
+  * Errors since boot are grouped by program (a crash counts once) and
+    explained in plain English.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 13 Oct 2026 23:03:55 +0100
+
+mintcare (1.7.0) noble; urgency=medium
+
+  * Self-update: checks GitHub for new releases, verifies the SHA-256
+    checksum and installs the package.
+  * Firmware updates through fwupd/LVFS on the Hardware page.
+  * Software sources health: never-downloaded, wrong-series, duplicate and
+    broken-key sources; disable/enable third-party sources; apt test run.
+  * Security page: listening services, exposure, firewall state, identify
+    programs (admin) and turn off risky services.
+  * Health trend chart on the dashboard.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 13 Oct 2026 22:52:54 +0100
+
+mintcare (1.6.1) noble; urgency=low
+
+  * Package now includes its changelog and a man page; fixed file
+    permissions on compressed docs. Lintian-clean.
+  * CI: lintian check on every build; GitHub Actions updated.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 13 Oct 2026 17:08:43 +0100
+
+mintcare (1.6.0) noble; urgency=medium
+
+  * Responsive layout, light and high-contrast themes, experience levels.
+  * Header search, health report export (PDF/HTML), system tray icon.
+  * Scheduled check-ups, safety snapshots, undo all, change history.
+  * Disk-space analyser, duplicate finder, Timeshift snapshot clean-up.
+  * Translation support (gettext), test suite.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 13 Oct 2026 16:15:58 +0100
