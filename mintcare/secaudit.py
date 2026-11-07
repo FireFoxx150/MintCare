@@ -173,17 +173,85 @@ def lock_screen_on():
 
 # ------------------------------------------------------------------ malware scanning
 
+LYNIS_SUMMARY = "/var/lib/mintcare/lynis-summary"   # the score and counts only; the Security page reads it
+
+
 def scanners():
-    return {"clamav": has_cmd("clamscan"), "rkhunter": has_cmd("rkhunter")}
+    return {"clamav": has_cmd("clamscan"), "rkhunter": has_cmd("rkhunter"), "lynis": has_cmd("lynis")}
 
 
 def install_step(name):
-    pkgs = {"clamav": "clamav clamav-freshclam", "rkhunter": "rkhunter"}[name]
+    pkgs = {"clamav": "clamav clamav-freshclam", "rkhunter": "rkhunter", "lynis": "lynis"}[name]
     return (f"install-{name}", f"Install {name}",
             f"DEBIAN_FRONTEND=noninteractive apt-get install -y {pkgs}\n"
             + ("systemctl stop clamav-freshclam 2>/dev/null; freshclam || true; "
                "systemctl start clamav-freshclam 2>/dev/null || true" if name == "clamav" else
-               "rkhunter --propupd --nocolors || true"))
+               "rkhunter --propupd --nocolors || true" if name == "rkhunter" else "true"))
+
+
+LYNIS_REPORT = "/var/log/lynis-report.dat"
+LYNIS_ITEMS = "/var/lib/mintcare/lynis-items"       # each finding; readable only by the user who ran the audit
+# Words that suggest acting on a finding could lock you out or break something. A guide, not a guarantee.
+# "pam" alone also matches libpam-tmpdir, which is harmless, so match the PAM module names instead.
+LYNIS_RISKY = ("ssh", "firewall", "ufw", "iptables", "nftables", "grub", "boot", "fstab", "noexec", "nodev",
+               "nosuid", "pam_", "pam module", "password", "pwquality", "sudo", "shadow", "umask", "login.defs",
+               "apparmor", "selinux", "ipv6", "sysctl", "compiler", "namespace", "unprivileged", "remove", "purge",
+               "uninstall", "disable", "deactivate")
+
+
+def lynis_risk(text):
+    """True when a finding's wording suggests that acting on it could lock you out or break something."""
+    low = text.lower()
+    return any(word in low for word in LYNIS_RISKY)
+
+
+def lynis_items_command(report=LYNIS_REPORT, out=LYNIS_ITEMS):
+    """Shell command: each finding as kind, test id and description (the details column is left out), tab-separated."""
+    program = '/^(warning|suggestion)\\[\\]=/ { split($1, a, /\\[\\]=/); printf "%s\\t%s\\t%s\\n", a[1], a[2], $2 }'
+    return f"awk -F'|' {q(program)} {q(report)} > {q(out)}"
+
+
+def lynis_step():
+    """Root step: a read-only Lynis audit. The hardening index and counts go to LYNIS_SUMMARY (readable by everyone);
+    the findings go to LYNIS_ITEMS, which belongs to the user who ran the audit."""
+    tmp = LYNIS_ITEMS + ".tmp"
+    return ("lynis", _("Hardening audit (Lynis)"),
+            f"rm -f {LYNIS_SUMMARY} {LYNIS_ITEMS} {tmp}\n"
+            "lynis audit system --quick --no-colors >/dev/null 2>&1 || true\n"
+            "install -d -m 755 /var/lib/mintcare\n"
+            f"idx=$(grep -m1 '^hardening_index=' {LYNIS_REPORT} 2>/dev/null | cut -d= -f2)\n"
+            f"warn=$(grep -c -F 'warning[]=' {LYNIS_REPORT} 2>/dev/null || true)\n"
+            f"sugg=$(grep -c -F 'suggestion[]=' {LYNIS_REPORT} 2>/dev/null || true)\n"
+            f"[ -n \"$idx\" ] && printf 'hardening_index=%s\\nwarnings=%s\\nsuggestions=%s\\n' "
+            f"\"$idx\" \"$warn\" \"$sugg\" > {LYNIS_SUMMARY} && chmod 644 {LYNIS_SUMMARY}\n"
+            f"if [ -r {LYNIS_REPORT} ]; then\n"
+            f"{lynis_items_command(LYNIS_REPORT, tmp)} && "
+            "{ [ -z \"$PKEXEC_UID\" ] || chown \"$PKEXEC_UID\" " + tmp + "; } && "
+            f"chmod 600 {tmp} && mv -f {tmp} {LYNIS_ITEMS}\n"
+            "fi\n")
+
+
+def read_lynis_items(path=LYNIS_ITEMS):
+    """[(kind, test id, description, may break the system)] from the last audit: [] if it found nothing,
+    None if there is no list or it can't be read."""
+    try:
+        rows = []
+        for line in Path(path).read_text().splitlines():
+            parts = line.split("\t", 2)
+            if len(parts) == 3:
+                rows.append((parts[0], parts[1], parts[2], lynis_risk(parts[2])))
+        return rows
+    except OSError:
+        return None
+
+
+def read_lynis_summary(path=LYNIS_SUMMARY):
+    """(hardening index, warnings, suggestions) from the last Lynis audit, or None if there has been none."""
+    try:
+        data = dict(line.split("=", 1) for line in Path(path).read_text().splitlines() if "=" in line)
+        return int(data["hardening_index"]), int(data["warnings"]), int(data["suggestions"])
+    except (OSError, KeyError, ValueError):
+        return None
 
 
 def scan_files(paths):

@@ -423,6 +423,44 @@ def c_firewall():
     return Result(WARN, _("Firewall is disabled"), tweak_fix("ufw", _("Enable firewall")))
 
 
+def luks_state(root_types, all_types):
+    """'root' if the system disk sits on a LUKS mapping, 'other' if some other disk does, else 'none'.
+
+    Both arguments are lsblk TYPE columns: the system disk with its parents, and every device."""
+    if "crypt" in root_types.split():
+        return "root"
+    if "crypt" in all_types.split():
+        return "other"
+    return "none"
+
+
+def c_luks():
+    """Whether the system disk is encrypted with LUKS. Read-only; encryption is normally chosen when Mint is installed."""
+    rc, src = run(["findmnt", "-n", "-o", "SOURCE", "/"])
+    src = src.strip().split("[")[0]                # a Btrfs subvolume shows as /dev/sdX2[/@]
+    rc_root, root_types = run(["lsblk", "-s", "-n", "-o", "TYPE", src]) if rc == 0 and src else (1, "")
+    rc_all, all_types = run(["lsblk", "-n", "-o", "TYPE"])
+    if rc_all != 0:
+        return Result(INFO, _("Could not check disk encryption"))
+    state = luks_state(root_types if rc_root == 0 else "", all_types)
+    if state == "root":
+        return Result(OK, _("The system disk is encrypted (LUKS)"))
+    if state == "other":
+        return Result(INFO, _("Some disks are encrypted, but not the system disk"))
+    return Result(INFO, _("No disk encryption found. Encryption protects your data if a disk is lost or stolen; "
+                          "it is normally chosen when Mint is installed"))
+
+
+def c_auditd():
+    """Whether the audit daemon is installed and running. Read-only and optional."""
+    if not pkg_installed("auditd"):
+        return Result(INFO, _("Audit logging (auditd) is not installed. It is optional"))
+    rc, state = run(["systemctl", "is-active", "auditd"])
+    if rc == 0 and state.strip() == "active":
+        return Result(OK, _("Audit logging (auditd) is running"))
+    return Result(INFO, _("Audit logging (auditd) is installed but not running"))
+
+
 def c_home_perms():
     home = Path.home()
     mode = home.stat().st_mode & 0o777
@@ -640,6 +678,8 @@ CHECKS = [
     Check("firmware", _("Firmware updates"), _("Hardware"), c_firmware),
     Check("battery", _("Battery health"), _("Hardware"), c_battery),
     Check("firewall", _("Firewall"), _("Security"), c_firewall),
+    Check("luks", _("Disk encryption"), _("Security"), c_luks),
+    Check("auditd", _("Audit logging (auditd)"), _("Security"), c_auditd),
     Check("homeperms", _("Home folder privacy"), _("Security"), c_home_perms),
     Check("ports", _("Open network ports"), _("Security"), c_ports),
     Check("time", _("Clock sync"), _("System"), c_time),
@@ -686,6 +726,8 @@ DETAIL_COMMANDS = {
     "temps": "sensors 2>/dev/null || cat /sys/class/hwmon/hwmon*/temp*_input",
     "firmware": "fwupdmgr get-devices 2>/dev/null | head -60",
     "firewall": "cat /etc/ufw/ufw.conf; echo; systemctl status ufw --no-pager | head -5",
+    "luks": "findmnt -n -o SOURCE /; echo; lsblk -o NAME,TYPE,FSTYPE,MOUNTPOINT",
+    "auditd": "systemctl status auditd --no-pager 2>&1 | head -8",
     "homeperms": "ls -ld ~",
     "ports": "ss -tulnp",
     "time": "timedatectl",

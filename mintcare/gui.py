@@ -1991,6 +1991,16 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.mal_results = vbox(4)
         mc.pack_start(self.mal_results, False, False, 0)
         page.pack_start(mc, False, False, 0)
+
+        page.pack_start(label(_("HARDENING AUDIT"), ("kicker",)), False, False, 0)
+        lc = card()
+        lh = hbox(8)
+        self.lynis_status = label("", ("muted",), wrap=True)
+        lh.pack_start(self.lynis_status, True, True, 0)
+        self.lynis_btns = hbox(8)
+        lh.pack_end(self.lynis_btns, False, False, 0)
+        lc.pack_start(lh, False, False, 0)
+        page.pack_start(lc, False, False, 0)
         self._mal_cancel = threading.Event()
         return scrolled(page)
 
@@ -2001,6 +2011,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.bg(secaudit.audit, self._render_login)
         self.bg(secaudit.system_items, self._render_system)
         self._render_malware()
+        self._render_lynis()
 
     def _render_login(self, items):
         self._clear(self.login_list, "login_row")
@@ -2049,6 +2060,71 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 _("Installing rkhunter…"), [secaudit.install_step("rkhunter")], "Security",
                 lambda r: self._render_malware()), tag="mal_row"), False, False, 0)
         self.mal_btns.show_all()
+
+    def _render_lynis(self):
+        self._clear(self.lynis_btns, "lynis_row")
+        last = secaudit.read_lynis_summary()
+        if last:
+            idx, warn, sugg = last
+            self.lynis_status.set_text(_("Last audit: hardening index {0}/100, {1} warning(s), {2} suggestion(s). "
+                                         "The audit is read-only and changes nothing.").format(idx, warn, sugg))
+        else:
+            self.lynis_status.set_text(_("Lynis checks how hardened the system is and lists what to tighten. "
+                                         "It is read-only and changes nothing."))
+        if secaudit.scanners()["lynis"]:
+            self.lynis_btns.pack_start(self._btn(_("Run Lynis audit"), self.run_lynis, primary=True,
+                                                 tag="lynis_row"), False, False, 0)
+            if secaudit.read_lynis_items() is not None:
+                self.lynis_btns.pack_start(self._btn(_("View results"), self.show_lynis_results,
+                                                     tag="lynis_row"), False, False, 0)
+        else:
+            self.lynis_btns.pack_start(self._btn(_("Install Lynis"), lambda: self._root_job(
+                _("Installing Lynis…"), [secaudit.install_step("lynis")], "Security", lambda r: self._render_lynis()),
+                tag="lynis_row"), False, False, 0)
+        self.lynis_btns.show_all()
+
+    def run_lynis(self):
+        """Run the read-only audit on its own (not in the Activity log), then show its results."""
+        def work():
+            return run_steps([secaudit.lynis_step()], root=True, on_line=lambda _line: None)
+
+        def done(res):
+            self.notify_done(res or {}, _("Hardening audit (Lynis)"))
+            self._render_lynis()
+            self.show_lynis_results()
+        self.in_thread(_("Running Lynis audit…"), work, done)
+
+    def show_lynis_results(self):
+        """The findings from the last audit in their own window. Nothing is changed from here: you decide."""
+        items = secaudit.read_lynis_items()
+        if items is None:
+            self.set_status(_("No Lynis results yet. Run the audit first"))
+            return
+        d = Gtk.Dialog(title=_("Lynis results"), transient_for=self, modal=True)
+        d.add_button(_("Close"), Gtk.ResponseType.CLOSE)
+        d.set_default_size(680, 560)
+        box = d.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(12)
+        last = secaudit.read_lynis_summary()
+        if last:
+            idx, warn, sugg = last
+            box.pack_start(label(_("Last audit: hardening index {0}/100, {1} warning(s), {2} suggestion(s). "
+                                   "The audit is read-only and changes nothing.").format(idx, warn, sugg),
+                                 ("h3",), wrap=True), False, False, 0)
+        box.pack_start(label(_("MintCare changes nothing here. Decide what to act on. WARN items may break "
+                               "the system if you change them."), ("muted",), wrap=True), False, False, 0)
+        lst = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        for kind, test_id, text, risky in items:
+            level = checks.WARN if risky else checks.INFO
+            where = _("Lynis warning") if kind == "warning" else _("Lynis suggestion")
+            sub = text + ("\n" + _("May break the system if changed") if risky else "")
+            lst.add(self._row(test_id, sub, where, STATUS_ICON[level][0],
+                              pills=((STATUS_WORD[level], STATUS_ICON[level][1]),)))
+        box.pack_start(scrolled(lst), True, True, 0)
+        d.show_all()
+        d.run()
+        d.destroy()
 
     def scan_malware(self):
         if getattr(self, "_mal_running", False):
@@ -5151,7 +5227,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
             "no password needed."),
             [self.action_button(_("Refresh"), lambda: (self.load_drives(), self._poll_sensors(force=True)),
                                 icon_name="view-refresh-symbolic"),
-             self.action_button(_("Full SMART report"), self.smart_report, icon_name="utilities-terminal-symbolic")]),
+             self.action_button(_("Full SMART report"), self.smart_report, icon_name="utilities-terminal-symbolic"),
+             self.action_button(_("Short self-test"), self.smart_selftest, icon_name="media-playback-start-symbolic")]),
             False, False, 0)
 
         ic = card()
@@ -5601,6 +5678,18 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.notify_done(results or {}, _("SMART report"))
             self.goto("log")
         self.in_thread(_("Reading full SMART reports…"), lambda: self.execute(steps, [], "SMART report"), done)
+
+    def smart_selftest(self):
+        ds = [d for d in getattr(self, "drives", []) if d.get("device")]
+        if not ds:
+            self.set_status(_("No drives loaded yet"))
+            return
+
+        def done(results):
+            self.notify_done(results or {}, _("SMART self-test"))
+            self.load_drives()
+        self.in_thread(_("Starting SMART self-tests…"),
+                       lambda: self.execute(hardware.selftest_steps(ds), [], _("SMART self-test")), done)
 
     # ------------------------------------------------------------ boot & startup
 
