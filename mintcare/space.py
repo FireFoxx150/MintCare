@@ -126,12 +126,40 @@ def _hash(path, limit=None, chunk=1 << 20, cancel=lambda: False, tick=None):
     return h.hexdigest()
 
 
+MAX_DEPTH = 200     # folder levels walked; a deeper tree is refused rather than walked part way
+
+
+def _walk(top):
+    """os.walk(top) without recursion: no Python recursion limit, and only one folder's listing is held at a time.
+
+    Like os.walk, it doesn't follow symbolic links, and the caller may prune the dirnames list it is given.
+    """
+    stack = [(top, 0)]
+    while stack:
+        path, depth = stack.pop()
+        if depth > MAX_DEPTH:
+            raise OSError(_("Folders are nested too deeply to scan."))
+        dirs, files = [], []
+        try:
+            with os.scandir(path) as it:
+                for entry in it:
+                    try:
+                        is_dir = entry.is_dir(follow_symlinks=False)
+                    except OSError:
+                        is_dir = False
+                    (dirs if is_dir else files).append(entry.name)
+        except OSError:
+            continue
+        yield path, dirs, files
+        stack.extend((os.path.join(path, d), depth + 1) for d in reversed(dirs))
+
+
 def duplicates(roots, min_size=1 << 20, include_hidden=False, progress=None, cancel=lambda: False):
     """Groups of identical files: [{'size': n, 'files': [(path, mtime)], 'wasted': n}]."""
     by_size, inodes = {}, set()
     scanned = 0
     for root in roots:
-        for dirpath, dirnames, filenames in os.walk(root):
+        for dirpath, dirnames, filenames in _walk(root):
             if cancel():
                 return []
             if not include_hidden:
@@ -228,7 +256,7 @@ def old_downloads(folder=None, min_size=10 << 20, days=90, now=None):
     folder = folder or downloads_dir()
     now = now or time.time()
     found = []
-    for dirpath, dirnames, files in os.walk(folder):
+    for dirpath, dirnames, files in _walk(folder):
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for f in files:
             p = os.path.join(dirpath, f)

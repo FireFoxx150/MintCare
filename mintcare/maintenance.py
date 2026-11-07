@@ -47,6 +47,8 @@ DEFAULTS = {
 def load_settings():
     s = json.loads(json.dumps(DEFAULTS))
     try:
+        if SETTINGS_FILE.stat().st_mode & 0o077:     # a file written before this check may be readable by others
+            os.chmod(SETTINGS_FILE, 0o600)           # it can hold a restic repository URL with credentials
         user = json.loads(SETTINGS_FILE.read_text())
         s.update({k: v for k, v in user.items() if k != "maintenance"})
         s["maintenance"].update(user.get("maintenance", {}))
@@ -58,7 +60,10 @@ def load_settings():
 def save_settings(s):
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     tmp = SETTINGS_FILE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(s, indent=2))
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)   # it can hold a repository URL with credentials
+    os.fchmod(fd, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(json.dumps(s, indent=2))
     tmp.replace(SETTINGS_FILE)
 
 

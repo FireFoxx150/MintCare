@@ -6,6 +6,7 @@ import re
 import stat
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 
 from .i18n import _, ngettext
@@ -14,17 +15,46 @@ from .util import has_cmd, out, pkg_installed, q, read, run
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
 
 
+FAILED_LOGIN_SERVICES = 50     # services counted one by one; any others share an "other" line
+LOG_TIMEOUT = 40               # seconds; a read that takes longer gives no result, as it always has
+
+
 def failed_logins(days=7):
-    """{service: count} of failed password attempts in the last N days (from the journal)."""
-    rc, o = run(["journalctl", "--since", f"-{days} days", "-q", "--no-pager", "-o", "cat"], timeout=40)
-    counts = {}
-    for line in o.splitlines():
-        m = re.search(r"pam_unix\(([^:]+):auth\): authentication failure", line)
-        if m:
-            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
-        elif "Failed password for" in line or "Invalid user" in line:
-            counts["ssh"] = counts.get("ssh", 0) + 1
-    return counts
+    """{service: count} of failed password attempts in the last N days, counted as the journal streams.
+
+    The journal is never held in memory whole, and the number of services kept is capped.
+    """
+    counts, late = {}, [False]
+    try:
+        p = subprocess.Popen(["journalctl", "--since", f"-{days} days", "-q", "--no-pager", "-o", "cat"],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, errors="replace",
+                             env=dict(os.environ, LC_ALL="C", LANG="C"))
+    except OSError:
+        return {}
+
+    def stop():
+        late[0] = True
+        p.kill()
+
+    timer = threading.Timer(LOG_TIMEOUT, stop)
+    timer.start()
+    try:
+        for line in p.stdout:
+            m = re.search(r"pam_unix\(([^:]+):auth\): authentication failure", line)
+            if m:
+                service = m.group(1)
+            elif "Failed password for" in line or "Invalid user" in line:
+                service = "ssh"
+            else:
+                continue
+            if service not in counts and len(counts) >= FAILED_LOGIN_SERVICES:
+                service = "other"
+            counts[service] = counts.get(service, 0) + 1
+        p.wait()
+    finally:
+        timer.cancel()
+        p.stdout.close()
+    return {} if late[0] else counts
 
 
 def _sshd_settings():
