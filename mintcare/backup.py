@@ -143,6 +143,7 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
                 stats[key] = line.split(":", 1)[1].strip().split(" bytes")[0]
         tail = (tail + [line.rstrip()])[-6:]
     rc = proc.wait()
+    proc.stdout.close()                # the pipe stays open otherwise, and Python warns about it
     if cancel():
         shutil.rmtree(partial, ignore_errors=True)
         return {"ok": False, "error": "Cancelled"}
