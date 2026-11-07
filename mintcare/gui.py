@@ -1375,7 +1375,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         t.pack_start(label(_('● {0} ({1}) • {2} • Kernel {3}').format(platform.system(), platform.machine(), desk, platform.release()),
                            ("faint", "mono"), ellipsize=True), False, False, 0)
         row.pack_start(t, True, True, 0)
-        row.pack_end(self.action_button(_("Refresh"), self.run_diagnose, icon_name="view-refresh-symbolic"),
+        row.pack_end(self.action_button(_("Refresh"), lambda: self.run_diagnose(fresh=True), icon_name="view-refresh-symbolic"),
                      False, False, 0)
         row.pack_end(self.action_button(_("Health scan"), self._health_scan, primary=True,
                                         icon_name="emblem-favorite-symbolic"), False, False, 0)
@@ -1743,10 +1743,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
         def work():
             self.log(_('\n━━━ Updating MintCare to {0} ━━━').format(info['version']))
-            path = selfupdate.download(info, lambda d, t: GLib.idle_add(
+            # The cached answer only offered the update. Install from a live GitHub answer for the same release.
+            try:
+                fresh = selfupdate.latest_for(info["version"])
+            except (OSError, ValueError):
+                raise RuntimeError(_("Couldn't reach GitHub to check for updates"))
+            if fresh is None:
+                raise RuntimeError(_("The latest MintCare release has changed. Check for updates again."))
+            data = selfupdate.download(fresh, lambda d, t: GLib.idle_add(
                 self.set_status, f"Downloading… {human(d)} of {human(t)}") if t else None)
-            self.log(_('Downloaded and verified {0} (sha256 {1}…)').format(path, info['sha256'][:16]))
-            return self.execute([selfupdate.install_step(path, info["version"])], [], "Update")
+            self.log(_('Downloaded and verified {0} (sha256 {1}…)').format(fresh['asset_name'], fresh['sha256'][:16]))
+            return self.execute([selfupdate.install_step(data, fresh["sha256"], info["version"])], [], "Update")
 
         def done(results):
             if not results or results.get("selfupdate") != 0:
@@ -2253,15 +2260,17 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.diag_header = self.page_header(
             "system-search-symbolic", _("Diagnose & Fix"),
             _("Checks networking (incl. TCP BBR), packages, disks, memory, drivers, security and services."),
-            [self.action_button(_("Rescan"), self.run_diagnose, icon_name="view-refresh-symbolic"),
+            [self.action_button(_("Rescan"), lambda: self.run_diagnose(fresh=True), icon_name="view-refresh-symbolic"),
              self.action_button(_("Fix all"), self.fix_all, primary=True, icon_name="emblem-ok-symbolic")])
         page.pack_start(self.diag_header, False, False, 0)
         self.diag_box = vbox(10)
         page.pack_start(self.diag_box, False, False, 0)
         return scrolled(page)
 
-    def run_diagnose(self, on_done=None):
+    def run_diagnose(self, on_done=None, fresh=False):
         def work():
+            if fresh:
+                checks.forget_flatpak_count()        # a user's Rescan asks for the Flatpak count again
             return {c.id: c.run() for c in checks.CHECKS}
 
         def done(res):
@@ -5196,6 +5205,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         def done(results):
             self.notify_done(results or {}, "Flatpak update")
             self.load_flatpaks(check_updates=True)
+            self.run_diagnose(fresh=True)            # the update changed the count the Diagnose page shows
         self.in_thread(_("Updating Flatpaks…"), lambda: self.execute(root, user, "Flatpak update"), done)
 
     def flatpak_repair(self):
