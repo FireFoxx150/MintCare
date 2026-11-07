@@ -17,7 +17,7 @@ Version: $VER
 Section: admin
 Priority: optional
 Architecture: all
-Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, pkexec | policykit-1
+Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, pkexec | policykit-1, openssl
 Recommends: timeshift, ufw, udisks2, gir1.2-xapp-1.0, gir1.2-webkit2-4.1, libnotify-bin
 Suggests: smartmontools, flatpak
 Installed-Size: $SIZE
