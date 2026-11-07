@@ -1,13 +1,20 @@
 """Errors since boot, grouped by program (one crash = one event) and explained in plain English."""
 
 import json
+import os
 import re
+import subprocess
+import threading
 import time
 
 from .i18n import _
 from .util import run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
+MAX_GROUPS = 400        # kinds of error kept with a sample; further kinds share one heading
+MAX_LINE = 16384        # an entry longer than this is read to its end and counted, not kept
+BOOT_TIMEOUT = 30       # seconds; a boot that takes longer is reported as incomplete
+RANK = {FAIL: 0, WARN: 1, INFO: 2, OK: 3}
 
 # (pattern on "identifier: message", level, explanation[, (button label, kind, payload)])
 # kinds: "launch" (run a program), "page" (open a MintCare page), "check" (apply that check's fix),
@@ -68,28 +75,30 @@ def _text(v):
     return "" if v is None else str(v)
 
 
+def _parse(line):
+    """One journal entry as {'who', 'msg', 'ts'}, or None for a line that isn't one or has no text."""
+    try:
+        e = json.loads(line)
+    except ValueError:
+        return None
+    who = e.get("SYSLOG_IDENTIFIER") or e.get("_COMM") or "unknown"
+    msg = _text(e.get("MESSAGE")).strip()
+    if not msg or "a password is required" in msg:
+        return None            # blank kernel lines, failed non-interactive sudo checks
+    if who == "systemd-coredump":
+        m = re.search(r"\((\S+)\) of user", msg)
+        who = f"crash: {m.group(1) if m else 'program'}"
+        cmd = _text(e.get("COREDUMP_CMDLINE") or e.get("COREDUMP_EXE"))
+        cmd = re.sub(r"(\\n|\s)+", " ", cmd).strip()
+        msg = msg.split("\n")[0] + (f" Command: {cmd[:200]}" if cmd else "")
+    ts = int(e.get("__REALTIME_TIMESTAMP", "0") or 0) / 1e6
+    return {"who": who, "msg": msg.split("\n")[0][:300], "ts": ts}
+
+
 def _read(args):
     """(exit code, entries) from journalctl's JSON output, with blank and noisy lines left out."""
     rc, o = run(["journalctl", *args, "-q", "--no-pager", "-o", "json"], timeout=30)
-    out = []
-    for line in o.splitlines():
-        try:
-            e = json.loads(line)
-        except ValueError:
-            continue
-        who = e.get("SYSLOG_IDENTIFIER") or e.get("_COMM") or "unknown"
-        msg = _text(e.get("MESSAGE")).strip()
-        if not msg or "a password is required" in msg:
-            continue               # blank kernel lines, failed non-interactive sudo checks
-        if who == "systemd-coredump":
-            m = re.search(r"\((\S+)\) of user", msg)
-            who = f"crash: {m.group(1) if m else 'program'}"
-            cmd = _text(e.get("COREDUMP_CMDLINE") or e.get("COREDUMP_EXE"))
-            cmd = re.sub(r"(\\n|\s)+", " ", cmd).strip()
-            msg = msg.split("\n")[0] + (f" Command: {cmd[:200]}" if cmd else "")
-        ts = int(e.get("__REALTIME_TIMESTAMP", "0") or 0) / 1e6
-        out.append({"who": who, "msg": msg.split("\n")[0][:300], "ts": ts})
-    return rc, out
+    return rc, [e for e in (_parse(line) for line in o.splitlines()) if e]
 
 
 def entries(boot="-b", priority="3", extra=()):
@@ -119,22 +128,105 @@ def explain(who, msg):
     return INFO, "", None
 
 
-def grouped(items=None):
-    """[{'who','count','sample','last','level','explanation'}] sorted most serious first."""
-    items = entries() if items is None else items
-    groups = {}
-    for e in items:
-        key = (e["who"], re.sub(r"\d+", "#", e["msg"])[:120])
-        g = groups.setdefault(key, {"who": e["who"], "count": 0, "sample": e["msg"], "last": 0})
+class _Groups:
+    """Errors counted by program and message shape. Memory stays bounded: once MAX_GROUPS kinds are kept, new
+    kinds share one heading that keeps their count and the most serious level among them."""
+
+    def __init__(self):
+        self.groups, self.rest, self.long = {}, None, None
+
+    @staticmethod
+    def _count(g, ts, level=None):
         g["count"] += 1
-        g["last"] = max(g["last"], e["ts"])
-    out = []
-    for g in groups.values():
-        g["level"], g["explanation"], g["action"] = explain(g["who"], g["sample"])
-        out.append(g)
-    rank = {FAIL: 0, WARN: 1, INFO: 2, OK: 3}
-    out.sort(key=lambda g: (rank[g["level"]], -g["count"]))
-    return out
+        g["last"] = max(g["last"], ts)
+        if level and RANK[level] < RANK[g["level"]]:
+            g["level"] = level
+
+    def add(self, who, msg, ts):
+        key = (who, re.sub(r"\d+", "#", msg)[:120])
+        if key in self.groups:
+            return self._count(self.groups[key], ts)
+        level, text, action = explain(who, msg)
+        if len(self.groups) < MAX_GROUPS:
+            self.groups[key] = {"who": who, "count": 0, "sample": msg, "last": 0, "level": level,
+                                "explanation": text, "action": action}
+            return self._count(self.groups[key], ts)
+        if self.rest is None:
+            self.rest = {"who": _("(other kinds)"), "count": 0, "sample": "", "last": 0, "level": level,
+                         "explanation": _("More kinds of error than MintCare lists one by one. "
+                                          "Open the System journal to see them."), "action": None}
+        self._count(self.rest, ts, level)
+
+    def add_long(self, ts):
+        if self.long is None:
+            self.long = {"who": _("(long entries)"), "count": 0, "sample": "", "last": 0, "level": WARN,
+                         "explanation": _("Journal entries too long to read were skipped, and are counted here. "
+                                          "Open the System journal to see them."), "action": None}
+        self._count(self.long, ts)
+
+    def finish(self, extra=()):
+        out = list(self.groups.values()) + [g for g in (self.rest, self.long, *extra) if g]
+        out.sort(key=lambda g: (RANK[g["level"]], -g["count"]))
+        return out
+
+
+def _lines(stream):
+    """The lines of a text stream, one at a time. A line longer than MAX_LINE is read to its end and yielded as None."""
+    while True:
+        line = stream.readline(MAX_LINE)
+        if not line:
+            return
+        if line.endswith("\n"):
+            yield line
+            continue
+        while True:
+            more = stream.readline(MAX_LINE)
+            if not more or more.endswith("\n"):
+                break
+        yield None
+
+
+def _grouped_stream():
+    """Errors since boot, grouped as journalctl prints them, so the journal is never held in memory whole."""
+    try:
+        p = subprocess.Popen(["journalctl", "-b", "-p", "3", "-q", "--no-pager", "-o", "json"],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, errors="replace",
+                             env=dict(os.environ, LC_ALL="C", LANG="C"))
+    except OSError:
+        return []
+    groups, late = _Groups(), [False]
+
+    def stop():
+        late[0] = True
+        p.kill()
+
+    timer = threading.Timer(BOOT_TIMEOUT, stop)
+    timer.start()
+    try:
+        for line in _lines(p.stdout):
+            if line is None:
+                groups.add_long(0)
+                continue
+            e = _parse(line)
+            if e:
+                groups.add(e["who"], e["msg"], e["ts"])
+        p.wait()
+    finally:
+        timer.cancel()
+        p.stdout.close()
+    note = [{"who": "MintCare", "count": 0, "sample": "", "last": 0, "level": WARN, "action": None,
+             "explanation": _("The journal was too long to read in time, so this list may be incomplete.")}]
+    return groups.finish(note if late[0] else ())
+
+
+def grouped(items=None):
+    """[{'who','count','sample','last','level','explanation','action'}] sorted most serious first."""
+    if items is None:
+        return _grouped_stream()
+    groups = _Groups()
+    for e in items:
+        groups.add(e["who"], e["msg"], e["ts"])
+    return groups.finish()
 
 
 def report(groups=None):
