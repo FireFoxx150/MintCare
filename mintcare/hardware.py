@@ -109,6 +109,13 @@ GROWTH = {"realloc": (WARN, _("{0} more reallocated sector(s) since {1} — the 
 WINDOW = 30 * 86400
 
 
+def selftest_steps(drives):
+    """Root steps that start a short SMART self-test on each drive. The result shows in the drive list later."""
+    return [(f"selftest{i}", _("Short self-test: {0} ({1})").format(d.get("model", ""), d["device"]),
+             f"smartctl -t short {shlex.quote(d['device'])}")
+            for i, d in enumerate(drives) if d.get("device")]
+
+
 def growth(samples, current, now=None):
     """[(level, text)] for counters that rose since the oldest sample in the last 30 days."""
     now = now or time.time()
