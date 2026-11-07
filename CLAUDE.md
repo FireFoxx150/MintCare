@@ -34,13 +34,13 @@ Licence GPL-3.0-or-later. Source: https://github.com/FireFoxx150/MintCare
 - A `_()` string that contains `%` needs `# xgettext:no-python-format` on the line before it.
 - Shell commands that run as root go through `runner.run_steps` and are built with `shlex.quote` / `q()`. Never put a value from outside MintCare (process names, file names, package or Flatpak names, serials) into shell syntax. Quote it, or keep it out of the script.
 - Tweaks write only MintCare-owned files (names containing `mintcare`) or toggle services, and record a marker so they can be reverted. A user-level step must not use root.
-- Health checks and report output must not expose personal details. `report._scrub` and `assistant._private` remove names, paths, serials, MAC addresses and credentials in URLs; new output that leaves the machine goes through them.
+- Health checks and report output must not expose personal details. `report._scrub` removes names, paths, serials, MAC addresses and credentials in URLs; new output that leaves the machine goes through it.
 - Keep changes small and in the style of the surrounding code. Add a test for new non-trivial logic.
 - Keep the five translations (es, fr, de, pt, it) complete with no fuzzy entries when UI strings change.
 
 ## Repository layout
 
-- `mintcare/`: application code. `gui.py` is the GTK interface, `cli.py` the command line, `checks.py` the health checks, `tweaks.py` the optimisation tweaks, `runner.py` the root-step runner, `hardware.py` the hardware and SMART data, `report.py` the health report, `assistant.py` the AI assistant.
+- `mintcare/`: application code. `gui.py` is the GTK interface, `cli.py` the command line, `checks.py` the health checks, `tweaks.py` the optimisation tweaks, `runner.py` the root-step runner, `hardware.py` the hardware and SMART data, `report.py` the health report.
 - `tests/`: unit tests. `run-tests.sh` is the entry point.
 - `po/`: translation sources. `locale/` and `*.mo` are generated and git-ignored.
 - `debian/`: Debian packaging. `packaging/`: install helpers, polkit policy, PPA script, man page.

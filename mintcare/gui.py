@@ -19,7 +19,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from .i18n import N_, _, ngettext
-from . import (__version__, assistant, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
+from . import (__version__, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
                flatpaks, hardware, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
                space, theme, troubleshoot, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
@@ -34,7 +34,7 @@ STATUS_ICON = {
     checks.FAIL: ("dialog-error-symbolic", "fail"),
 }
 # Job headings are English keys (see maintenance.KIND_FOR_HEADING); they are translated where shown.
-_HEADINGS = (N_("Assistant"), N_("Backup"), N_("Boot services"), N_("Clean"), N_("Firmware"), N_("Flatpak"),
+_HEADINGS = (N_("Backup"), N_("Boot services"), N_("Clean"), N_("Firmware"), N_("Flatpak"),
              N_("Flatpak repair"), N_("Flatpak update"), N_("Optimise"), N_("Packages"), N_("Processes"),
              N_("Repair"), N_("SMART report"), N_("Security"), N_("Snapshot"), N_("Sources"),
              N_("Timeshift"), N_("Troubleshoot"), N_("Undo"), N_("Update"))
@@ -102,7 +102,6 @@ NAV = [
     ("startup", _("Boot & Startup"), "system-run-symbolic"),
     ("backup", _("Backup"), "document-save-symbolic"),
     ("maintenance", _("Maintenance"), "alarm-symbolic"),
-    ("assistant", _("Assistant"), "user-available-symbolic"),
     ("log", _("Activity log"), "utilities-terminal-symbolic"),
 ]
 
@@ -113,7 +112,7 @@ LEVELS = [
     ("advanced", _("Advanced"), _("Every page and every tweak.")),
 ]
 BEGINNER_PAGES = {"dashboard", "diagnose", "optimise", "clean", "space", "security", "troubleshoot", "backup",
-                  "maintenance", "assistant", "log"}
+                  "maintenance", "log"}
 ADVANCED_TWEAKS = {"dns", "swappiness", "dirty", "waitonline", "iosched", "aspm"}
 
 
@@ -260,7 +259,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.stack.add_named(self._build_startup(), "startup")
         self.stack.add_named(self._build_backup(), "backup")
         self.stack.add_named(self._build_maintenance(), "maintenance")
-        self.stack.add_named(self._build_assistant(), "assistant")
         self.stack.add_named(self._build_log(), "log")
 
         body = hbox(0)
@@ -970,8 +968,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.load_packages()
         elif name == "backup":
             self.load_backup()
-        elif name == "assistant":
-            self.load_assistant()
         elif name == "processes":
             self._poll_procs(True)
         elif name == "troubleshoot":
@@ -2360,8 +2356,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
         top.pack_end(small(_("Open in terminal"), lambda: self.run_in_terminal(cmd), "utilities-terminal-symbolic"),
                      False, False, 0)
         top.pack_end(small(_("Copy"), lambda: self._copy(cmd), "edit-copy-symbolic"), False, False, 0)
-        top.pack_end(small(_("Ask the assistant"), lambda: self.ask_assistant(
-            _("MintCare's check “{0}” says: {1}. What does this mean on my PC, and what should I do?").format(check.title, self.check_results[check.id].summary if check.id in self.check_results else '')), "user-available-symbolic"), False, False, 0)
         panel.pack_start(top, False, False, 0)
         panel.pack_start(sw, False, False, 0)
         acts = hbox(8)
@@ -4670,273 +4664,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 sw.set_active(True)
         self.goto("optimise")
         self.set_status(_('Imported settings; {0} optimisation(s) selected — press Apply changes').format(len(ids)))
-
-    # ------------------------------------------------------------ assistant
-
-    def _build_assistant(self):
-        page = vbox(14, "page")
-        page.pack_start(self.page_header(
-            "user-available-symbolic", _("Assistant"),
-            _("Ask about your computer in plain English. Uses Claude by Anthropic, or a model on this PC through "
-              "Ollama. Optional, off until you set it up, and nothing is sent unless you ask.")), False, False, 0)
-        self.ai_setup = card("ecard")
-        page.pack_start(self.ai_setup, False, False, 0)
-        chat = card()
-        ch = hbox(8)
-        self.ai_model_lbl = label("", ("faint", "mono"))
-        ch.pack_start(self.ai_model_lbl, True, True, 0)
-        self.ai_saved = Gtk.ComboBoxText()
-        self.ai_saved.connect("changed", self._ai_open_saved)
-        self._refresh_saved_chats()
-        ch.pack_end(self.ai_saved, False, False, 0)
-        self.ai_include = Gtk.CheckButton(label=_("Include my system summary (no names or serial numbers)"))
-        ch.pack_end(self.ai_include, False, False, 0)
-        self.ai_checks = Gtk.CheckButton(label=_("Let Claude run MintCare's checks"))
-        self.ai_checks.set_tooltip_text(_("Claude can run the read-only health checks to answer from this PC's "
-                                          "real state. Names, serial numbers and MAC addresses are removed first."))
-        ch.pack_end(self.ai_checks, False, False, 0)
-        self.ai_hard = Gtk.CheckButton(label=_("Think harder"))
-        self.ai_hard.set_tooltip_text(_("More thinking for tricky problems: slower, and costs more per answer."))
-        ch.pack_end(self.ai_hard, False, False, 0)
-        chat.pack_start(ch, False, False, 0)
-        self.ai_view = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD_CHAR, cursor_visible=False,
-                                    left_margin=12, right_margin=12, top_margin=10, bottom_margin=10)
-        css(self.ai_view, "log")
-        sw = Gtk.ScrolledWindow(min_content_height=360)
-        sw.add(self.ai_view)
-        chat.pack_start(sw, True, True, 8)
-        self.ai_copy_row = hbox(6)                  # "Copy command" buttons for the commands in the last answer
-        chat.pack_start(self.ai_copy_row, False, False, 0)
-        ih = hbox(8)
-        self.ai_entry = Gtk.Entry(placeholder_text=_("Ask anything about your PC…"))
-        self.ai_entry.connect("activate", lambda *_x: self.ai_send())
-        ih.pack_start(self.ai_entry, True, True, 0)
-        self.ai_send_btn = Gtk.Button(label=_("Send"))
-        css(self.ai_send_btn, "primary")
-        self.ai_send_btn.connect("clicked", lambda *_x: self.ai_send())
-        ih.pack_end(self.ai_send_btn, False, False, 0)
-        b = Gtk.Button(label=_("Clear"))
-        css(b, "ghost")
-        b.connect("clicked", lambda *_x: self._ai_clear())
-        ih.pack_end(b, False, False, 0)
-        chat.pack_start(ih, False, False, 0)
-        self.ai_chat = chat
-        page.pack_start(chat, True, True, 0)
-        self.ai_history = []
-        self._ai_stop = threading.Event()
-        return scrolled(page)
-
-    def load_assistant(self):
-        c = self.ai_setup
-        self._clear(c, "ai_row")
-        local = assistant.backend() == "local"
-        self.ai_model_lbl.set_text(_('Model: {0}').format(assistant.model_name() or _("none chosen")))
-        pick = hbox(8)
-        pick.pack_start(label(_("Answers from"), ("kv-key",)), False, False, 0)
-        self.ai_backend = Gtk.ComboBoxText()
-        self.ai_backend.append("claude", _("Claude (Anthropic, cloud)"))
-        self.ai_backend.append("local", _("A model on this PC (Ollama)"))
-        self.ai_backend.set_active_id("local" if local else "claude")
-        self.ai_backend.connect("changed", lambda combo: GLib.idle_add(self._ai_backend_changed, combo))
-        pick.pack_start(self.ai_backend, False, False, 0)
-        c.pack_start(pick, False, False, 0)
-        for w in (self.ai_checks, self.ai_hard):          # checks and thinking time are Claude's
-            w.set_sensitive(not local)
-        if local:
-            self.ai_local_status = label(_("Checking Ollama on this PC…"), ("muted",), wrap=True)
-            c.pack_start(self.ai_local_status, False, False, 8)
-            self.ai_model_pick = Gtk.ComboBoxText()
-            self.ai_model_pick.connect("changed", self._ai_model_changed)
-            c.pack_start(self.ai_model_pick, False, False, 0)
-            c.show_all()
-            for w in (self.ai_entry, self.ai_send_btn, self.ai_include):
-                w.set_sensitive(False)
-            self.bg(assistant.ollama_models, self._ai_local_ready)
-            return
-        ready_sdk = assistant.sdk_available()
-        has_key = assistant.has_credentials()
-        h = hbox(10)
-        h.pack_start(icon("emblem-ok-symbolic" if ready_sdk and has_key else "dialog-information-symbolic",
-                          Gtk.IconSize.LARGE_TOOLBAR, "ok" if ready_sdk and has_key else "info"), False, False, 0)
-        t = vbox(2)
-        if not ready_sdk:
-            t.pack_start(label(_("AI support isn't installed"), ("h2",)), False, False, 0)
-            t.pack_start(label(_("Installs Python's venv module (admin) and the official Anthropic SDK into "
-                                 "MintCare's own folder (~/.local/share/mintcare/ai-venv). About 30 MB."), ("muted",),
-                               wrap=True), False, False, 0)
-            h.pack_end(self._btn(_("Install AI support"), self._ai_install, primary=True, tag="ai_row"), False, False, 0)
-        elif not has_key:
-            t.pack_start(label(_("Add your Anthropic API key"), ("h2",)), False, False, 0)
-            t.pack_start(label(_("Create one at console.anthropic.com (usage is billed to your account). It's "
-                                 "stored in ~/.config/mintcare/anthropic-key, readable only by you."), ("muted",),
-                               wrap=True), False, False, 0)
-        else:
-            t.pack_start(label(_("Assistant ready"), ("h2",)), False, False, 0)
-            t.pack_start(label(_("Requests go to Anthropic's API using your key. If Claude declines a request, "
-                                 "it's retried automatically on Anthropic's recommended fallback model."), ("muted",),
-                               wrap=True), False, False, 0)
-            h.pack_end(self._btn(_("Remove key"), lambda: (assistant.clear_key(), self.load_assistant()), tag="ai_row"),
-                       False, False, 0)
-        h.pack_start(t, True, True, 0)
-        c.pack_start(h, False, False, 0)
-        if ready_sdk and not has_key:
-            kh = hbox(8)
-            self.ai_key = Gtk.Entry(visibility=False, placeholder_text="sk-ant-…")
-            self.ai_key.set_input_purpose(Gtk.InputPurpose.PASSWORD)
-            kh.pack_start(self.ai_key, True, True, 0)
-            kh.pack_end(self._btn(_("Save key"), self._ai_save_key, primary=True, tag="ai_row"), False, False, 0)
-            c.pack_start(kh, False, False, 8)
-        c.show_all()
-        ok = ready_sdk and has_key
-        for w in (self.ai_entry, self.ai_send_btn, self.ai_include, self.ai_checks, self.ai_hard):
-            w.set_sensitive(ok)
-
-    def _ai_backend_changed(self, combo):
-        assistant.set_backend(combo.get_active_id() or "claude")
-        self.load_assistant()
-
-    def _ai_model_changed(self, combo):
-        name = combo.get_active_id()
-        if name and not getattr(self, "_ai_model_loading", False):
-            assistant.set_local_model(name)
-            self.ai_model_lbl.set_text(_('Model: {0}').format(name))
-
-    def _ai_local_ready(self, names):
-        if assistant.backend() != "local":              # the user switched back while Ollama was being asked
-            return
-        if names is None:
-            text = _("Ollama isn't running on this PC. Start it, then reopen this page.")
-        elif not names:
-            text = _("Ollama has no models yet. Download one first, for example with: ollama pull llama3.2")
-        else:
-            text = _("Answers are made on this PC, so nothing is sent to Anthropic.")
-        self.ai_local_status.set_text(text)
-        self._ai_model_loading = True
-        self.ai_model_pick.remove_all()
-        for n in names or []:
-            self.ai_model_pick.append(n, n)
-        if names:
-            if assistant.local_model() not in names:
-                assistant.set_local_model(names[0])
-            self.ai_model_pick.set_active_id(assistant.local_model())
-        self._ai_model_loading = False
-        self.ai_model_lbl.set_text(_('Model: {0}').format(assistant.model_name() or _("none chosen")))
-        for w in (self.ai_entry, self.ai_send_btn, self.ai_include):
-            w.set_sensitive(bool(names))
-
-    def _ai_install(self):
-        root, user = assistant.install_steps()
-        if Path(f"/usr/lib/python3.{sys.version_info.minor}/ensurepip").exists():
-            root = []                           # venv support already present: no admin step needed
-        self._root_job(_("Installing AI support…"), root, "Assistant", lambda r: self.load_assistant(), user_steps=user)
-
-    def _ai_save_key(self):
-        k = self.ai_key.get_text().strip()
-        if not k.startswith("sk-ant-"):
-            self.set_status(_("That doesn't look like an Anthropic API key (sk-ant-…)"), bad=True)
-            return
-        assistant.set_key(k)
-        maintenance.record("other", _("Assistant: API key saved"))
-        self.load_assistant()
-
-    def _refresh_saved_chats(self):
-        self._saved_loading = True
-        self.ai_saved.remove_all()
-        self.ai_saved.append("", _("Saved chats"))
-        for i, c in enumerate(assistant.load_chats()):
-            self.ai_saved.append(str(i), time.strftime("%d %b %H:%M", time.localtime(c["ts"])) + "  " + c["title"])
-        self.ai_saved.set_active_id("")
-        self._saved_loading = False
-
-    def _ai_open_saved(self, combo):
-        idx = combo.get_active_id()
-        if not idx or getattr(self, "_saved_loading", False):
-            return
-        chat = assistant.load_chats()[int(idx)]
-        self.ai_history = []
-        self.ai_view.get_buffer().set_text(chat["text"] + _("\n— Saved chat. New questions start a fresh conversation."))
-        combo.set_active_id("")
-
-    def _ai_clear(self):
-        buf = self.ai_view.get_buffer()
-        text = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
-        if self.ai_history and text.strip():
-            assistant.save_chat(text)
-            self._refresh_saved_chats()
-        self.ai_history = []
-        buf.set_text("")
-
-    def _ai_append(self, text, bold=False):
-        buf = self.ai_view.get_buffer()
-        it = buf.get_end_iter()
-        if bold:
-            tag = buf.get_tag_table().lookup("b") or buf.create_tag("b", weight=Pango.Weight.BOLD)
-            buf.insert_with_tags(it, text, tag)
-        else:
-            buf.insert(it, text)
-        self.ai_view.scroll_to_iter(buf.get_end_iter(), 0, False, 0, 1)
-        return False
-
-    def ask_assistant(self, question):
-        """Prefill a question (e.g. from a check's details); the user still presses Send."""
-        self.goto("assistant")
-        self.ai_entry.set_text(question)
-        self.ai_entry.grab_focus()
-
-    def ai_send(self):
-        q_ = self.ai_entry.get_text().strip()
-        if not q_ or getattr(self, "_ai_busy", False):
-            return
-        self._ai_busy = True
-        self.ai_entry.set_text("")
-        self.ai_send_btn.set_sensitive(False)
-        self._ai_append(f"\nYou: {q_}\n", bold=True)
-        include = self.ai_include.get_active()
-        allow, effort = self.ai_checks.get_active(), ("high" if self.ai_hard.get_active() else "medium")
-
-        def work():
-            content = q_
-            if include and not self.ai_history:
-                content = f"My system summary:\n{assistant.system_summary()}\n\nQuestion: {q_}"
-            history = self.ai_history + [{"role": "user", "content": content}]
-            GLib.idle_add(self._ai_append, "\n" + _("MintCare assistant:") + " ", True)
-            res = assistant.stream_reply(history, lambda t: GLib.idle_add(self._ai_append, t),
-                                         allow_checks=allow, effort=effort,
-                                         on_status=lambda t: GLib.idle_add(self.set_status, t))
-            return content, res
-
-        def done(out):
-            self._ai_busy = False
-            self.ai_send_btn.set_sensitive(True)
-            if not out:
-                return
-            content, res = out
-            if res.get("error"):
-                self._ai_append(f"\n[{res['error']}]\n")
-            if res.get("messages") and not res.get("error"):
-                # append-only, exactly as returned: rewriting earlier turns would invalidate their thinking
-                self.ai_history += [{"role": "user", "content": content}] + res["messages"]
-            if res.get("cost") is not None:
-                self._ai_append("\n" + (_("about ${0:.4f}") if res.get("approx") else _("${0:.4f}")).format(
-                    res["cost"]) + f" · {res.get('model') or assistant.MODEL}\n")
-                self.set_status(_("Answered"))
-            self._ai_append("\n")
-            self._ai_copy_buttons(res.get("text", ""))
-        self.bg(work, done)
-
-    def _ai_copy_buttons(self, text):
-        """Copy buttons for the commands in an answer. They copy to the clipboard and never run anything."""
-        for ch in self.ai_copy_row.get_children():
-            ch.destroy()
-        for cmd in assistant.commands_in(text):
-            b = self._btn(_("Copy command"), lambda c=cmd: self._copy_text(c), icon_name="edit-copy-symbolic")
-            b.set_tooltip_text(cmd.splitlines()[0][:80])
-            self.ai_copy_row.pack_start(b, False, False, 0)
-        self.ai_copy_row.show_all()
-
-    def _copy_text(self, text):
-        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
-        self.set_status(_("Copied. Check the command before you paste it into a terminal."))
 
     # ------------------------------------------------------------ flatpak
 

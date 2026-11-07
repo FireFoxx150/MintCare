@@ -60,7 +60,6 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 | **Boot & Startup** | Boot timeline (firmware/loader/kernel/services), boot-time history, slowest units with *blocks boot* markers and Disable/Enable for known-safe services, startup-app switches; delay startup apps (10 s, 30 s, 1 min) so the desktop is ready sooner |
 | **Backup** | rsync snapshots of chosen folders to another drive (unchanged files hard-linked), schedule, keep N; export/import MintCare settings to move to another PC; restore files, folders or a whole snapshot, keeping anything replaced as NAME.before-restore |
 | **Maintenance** | Scheduled check-up (systemd user timer, daily/weekly/monthly) with optional safe cleaning and a desktop notification when something needs attention; safety-snapshot preference (ask / always / never); *Undo all* for every MintCare change; a persistent history timeline |
-| **Assistant** | Optional: ask Claude (Anthropic) about your PC, using your own API key. Off until set up; the system summary is opt-in and has names and serial numbers removed. It can run MintCare's read-only checks if you allow it (output scrubbed of names, serials and MAC addresses), thinks harder on request, and shows the cost of each answer |
 | **Activity log** | Full output of every command that ran |
 
 ### Diagnostics
