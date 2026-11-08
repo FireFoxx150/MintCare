@@ -181,6 +181,10 @@ class SelfUpdate(TempDirTest):
         self.assertFalse(selfupdate.is_newer("1.6.1", "1.6.1"))
         self.assertFalse(selfupdate.is_newer("1.6", "1.6.1"))
 
+    def test_a_build_suffix_is_not_part_of_the_number(self):
+        self.assertTrue(selfupdate.is_newer("1.12.12", "1.12.11+local6"))
+        self.assertFalse(selfupdate.is_newer("1.12.11", "1.12.11+local6"))
+
     def _info(self, data, digest):
         src = Path(self.tmp) / "pkg.deb"
         src.write_bytes(data)
