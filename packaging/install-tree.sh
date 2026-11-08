@@ -8,8 +8,6 @@ for f in mintcare/*.py; do install -Dm644 "$f" "$DEST/usr/lib/mintcare/$f"; done
 install -Dm755 packaging/mintcare-root       "$DEST/usr/lib/mintcare/mintcare-root"
 install -Dm755 packaging/mintcare            "$DEST/usr/bin/mintcare"
 install -Dm644 packaging/org.mintcare.policy "$DEST/usr/share/polkit-1/actions/org.mintcare.policy"
-# The release's public key: updates are refused on an install without it (see mintcare/selfupdate.py).
-if [ -f packaging/release-signing.pub ]; then install -Dm644 packaging/release-signing.pub "$DEST/usr/share/mintcare/release-signing.pub"; fi
 install -Dm644 packaging/mintcare.svg        "$DEST/usr/share/icons/hicolor/scalable/apps/mintcare.svg"
 sed -e 's|@EXEC@|mintcare|' -e 's|^Icon=.*|Icon=mintcare|' mintcare.desktop.in \
   | install -Dm644 /dev/stdin "$DEST/usr/share/applications/mintcare.desktop"
