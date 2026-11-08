@@ -1,3 +1,20 @@
+mintcare (1.12.12) noble; urgency=medium
+
+  * Assistant: the AI assistant is removed.
+  * Security: root actions are sealed in memory before the password prompt, so
+    root runs the commands that were prepared, not a file another program could
+    change.
+  * Security: updates install from a root-owned copy, checked against a fresh
+    GitHub answer before the download starts.
+  * Security: the boot-errors check and the failed-login count read the journal
+    in pieces, folder scans no longer recurse, the restic repository is passed
+    through the environment, the settings file is readable by its owner only,
+    and pkexec is always run by its absolute path.
+  * Boot-errors check: no longer fails on a program name the journal stores as
+    bytes.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Sun, 08 Nov 2026 00:37:20 +0000
+
 mintcare (1.12.11) noble; urgency=medium
 
   * Processes: graphics memory used by each program on an NVIDIA card.
