@@ -25,7 +25,7 @@ def _cache_file():
 def parse_version(v):
     out = []
     for part in v.lstrip("vV").split("."):
-        num = "".join(ch for ch in part if ch.isdigit())
+        num = re.match(r"\d*", part).group()          # "11+local6" is 11: only the leading digits count
         out.append(int(num) if num else 0)
     return tuple(out + [0] * (3 - len(out)))
 
