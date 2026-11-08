@@ -1746,11 +1746,6 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 raise RuntimeError(_("Couldn't reach GitHub to check for updates"))
             if fresh is None:
                 raise RuntimeError(_("The latest MintCare release has changed. Check for updates again."))
-            try:
-                # The checksum comes from SHA256SUMS, which must verify against the key shipped in the package.
-                fresh = selfupdate.signed_release(fresh)
-            except (OSError, ValueError):
-                raise RuntimeError(_("Couldn't reach GitHub to check for updates"))
             data = selfupdate.download(fresh, lambda d, t: GLib.idle_add(
                 self.set_status, f"Downloading… {human(d)} of {human(t)}") if t else None)
             self.log(_('Downloaded and verified {0} (sha256 {1}…)').format(fresh['asset_name'], fresh['sha256'][:16]))
