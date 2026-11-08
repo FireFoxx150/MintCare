@@ -9,12 +9,15 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-24.04
+    environment: release       # holds the MINTCARE_RELEASE_KEY secret; see RELEASING.md
     steps:
       - uses: actions/checkout@v7
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gettext xvfb fakeroot lintian
       - name: Check the tag matches the version
         run: test "v$(python3 -c 'import mintcare; print(mintcare.__version__)')" = "$GITHUB_REF_NAME"
+      - name: Check the release key is in the repository
+        run: test -f packaging/release-signing.pub || { echo "packaging/release-signing.pub is missing; see RELEASING.md" >&2; exit 1; }
       - name: Run tests
         run: MINTCARE_SKIP_SYSTEM_TESTS=1 xvfb-run -a ./run-tests.sh
       - name: Build .deb
@@ -23,6 +26,17 @@ jobs:
         run: lintian --fail-on error,warning dist/*.deb
       - name: Checksums
         run: cd dist && sha256sum *.deb > SHA256SUMS && cat SHA256SUMS
+      - name: Sign checksums
+        env:
+          SIGNING_KEY: ${{ secrets.MINTCARE_RELEASE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/release-signing.key"
+          printf '%s\n' "$SIGNING_KEY" > "$key"
+          openssl pkeyutl -sign -inkey "$key" -rawin -in dist/SHA256SUMS -out dist/SHA256SUMS.sig
+          rm -f "$key"
+          openssl pkeyutl -verify -pubin -inkey packaging/release-signing.pub -rawin -in dist/SHA256SUMS -sigfile dist/SHA256SUMS.sig
       - name: Sign build provenance
         uses: actions/attest-build-provenance@v4
         with:
@@ -30,4 +44,4 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/SHA256SUMS --title "MintCare $GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/SHA256SUMS dist/SHA256SUMS.sig --title "MintCare $GITHUB_REF_NAME" --generate-notes
