@@ -132,7 +132,8 @@ MAX_DEPTH = 200     # folder levels walked; a deeper tree is refused rather than
 def _walk(top):
     """os.walk(top) without recursion: no Python recursion limit, and only one folder's listing is held at a time.
 
-    Like os.walk, it doesn't follow symbolic links, and the caller may prune the dirnames list it is given.
+    Symbolic links are never followed. Unlike os.walk, a link to a folder is listed with the files, not the
+    folders. The caller may prune the dirnames list it is given.
     """
     stack = [(top, 0)]
     while stack:

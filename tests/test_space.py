@@ -60,6 +60,16 @@ class Tree(TempDirTest):
         self.assertEqual(node.children[0].name, "file.bin")
 
 
+class WalkLinks(TempDirTest):
+    def test_a_link_to_a_folder_is_not_entered(self):
+        self.write("real/inside.bin", b"x")
+        link = os.path.join(self.tmp, "link")
+        os.symlink(os.path.join(self.tmp, "real"), link)
+        walked = [path for path, _dirs, _files in space._walk(self.tmp)]
+        self.assertIn(os.path.join(self.tmp, "real"), walked)
+        self.assertNotIn(link, walked)
+
+
 class Treemap(unittest.TestCase):
     def test_squarify_fills_area_in_bounds(self):
         rects = _squarify([(v, i) for i, v in enumerate([50, 20, 10, 8, 5, 4, 2, 1])], 0, 0, 800, 300)
