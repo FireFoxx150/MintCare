@@ -380,9 +380,12 @@ def c_user_failed_units():
 
 def c_boot_errors():
     from . import journal
-    groups = journal.grouped()
-    if not groups:
+    everything = journal.grouped()
+    if not everything:
         return Result(OK, _("No errors logged since boot"))
+    groups = journal.visible(everything, journal.dismissed())
+    if not groups:
+        return Result(OK, _("Every error since boot has been dismissed"))
     by = {lvl: [g for g in groups if g["level"] == lvl] for lvl in (FAIL, WARN, INFO, OK)}
     crashes = sum(g["count"] for g in groups if g["who"].startswith("crash:"))
     parts = []
@@ -395,8 +398,10 @@ def c_boot_errors():
         parts.append(_('{0} to look at').format(len(look)))
     if by[OK]:
         parts.append(f"{len(by[OK])} harmless")
+    if len(everything) > len(groups):
+        parts.append(_('{0} dismissed').format(len(everything) - len(groups)))
     level = FAIL if by[FAIL] else WARN if by[WARN] else INFO if by[INFO] else OK
-    return Result(level, _('{0} kind(s) of error since boot: ').format(len(groups)) + ", ".join(parts) +
+    return Result(level, _('{0} kind(s) of error since boot: ').format(len(everything)) + ", ".join(parts) +
                   " — click for details and explanations")
 
 
@@ -776,8 +781,13 @@ def details(check_id):
         return None
     if check_id == "booterrors":
         from . import journal
-        groups = journal.grouped()
-        return cmd, journal.report(groups), journal.actions(groups)
+        everything, hidden = journal.grouped(), journal.dismissed()
+        groups = journal.visible(everything, hidden)
+        acts = journal.actions(groups) + journal.dismiss_actions(groups)
+        if len(everything) > len(groups):
+            acts.append((_("Restore dismissed errors"), "restore", None))
+        text = _("Every error since boot has been dismissed") if everything and not groups else journal.report(groups)
+        return cmd, text, acts
     rc, o = run(["bash", "-c", cmd], timeout=30)
     return cmd, o or _("(no output)"), DETAIL_ACTIONS.get(check_id, [])
 

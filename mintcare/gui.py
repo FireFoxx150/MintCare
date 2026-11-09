@@ -2428,14 +2428,15 @@ class MintCareWindow(Gtk.ApplicationWindow):
             def done(res):
                 spin.stop()
                 text = (res or ("", _("(could not run the command)"), []))[1]
-                for ch in acts.get_children():
+                for ch in acts.get_children() + dismissals.get_children():
                     ch.destroy()
                 for lbl, kind, payload in (res[2] if res and len(res) > 2 else []):
                     b = Gtk.Button(label=lbl)
                     css(b, "primary" if kind in ("check", "tweak") else "ghost")
                     b.connect("clicked", lambda *_x, k=kind, p=payload: self.run_action(k, p))
-                    acts.pack_start(b, False, False, 0)
+                    (dismissals if kind == "dismiss" else acts).pack_start(b, False, False, 0)
                 acts.show_all()
+                dismissals.show_all()
                 out.get_buffer().set_text(text)
                 fit(text)
             self.bg(lambda: checks.details(check.id), done)
@@ -2462,6 +2463,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         panel.pack_start(sw, False, False, 0)
         acts = hbox(8)
         panel.pack_start(acts, False, False, 2)
+        dismissals = vbox(4)
+        panel.pack_start(dismissals, False, False, 2)
         panel.refresh = refresh
         refresh()
         return panel
@@ -3610,6 +3613,14 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self.apply_fixes([(chk, res)])
             else:
                 self.set_status(_("Nothing to fix there right now"))
+        elif kind == "dismiss":
+            from . import journal
+            journal.set_dismissed(*payload)
+            self.run_diagnose()
+        elif kind == "restore":
+            from . import journal
+            journal.clear_dismissed()
+            self.run_diagnose()
         elif kind == "tweak":
             t = tweaks.BY_ID.get(payload)
             if t and t.state() == "off":

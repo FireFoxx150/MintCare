@@ -164,3 +164,54 @@ def actions(groups=None):
             seen.add(a)
             out_.append(a)
     return out_
+
+
+# ------------------------------------------------------------------ dismissing
+
+def dismiss_key(g):
+    """The saved name of a kind of error: its program and message shape, as _Groups keys them."""
+    shape = re.sub(r"\d+", "#", g["sample"])[:120]
+    return f"{g['who']}\t{shape}"
+
+
+def dismissed():
+    """{key: seconds} of the kinds the user dismissed, from settings."""
+    from .maintenance import load_settings
+    raw = load_settings().get("dismissed_errors", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {k: float(v) for k, v in raw.items() if isinstance(v, (int, float))}
+
+
+def visible(groups, hidden):
+    """The groups to show. A dismissed kind stays hidden until it happens again after it was dismissed."""
+    out_ = []
+    for g in groups:
+        seen = hidden.get(dismiss_key(g))
+        if seen is None or g["last"] > seen:
+            out_.append(g)
+    return out_
+
+
+def set_dismissed(key, seen):
+    from .maintenance import load_settings, save_settings
+    s = load_settings()
+    s["dismissed_errors"] = {**s.get("dismissed_errors", {}), key: seen}
+    save_settings(s)
+
+
+def clear_dismissed():
+    from .maintenance import load_settings, save_settings
+    s = load_settings()
+    s["dismissed_errors"] = {}
+    save_settings(s)
+
+
+def dismiss_actions(groups):
+    """Buttons that hide one kind of error. Serious errors and the catch-all groups can't be hidden."""
+    out_ = []
+    for g in groups:
+        if g["level"] in (INFO, WARN) and g["sample"]:
+            text = g["sample"] if len(g["sample"]) <= 40 else g["sample"][:39] + "…"
+            out_.append((_("Dismiss “{0}”").format(text), "dismiss", (dismiss_key(g), g["last"])))
+    return out_
