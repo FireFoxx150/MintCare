@@ -25,6 +25,7 @@ DEFAULT_EXCLUDES = [".cache", "node_modules", "__pycache__", ".venv", "venv", "*
 TIMER = "mintcare-backup.timer"
 SERVICE = "mintcare-backup.service"
 NO_HARDLINKS = {"vfat", "exfat", "msdos"}
+DATED = re.compile(r"\d{4}-\d\d-\d\d_\d\d-\d\d")      # a snapshot folder's name: 2026-11-15_10-30
 
 
 def default_folders():
@@ -45,6 +46,7 @@ def config():
     b.setdefault("folders", default_folders())
     b.setdefault("frequency", "weekly")
     b.setdefault("keep", 8)
+    b.setdefault("retention", "last")                # "last" keeps the newest `keep`; "gfs" keeps daily/weekly/monthly
     b.setdefault("excludes", DEFAULT_EXCLUDES)
     b.setdefault("enabled", False)
     return b
@@ -149,8 +151,14 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
     if rc not in (0, 24):              # 24 = some files vanished during the copy (normal for live folders)
         return {"ok": False, "error": _('rsync failed (exit {0}): ').format(rc) + " ".join(tail[-2:])}
     partial.rename(target)
-    for old in snapshots(b["dest"])[int(b.get("keep", 8)):]:
-        shutil.rmtree(old, ignore_errors=True)
+    old = snapshots(b["dest"])
+    if b.get("retention") == "gfs":
+        keep = keep_plan([p.name for p in old])
+        drop = [p for p in old if DATED.fullmatch(p.name) and p.name not in keep]
+    else:
+        drop = old[int(b.get("keep", 8)):]
+    for p in drop:
+        shutil.rmtree(p, ignore_errors=True)
     (r / "latest").unlink(missing_ok=True)
     try:
         (r / "latest").symlink_to(target.name)
@@ -364,3 +372,53 @@ def verify(snapshot, sample=300):
         except OSError:
             bad.append(str(f))
     return len(picked), bad
+
+
+def compare_with_originals(snapshot, folders, excludes=DEFAULT_EXCLUDES):
+    """Compare every file in a snapshot with its original, by checksum. Returns (files checked, paths that differ).
+
+    A file changed since the backup counts as different. Every file is read twice, so this can take a long time.
+    """
+    checked, differ = 0, []
+    for folder in folders:
+        copy = Path(snapshot) / _key(folder)
+        if not copy.is_dir():
+            differ.append(folder)
+            continue
+        args = ["rsync", "-rcn", "--stats", "--out-format=%i %n"] + [f"--exclude={ex}" for ex in excludes]
+        _rc, text = run(args + [folder.rstrip("/") + "/", str(copy) + "/"], timeout=24 * 3600)
+        m = re.search(r"Number of files: ([\d,]+)", text)
+        checked += int(m.group(1).replace(",", "")) if m else 0
+        differ += [os.path.join(folder, rel) for rel in differing_files(text)]
+    return checked, differ
+
+
+def differing_files(listing):
+    """Files rsync's dry run would copy (new, missing or different), from a listing made with --out-format='%i %n'."""
+    return [line[12:] for line in listing.splitlines() if line.startswith(">f")]
+
+
+def keep_plan(names, daily=7, weekly=4, monthly=12):
+    """Snapshot names to keep: the newest copy from each of the last `daily` days, `weekly` weeks and `monthly`
+    months that have one. Names look like 2026-11-15_10-30."""
+    from datetime import date
+    dated = []
+    for name in names:
+        try:
+            dated.append((time.strptime(name, "%Y-%m-%d_%H-%M"), name))
+        except ValueError:
+            continue
+    dated.sort(reverse=True)                  # newest first: the first copy seen in a period is its newest
+    keep = set()
+    periods = ((daily, lambda d: d), (weekly, lambda d: d.isocalendar()[:2]), (monthly, lambda d: (d.year, d.month)))
+    for limit, period in periods:
+        seen = set()
+        for t, name in dated:
+            key = period(date(t.tm_year, t.tm_mon, t.tm_mday))
+            if key in seen:
+                continue
+            if len(seen) == limit:
+                break
+            seen.add(key)
+            keep.add(name)
+    return keep

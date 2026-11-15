@@ -242,6 +242,23 @@ def old_downloads(folder=None, min_size=10 << 20, days=90, now=None):
     return sorted(found, reverse=True)
 
 
+def file_types(folder):
+    """[(kind, bytes)] for the files under folder, biggest first. Kinds are those of file_kind(); hidden folders are skipped."""
+    totals = {}
+    for dirpath, dirnames, files in os.walk(folder):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for f in files:
+            p = os.path.join(dirpath, f)
+            try:
+                st = os.stat(p, follow_symlinks=False)
+            except OSError:
+                continue
+            if stat.S_ISREG(st.st_mode):
+                kind = file_kind(p)
+                totals[kind] = totals.get(kind, 0) + st.st_size
+    return sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
+
+
 def trash(path):
     """Move to the Trash (reversible). Raises on failure."""
     from gi.repository import Gio

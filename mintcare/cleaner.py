@@ -1,6 +1,8 @@
 """Junk cleaner. scan() runs unprivileged and estimates what each item frees."""
 
 import os
+import shlex
+import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -326,6 +328,80 @@ def s_stale():
                                                len(found)).format(len(found), names)
 
 
+RECENT_FILE = HOME / ".local/share/recently-used.xbel"
+
+
+def s_recent():
+    if not RECENT_FILE.is_file():
+        return 0, _("none found")
+    n = RECENT_FILE.read_text(errors="ignore").count("<bookmark ")
+    return RECENT_FILE.stat().st_size, ngettext("{0} recently opened file", "{0} recently opened files", n).format(n)
+
+
+BROKEN_DEPTH = 3                                  # how far below your home folder to look for dead links
+LAUNCHER_DIRS = [HOME / ".local/share/applications", HOME / ".config/autostart"]
+
+
+def desktop_missing(text):
+    """True when a launcher starts a program that isn't installed (TryExec, else the first program in Exec)."""
+    lines = text.splitlines()
+    prog = next((ln[8:].strip() for ln in lines if ln.startswith("TryExec=")), "")
+    if not prog:
+        exe = next((ln[5:] for ln in lines if ln.startswith("Exec=")), "")
+        try:
+            words = [w for w in shlex.split(exe) if w != "env" and "=" not in w]
+        except ValueError:
+            return False
+        prog = words[0] if words else ""
+    if not prog:
+        return False
+    return not (os.path.exists(prog) if prog.startswith("/") else shutil.which(prog))
+
+
+def broken_links(root=HOME, depth=BROKEN_DEPTH):
+    """Symlinks under root whose target is gone. Hidden folders are skipped; the search stops `depth` levels down."""
+    found = []
+
+    def walk(folder, level):
+        try:
+            entries = list(os.scandir(folder))
+        except OSError:
+            return
+        for e in entries:
+            if e.is_symlink() and not os.path.exists(e.path):
+                found.append(e.path)
+            elif level < depth and e.is_dir(follow_symlinks=False) and not e.name.startswith("."):
+                walk(e.path, level + 1)
+    walk(str(root), 1)
+    return found
+
+
+def broken_launchers(dirs=LAUNCHER_DIRS):
+    """Launcher files (.desktop) whose program has been uninstalled."""
+    found = []
+    for folder in dirs:
+        if not Path(folder).is_dir():
+            continue
+        for p in sorted(Path(folder).glob("*.desktop")):
+            try:
+                if desktop_missing(p.read_text(errors="ignore")):
+                    found.append(str(p))
+            except OSError:
+                pass
+    return found
+
+
+def s_broken():
+    found = broken_links() + broken_launchers()
+    # the scan records what it found, and the Trash step then moves exactly those links and launchers
+    BY_ID["broken"].user_script = "\n".join(f"gio trash {q(p)}" for p in found) or None
+    if not found:
+        return 0, _("none found")
+    names = ", ".join(os.path.relpath(p, HOME) if p.startswith(str(HOME) + os.sep) else p for p in found[:3])
+    return None, ngettext("{0} broken link or launcher, for example {1}", "{0} broken links or launchers, for example {1}",
+                          len(found)).format(len(found), names)
+
+
 ITEMS = [
     CleanItem("apt", _("Package download cache"), _("Downloaded .deb files that are already installed."),
               s_apt, root_script="apt-get clean"),
@@ -349,6 +425,9 @@ ITEMS = [
               available=lambda: has_cmd("flatpak")),
     CleanItem("thumbs", _("Thumbnail cache"), _("Cached file previews."), s_thumbs,
               user_script=f"rm -rf {q(HOME / '.cache/thumbnails')}/*"),
+    CleanItem("recent", _("Recent files list"),
+              _("The list of recently opened files that the file manager and apps show. Your files aren't touched."),
+              s_recent, user_script=f"rm -f {q(RECENT_FILE)}", default=False),
     CleanItem("usercache", _("Stale application cache"), _("Cache files no app has touched in 30 days."),
               s_usercache,
               user_script=f"find {q(HOME / '.cache')} -type f -atime +30 -mtime +30 -delete; "
@@ -379,6 +458,10 @@ ITEMS = [
               _("Dependency and build folders (node_modules, Rust target, Python venvs) of projects with no changed "
                 "files for {0} days. Moved to the Trash; your code is kept.").format(STALE_DAYS),
               s_stale, default=False),
+    CleanItem("broken", _("Broken links and launchers"),
+              _("Symbolic links and app launchers whose target is gone, in your home folder. Links to unplugged drives "
+                "are listed too. Moved to the Trash."),
+              s_broken, default=False),
     CleanItem("trash", _("Empty Trash"), _("Permanently deletes everything in your Trash."),
               s_trash, default=False, user_script="gio trash --empty"),
 ]

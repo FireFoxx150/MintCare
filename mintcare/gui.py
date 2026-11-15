@@ -19,7 +19,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from .i18n import N_, _, ngettext
-from . import (__version__, assistant, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
+from . import (__version__, alerts, assistant, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
                flatpaks, hardware, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
                space, theme, troubleshoot, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
@@ -1348,6 +1348,23 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.update_banner.add(ub)
         page.pack_start(self.update_banner, False, False, 0)
 
+        # "backup overdue" banner, shown while the backup check is at warning level
+        self.backup_banner = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+        bb = card("ecard")
+        br = hbox(12)
+        br.pack_start(icon("document-save-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
+        bt = vbox(2)
+        bt.set_valign(Gtk.Align.CENTER)
+        bt.pack_start(label(_("Your personal files need a backup"), ("h2",)), False, False, 0)
+        self.backup_sub = label("", ("muted",), ellipsize=True)
+        bt.pack_start(self.backup_sub, False, False, 0)
+        br.pack_start(bt, True, True, 0)
+        br.pack_end(self.action_button(_("Back up now"), lambda: self.goto("backup"), primary=True,
+                                       icon_name="document-save-symbolic"), False, False, 0)
+        bb.pack_start(br, False, False, 0)
+        self.backup_banner.add(bb)
+        page.pack_start(self.backup_banner, False, False, 0)
+
         # Start here: three steps for new users; Beginner level only, until dismissed
         self.start_card = card("ecard")
         self.start_card.set_no_show_all(True)
@@ -1649,6 +1666,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def _update_overview(self):
         res = self.check_results
+        bk = res.get("backup")
+        self.backup_sub.set_text(bk.summary if bk else "")
+        self.backup_banner.set_reveal_child(bool(bk) and bk.status == checks.WARN)
         self._update_weekly()
         counts = {s: sum(1 for r in res.values() if r.status == s) for s in STATUS_ICON}
         hidden = set(maintenance.hidden_tips())
@@ -2925,7 +2945,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.space_stack.add_titled(self._build_folders_tab(), "folders", _("Folders & large files"))
         self.space_stack.add_titled(self._build_dups_tab(), "dups", _("Duplicates"))
         self.space_stack.add_titled(self._build_snaps_tab(), "snaps", _("Timeshift snapshots"))
-        self.space_stack.add_titled(self._build_olddl_tab(), "olddl", _("Old downloads"))
+        self.space_stack.add_titled(self._build_olddl_tab(), "olddl", _("Old files"))
         self.space_stack.connect("notify::visible-child-name",
                                  lambda st, _p: st.get_visible_child_name() == "olddl" and self.load_old_downloads())
         page.pack_start(self.space_stack, False, False, 0)
@@ -3371,29 +3391,47 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def _build_olddl_tab(self):
         box = vbox(10)
-        self.olddl_head = label(_("Big files in Downloads that you haven't opened or changed for 3 months. "
-                                  "They go to the Trash, so you can still get them back."), ("muted",), wrap=True)
+        self.olddl_folder = space.downloads_dir()
+        self.olddl_head = label("", ("muted",), wrap=True)
         box.pack_start(self.olddl_head, False, False, 0)
+        fh = hbox(8)
+        self.olddl_path = label("", ("crumb",), ellipsize=True)
+        fh.pack_start(self.olddl_path, True, True, 0)
+        fh.pack_end(self._btn(_("Choose folder…"), self._choose_old_folder, icon_name="folder-symbolic"), False, False, 0)
+        box.pack_start(fh, False, False, 0)
+        self.olddl_types = label("", ("muted",), wrap=True)
+        box.pack_start(self.olddl_types, False, False, 0)
         c, self.olddl_list = list_card()
         box.pack_start(c, False, False, 0)
         return box
 
-    def load_old_downloads(self):
-        self.bg(space.old_downloads, self._render_old_downloads)
+    def _choose_old_folder(self):
+        path = self._pick_folder(_("Choose a folder to check"), self.olddl_folder)
+        if path:
+            self.olddl_folder = path
+            self.load_old_downloads()
 
-    def _render_old_downloads(self, rows):
+    def load_old_downloads(self):
+        folder = self.olddl_folder
+        self.olddl_path.set_text(folder.replace(str(Path.home()), "~"))
+        self.bg(lambda: (space.old_downloads(folder), space.file_types(folder)), self._render_old_downloads)
+
+    def _render_old_downloads(self, res):
+        rows, types = res or ([], [])
         self._clear(self.olddl_list, "olddl_row")
-        rows = rows or []
         if not rows:
             r = Gtk.ListBoxRow(activatable=False)
-            r.add(label(_("Nothing old and big in Downloads."), ("muted",)))
+            r.add(label(_("Nothing old and big in this folder."), ("muted",)))
             self.olddl_list.add(r)
         total = sum(size for size, _p, _l in rows)
         self.olddl_head.set_text(
-            _("Big files in Downloads that you haven't opened or changed for 3 months. They go to the Trash, "
-              "so you can still get them back.") + ("  " + ngettext("{0} file, {1}.", "{0} files, {1}.",
-                                                                     len(rows)).format(len(rows), human(total))
-                                                    if rows else ""))
+            _("Big files you haven't opened or changed for 3 months. They go to the Trash, so you can still get "
+              "them back.") + ("  " + ngettext("{0} file, {1}.", "{0} files, {1}.",
+                                                len(rows)).format(len(rows), human(total)) if rows else ""))
+        names = {"video": _("Videos"), "image": _("Pictures"), "audio": _("Music"), "archive": _("Archives"),
+                 "disk": _("Disk images"), "other": _("Other")}
+        self.olddl_types.set_text(_("Space by type: ") + " · ".join(f"{names[k]} {human(n)}" for k, n in types)
+                                  if types else "")
         for size, path, last in rows[:60]:
             when = time.strftime("%Y-%m-%d", time.localtime(last))
             btns = [self._btn(_("Show"), lambda p=path: self.show_in_folder(p), tag="olddl_row"),
@@ -4034,13 +4072,34 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.ts_boxes = {}
         tabs = []
         for key, title in (("sound", _("Sound")), ("network", _("Network")), ("devices", _("Printers & Bluetooth")),
-                           ("crashes", _("Crash reports"))):
+                           ("crashes", _("Crash reports")), ("upkeep", _("Maintenance"))):
             b = vbox(10)
             self.ts_boxes[key] = b
             tabs.append((key, title, b))
         self.ts_tabs = self._tabs(page, tabs)
         self.ts_tabs.connect("notify::visible-child-name", lambda *_x: self.load_troubleshoot())
         return scrolled(page)
+
+    def _render_upkeep(self, tasks):
+        box = self.ts_boxes["upkeep"]
+        self._clear(box, "ts_upkeep")
+        c, lst = list_card()
+        if not tasks:
+            r = Gtk.ListBoxRow(activatable=False)
+            r.add(label(_("None of the maintenance tools are installed on this PC."), ("muted",)))
+            lst.add(r)
+        for tid, title, why, runs, command, _tool in tasks:
+            btn = self._btn(_("Run"), lambda t=(tid, title, runs, command): self._run_upkeep(*t), primary=True,
+                            icon_name="media-playback-start-symbolic", tag="ts_upkeep")
+            meta = _("Asks for your password") if runs == "root" else ""
+            lst.add(self._row(title, why, meta, None, [], [btn]))
+        box.pack_start(c, False, False, 0)
+        box.show_all()
+
+    def _run_upkeep(self, tid, title, runs, command):
+        step = [(tid, title, command)]
+        work = (lambda: self.execute(step, [], title)) if runs == "root" else (lambda: self.execute([], step, title))
+        self.in_thread(title, work, lambda res: self.notify_done(res or {}, title))
 
     def load_troubleshoot(self):
         key = self.ts_tabs.get_visible_child_name()
@@ -4050,9 +4109,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
         box.show_all()
         work = {"sound": troubleshoot.audio, "network": troubleshoot.network,
                 "devices": lambda: (troubleshoot.printers(), troubleshoot.bluetooth()),
-                "crashes": troubleshoot.crashes}[key]
+                "crashes": troubleshoot.crashes, "upkeep": troubleshoot.upkeep_tasks}[key]
         render = {"sound": self._render_sound, "network": self._render_network, "devices": self._render_devices,
-                  "crashes": self._render_crashes}[key]
+                  "crashes": self._render_crashes, "upkeep": self._render_upkeep}[key]
         self.bg(work, lambda res: render(res) if res is not None else None)
 
     def _issues_card(self, box, issues, handler, tag):
@@ -4377,6 +4436,31 @@ class MintCareWindow(Gtk.ApplicationWindow):
                 self.set_status(_("Verified: {0} sampled files can be read").format(checked))
         self.in_thread(_("Verifying backup…"), lambda: backup_mod.verify(snaps[0]), done)
 
+    def compare_backup(self):
+        """Compare every file in the newest snapshot with its original, by checksum."""
+        from . import backup as backup_mod
+        b = backup_mod.config()
+        snaps = backup_mod.snapshots(b["dest"]) if b.get("dest") else []
+        if not snaps:
+            self.set_status(_("No backup found yet"), bad=True)
+            return
+        folders = [f for f in b["folders"] if os.path.isdir(f)]
+
+        def done(res):
+            if res is None:
+                return
+            checked, differ = res
+            for path in differ[:20]:
+                self.log(path)
+            if differ:
+                self.set_status(_("{0} of {1} files differ from the originals (changed since the backup, or damaged)")
+                                .format(len(differ), checked), bad=True)
+            else:
+                self.set_status(_("Verified: all {0} files match the originals").format(checked))
+        self.in_thread(_("Comparing backup with your files…"),
+                       lambda: backup_mod.compare_with_originals(snaps[0], folders,
+                                                                 b.get("excludes", backup_mod.DEFAULT_EXCLUDES)), done)
+
     def _build_backup(self):
         page = vbox(14, "page")
         page.pack_start(self.page_header(
@@ -4385,6 +4469,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
               "change are hard-linked, so extra snapshots cost almost no space. Timeshift covers the system; this "
               "covers your files."),
             [self.action_button(_("Verify latest backup"), self.verify_backup,
+                                icon_name="emblem-ok-symbolic"),
+             self.action_button(_("Check against originals"), self.compare_backup,
                                 icon_name="emblem-ok-symbolic")]), False, False, 0)
         dc = card("ecard")
         h = hbox(8)
@@ -4424,6 +4510,12 @@ class MintCareWindow(Gtk.ApplicationWindow):
         sh.pack_start(self.bk_keep, False, False, 0)
         sh.pack_start(label(_("snapshots"), ("muted",)), False, False, 0)
         dc.pack_start(sh, False, False, 0)
+        gh = hbox(8)
+        self.bk_gfs = Gtk.CheckButton(label=_("Keep daily, weekly and monthly copies (7 days, 4 weeks, 12 months) "
+                                              "instead"))
+        self.bk_gfs.connect("toggled", lambda *_x: self._bk_save())
+        gh.pack_start(self.bk_gfs, False, False, 0)
+        dc.pack_start(gh, False, False, 0)
         self.bk_status = label("", ("muted",), wrap=True)
         dc.pack_start(self.bk_status, False, False, 6)
         rh = hbox(8)
@@ -4563,6 +4655,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.bk_dest.set_text(b["dest"] or _("(not chosen)"))
         self.bk_freq.set_active_id(b["frequency"])
         self.bk_keep.set_value(b["keep"])
+        self.bk_gfs.set_active(b.get("retention") == "gfs")
         self.bk_switch.set_active(backup.timer_next() is not None)
         self._bk_loading = False
         self._clear(self.bk_dest_issues)
@@ -4629,6 +4722,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         b = backup.config()
         b["frequency"] = self.bk_freq.get_active_id() or "weekly"
         b["keep"] = int(self.bk_keep.get_value())
+        b["retention"] = "gfs" if self.bk_gfs.get_active() else "last"
         backup.save_config(b)
         if self.bk_switch.get_active():
             try:
@@ -5228,7 +5322,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
             [self.action_button(_("Refresh"), lambda: (self.load_drives(), self._poll_sensors(force=True)),
                                 icon_name="view-refresh-symbolic"),
              self.action_button(_("Full SMART report"), self.smart_report, icon_name="utilities-terminal-symbolic"),
-             self.action_button(_("Short self-test"), self.smart_selftest, icon_name="media-playback-start-symbolic")]),
+             self.action_button(_("Short self-test"), lambda: self.smart_selftest("short"),
+                                icon_name="media-playback-start-symbolic"),
+             self.action_button(_("Long self-test"), lambda: self.smart_selftest("long"),
+                                icon_name="media-playback-start-symbolic")]),
             False, False, 0)
 
         ic = card()
@@ -5351,7 +5448,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
 
     def _render_battery(self):
         self._clear(self.bat_box)
-        for b in hardware.batteries():
+        bats = hardware.batteries()
+        hardware.battery_track(bats)
+        for b in bats:
             c = card()
             h = hbox(10)
             h.pack_start(icon("battery-good-symbolic", Gtk.IconSize.LARGE_TOOLBAR, "tile-ico"), False, False, 0)
@@ -5364,6 +5463,9 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                (_(' · {0:.1f} of {1:.1f} Wh').format(b['full_wh'], b['design_wh']) if b["full_wh"] and b["design_wh"]
                                 else "") + f" · {b['status']}, {b['capacity']}%", ("muted",), wrap=True),
                          False, False, 0)
+            trend = hardware.battery_trend(b["name"])
+            if trend:
+                t.pack_start(label(trend, ("muted",), wrap=True), False, False, 0)
             h.pack_start(t, True, True, 0)
             if hl is not None:
                 h.pack_end(pill(_("good") if hl >= 80 else _("worn") if hl >= 60 else _("replace soon"),
@@ -5679,7 +5781,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.goto("log")
         self.in_thread(_("Reading full SMART reports…"), lambda: self.execute(steps, [], "SMART report"), done)
 
-    def smart_selftest(self):
+    def smart_selftest(self, kind="short"):
         ds = [d for d in getattr(self, "drives", []) if d.get("device")]
         if not ds:
             self.set_status(_("No drives loaded yet"))
@@ -5689,7 +5791,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
             self.notify_done(results or {}, _("SMART self-test"))
             self.load_drives()
         self.in_thread(_("Starting SMART self-tests…"),
-                       lambda: self.execute(hardware.selftest_steps(ds), [], _("SMART self-test")), done)
+                       lambda: self.execute(hardware.selftest_steps(ds, kind), [], _("SMART self-test")), done)
 
     # ------------------------------------------------------------ boot & startup
 
@@ -6037,6 +6139,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
                                         icon_name="document-save-symbolic"), False, False, 0)
         sf.pack_end(row, False, False, 0)
 
+        # threshold alerts: a timer, so they work while MintCare is closed
+        ac = card()
+        h = hbox(8)
+        h.pack_start(icon("dialog-warning-symbolic", Gtk.IconSize.BUTTON, "warn"), False, False, 0)
+        h.pack_start(label(_("Threshold alerts"), ("h2",)), True, True, 0)
+        self.alert_switch = describe(Gtk.Switch(valign=Gtk.Align.CENTER), _("Threshold alerts"))
+        self.alert_switch.connect("notify::active", self._on_alert_toggle)
+        h.pack_end(self.alert_switch, False, False, 0)
+        ac.pack_start(h, False, False, 0)
+        # xgettext:no-python-format
+        ac.pack_start(label(_("Checks every 15 minutes, even when MintCare is closed. Tells you once when a drive is "
+                              "{0}% full, the battery is at {1}% or less and not charging, or a processor or drive "
+                              "runs hot.").format(alerts.DISK_FULL, alerts.BATTERY_LOW), ("faint",), wrap=True),
+                      False, False, 6)
+
         # undo
         uc = card()
         h = hbox(10)
@@ -6048,8 +6165,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         h.pack_start(t, True, True, 0)
         h.pack_end(self.action_button(_("Undo…"), self.undo_all, icon_name="edit-undo-symbolic"), False, False, 0)
         uc.pack_start(h, False, False, 0)
-        two = [(sc, 0, 0, 1, 1), (sf, 1, 0, 1, 1), (uc, 0, 1, 2, 1)]
-        stacked = [(sc, 0, 0, 1, 1), (sf, 0, 1, 1, 1), (uc, 0, 2, 1, 1)]
+        two = [(sc, 0, 0, 1, 1), (sf, 1, 0, 1, 1), (ac, 0, 1, 1, 1), (uc, 1, 1, 1, 1)]
+        stacked = [(sc, 0, 0, 1, 1), (sf, 0, 1, 1, 1), (ac, 0, 2, 1, 1), (uc, 0, 3, 1, 1)]
         self._responsive.append((grid, {"wide": two, "medium": stacked, "narrow": stacked}))
 
         # history
@@ -6077,13 +6194,13 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def refresh_maintenance(self):
         def work():
             return (maintenance.timer_status(), maintenance.last_run(), maintenance.timeshift_ready(),
-                    maintenance.undo_inventory(), maintenance.history(300))
+                    maintenance.undo_inventory(), maintenance.history(300), alerts.timer_enabled())
         self.bg(work, self._render_maintenance)
 
     def _render_maintenance(self, res):
         if not res:
             return
-        ts, lr, (ready, why), inv, events = res
+        ts, lr, (ready, why), inv, events, alerts_on = res
         self._maint_loading = True
         st = maintenance.load_settings()
         m = st["maintenance"]
@@ -6095,6 +6212,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.sched_report_fmt.set_active_id(m.get("report_format", "pdf"))
         self.snap_pref.set_active_id(st.get("snapshot_before", "ask"))
         self.sched_switch.set_active(ts["enabled"])
+        self.alert_switch.set_active(alerts_on)
         self.sched_status.set_markup(
             _('<b>On.</b> Next check-up: {0}').format(GLib.markup_escape_text(ts['next'] or 'soon')) if ts["enabled"]
             else _("Off. Turn it on to get a notification when your system needs attention."))
@@ -6179,6 +6297,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
             except Exception as e:
                 self.log(_('Could not update the check-up timer: {0}').format(e))
         self.set_status(_("Maintenance settings saved"))
+
+    def _on_alert_toggle(self, sw, _pspec):
+        if self._maint_loading:
+            return
+        try:
+            if sw.get_active():
+                alerts.install_timer()
+                self.set_status(_("Threshold alerts turned on"))
+            else:
+                alerts.remove_timer()
+                self.set_status(_("Threshold alerts turned off"))
+        except Exception as e:
+            self.log(_('Threshold alerts: {0}').format(e))
+            self.set_status(_("Could not change threshold alerts"), bad=True)
+        self.refresh_maintenance()
 
     def _on_sched_toggle(self, sw, _pspec):
         if self._maint_loading:
