@@ -181,6 +181,22 @@ class QuarantineMove(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(qdir, name)))
             self.assertEqual([line for line in out.splitlines() if line.startswith("@@MINTCARE-END")], [])
 
+    def test_a_name_already_in_the_quarantine_folder_is_not_replaced(self):
+        # Three folders hold a note.txt: each file after the first takes the next free name.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as qdir:
+            qdir = os.path.realpath(qdir)
+            paths = []
+            for folder, text in (("a", "first"), ("b", "second"), ("c", "third")):
+                path = os.path.join(home, folder, "note.txt")
+                os.makedirs(os.path.dirname(path))
+                Path(path).write_text(text)
+                paths.append(path)
+            _sid, _title, body = secaudit.quarantine_step(paths, home=home)
+            subprocess.run(["bash", "-c", _in_quarantine(body, qdir)], capture_output=True, text=True, cwd=home)
+            self.assertEqual(Path(qdir, "note.txt").read_text(), "first")
+            self.assertEqual(Path(qdir, "note.txt.1").read_text(), "second")
+            self.assertEqual(Path(qdir, "note.txt.2").read_text(), "third")
+
 
 if __name__ == "__main__":
     unittest.main()

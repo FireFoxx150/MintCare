@@ -412,7 +412,17 @@ for target, shown in zip(pairs[::2], pairs[1::2]):
         continue
     name = os.path.basename(target)
     try:
-        os.rename(name, name, src_dir_fd=fd, dst_dir_fd=qfd)
+        # Check, then rename: two steps. Two quarantine runs at the same time could pick the same free name, and
+        # the second rename would then replace the first file. Use a no-replace rename if that can happen.
+        dst, n = name, 0
+        while True:
+            try:
+                os.stat(dst, dir_fd=qfd, follow_symlinks=False)
+            except FileNotFoundError:
+                break
+            n += 1
+            dst = f"{name}.{n}"
+        os.rename(name, dst, src_dir_fd=fd, dst_dir_fd=qfd)
         print(ok.format(show(shown)), flush=True)
     except OSError as e:
         if e.errno == errno.EXDEV:
