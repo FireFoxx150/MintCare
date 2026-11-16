@@ -310,6 +310,8 @@ class BackupPage:
             bad = [p for p, ok, _m in results if not ok]
             for p, ok, msg in results:
                 self.log((_('Restored {0}') if ok else _('Could not restore {0}: {1}')).format(p, msg))
+                if ok and msg:
+                    self.log(msg)                       # rsync's notes, e.g. a symlink it skipped
             maintenance.record("backup", _('Restored {0} from the backup of {1}').format(what, snapshot.name), not bad)
             self.set_status(_('Restore finished with {0} problem(s) — see the Activity log').format(len(bad)) if bad
                             else _("Restore finished"), bad=bool(bad))

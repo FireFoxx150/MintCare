@@ -47,6 +47,7 @@ class Restore(TempDirTest):
         self.assertTrue(res[0][1], res)
         self.assertTrue((self.home / "Documents" / "a.txt").exists())
         self.assertFalse(os.path.lexists(self.home / "Documents" / "link"))
+        self.assertIn("skipping", res[0][2])                 # the skip is reported, not silent
 
     def test_refuses_a_destination_that_goes_through_a_symlink(self):
         target = self.home / ".config"                  # where a link from an earlier restore would lead
