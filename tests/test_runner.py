@@ -190,5 +190,16 @@ class SysctlCompare(unittest.TestCase):
         self.assertIn("sysctl -q -p /var/lib/mintcare/sysctl-bbr.bak", t.revert)
 
 
+class RootCopies(unittest.TestCase):
+    """runner.ROOT_RUN and packaging/mintcare-root hold the same batch logic (the helper cannot import the
+    package). Their logic lines must match, so a change to one fails here until the other is changed too."""
+
+    def test_the_helper_runs_batches_the_same_way(self):
+        with open(HELPER_SRC, encoding="utf-8") as f:
+            helper = f.read().splitlines()
+        logic = [line for line in helper if line.startswith(("work=", "trap ", "cat > "))]
+        self.assertEqual(logic, runner.ROOT_RUN.splitlines())
+
+
 if __name__ == "__main__":
     unittest.main()

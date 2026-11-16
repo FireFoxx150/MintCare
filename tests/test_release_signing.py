@@ -1,5 +1,6 @@
 """Updates install only a release whose SHA256SUMS is signed by the release key shipped in the package."""
 import hashlib
+import io
 import os
 import shutil
 import subprocess
@@ -11,6 +12,51 @@ from mintcare import selfupdate
 from tests.helpers import TempDirTest
 
 URL = "https://example.test/release/"
+
+
+class FakeStream(io.BytesIO):
+    """A download that counts how much was read from a stream of `total` bytes."""
+    def __init__(self, total, headers=None):
+        super().__init__()
+        self.total, self.read_total, self.headers = total, 0, headers or {}
+
+    def read(self, n=-1):
+        left = self.total - self.read_total
+        n = left if n < 0 else min(n, left)
+        self.read_total += n
+        return b"x" * n
+
+
+class DownloadLimit(TempDirTest):
+    """download() stops reading once the package is bigger than the release says, so a bad answer cannot fill memory."""
+    ASSET = {"asset": "https://example.test/mintcare.deb", "sha256": "0" * 64}
+
+    def fetch(self, stream, info):
+        with mock.patch.object(selfupdate.urllib.request, "urlopen", return_value=stream):
+            return selfupdate.download(info)
+
+    def test_a_stream_longer_than_the_release_size_is_cut_off(self):
+        stream = FakeStream(3 << 20)
+        with self.assertRaises(RuntimeError):
+            self.fetch(stream, dict(self.ASSET, size=1000))
+        self.assertLess(stream.read_total, 2 << 20)
+
+    def test_a_declared_length_over_the_limit_is_refused_before_reading(self):
+        stream = FakeStream(3 << 20, headers={"Content-Length": str(3 << 20)})
+        with self.assertRaises(RuntimeError):
+            self.fetch(stream, dict(self.ASSET, size=1000))
+        self.assertEqual(stream.read_total, 0)
+
+    def test_an_unknown_size_is_capped_too(self):
+        stream = FakeStream(3 << 20)
+        with mock.patch.object(selfupdate, "MAX_PACKAGE", 1000), self.assertRaises(RuntimeError):
+            self.fetch(stream, dict(self.ASSET))
+        self.assertLess(stream.read_total, 2 << 20)
+
+    def test_a_normal_download_is_returned_and_checked(self):
+        data = b"x" * 5000
+        info = {"asset": self.ASSET["asset"], "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+        self.assertEqual(self.fetch(FakeStream(len(data)), info), data)
 
 
 @unittest.skipUnless(shutil.which("openssl"), "needs the openssl command")

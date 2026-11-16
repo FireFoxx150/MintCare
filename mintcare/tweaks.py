@@ -2,7 +2,9 @@
 
 Every tweak writes only MintCare-owned drop-in files (named *mintcare*) or
 toggles a service, and records a marker in /var/lib/mintcare/applied so it can
-be reverted cleanly. Scripts here run as root through pkexec.
+be reverted cleanly. The one exception is the GameMode profile, which writes
+/etc/gamemode.ini (the system-wide GameMode settings) and backs up any file it
+replaces. Scripts here run as root through pkexec.
 """
 
 import getpass
@@ -142,6 +144,16 @@ def _ufw_enabled():
     return "ENABLED=yes" in read("/etc/ufw/ufw.conf").replace(" ", "")
 
 
+# Keeps SSH reachable when an SSH server runs, so turning the firewall on cannot cut off remote login.
+UFW_RULES = """ufw default deny incoming
+ufw default allow outgoing
+if systemctl is-active --quiet ssh.socket || systemctl is-active --quiet ssh || systemctl is-active --quiet sshd; then
+  ufw allow ssh
+  echo "SSH is running, so it stays allowed through the firewall"
+fi
+ufw --force enable"""
+
+
 def _journal_limited():
     return Path("/etc/systemd/journald.conf.d/99-mintcare.conf").exists()
 
@@ -152,6 +164,7 @@ def _zram_active():
 
 USER = getpass.getuser()
 IOSCHED_RULE = "/etc/udev/rules.d/60-mintcare-iosched.rules"
+IOSCHED_SAVED = f"{STATE_DIR}/mintcare-iosched-schedulers.bak"       # each disk's scheduler from before the tweak
 GRUB_DROPIN = "/etc/default/grub.d/99-mintcare-timeout.cfg"
 GAMEMODE_INI = Path("/etc/gamemode.ini")
 CHARGE_RULE = "/etc/udev/rules.d/99-mintcare-charge-limit.rules"
@@ -179,6 +192,36 @@ def _iosched_ok():
         if cur != want:
             return False
     return True
+
+
+SCHED_NOW = r"sed -n 's/.*\[\(.*\)\].*/\1/p'"       # the scheduler in brackets, which is the one in use
+
+
+def _iosched_save(sys_block="/sys/block", saved=IOSCHED_SAVED):
+    """Shell: write each disk's current scheduler to `saved`, but only once, so a second apply keeps the first list."""
+    return (f"mkdir -p {q(os.path.dirname(saved))}\n"
+            f"if [ ! -f {q(saved)} ]; then\n"
+            f"  for d in {q(sys_block)}/*/queue; do\n"
+            f"    [ -f \"$d/scheduler\" ] || continue\n"
+            f"    s=$({SCHED_NOW} \"$d/scheduler\")\n"
+            f"    if [ -n \"$s\" ]; then echo \"$(basename \"$(dirname \"$d\")\") $s\"; fi\n"
+            f"  done > {q(saved)}\n"
+            f"fi")
+
+
+def _iosched_restore(sys_block="/sys/block", saved=IOSCHED_SAVED):
+    """Shell: put each disk's scheduler back as `saved` lists it. With no list, hard drives go back to mq-deadline,
+    the kernel's usual choice for them."""
+    return (f"if [ -f {q(saved)} ]; then\n"
+            f"  while read -r n s; do\n"
+            f"    if [ -w \"{sys_block}/$n/queue/scheduler\" ]; then echo \"$s\" > \"{sys_block}/$n/queue/scheduler\" || true; fi\n"
+            f"  done < {q(saved)}\n"
+            f"  rm -f {q(saved)}\n"
+            f"else\n"
+            f"  for d in {q(sys_block)}/sd*/queue; do\n"
+            f"    [ \"$(cat \"$d/rotational\")\" = 1 ] && echo mq-deadline > \"$d/scheduler\" || true\n"
+            f"  done\n"
+            f"fi")
 
 
 def _grub_values():
@@ -397,10 +440,7 @@ systemctl daemon-reload""",
         "ufw", _("Firewall (UFW)"), _("Security"),
         _("Enable the firewall: block all incoming connections, allow outgoing."),
         probe=_ufw_enabled,
-        apply="""DEBIAN_FRONTEND=noninteractive apt-get install -y ufw
-ufw default deny incoming
-ufw default allow outgoing
-ufw --force enable""",
+        apply=f"DEBIAN_FRONTEND=noninteractive apt-get install -y ufw\n{UFW_RULES}",
         revert="ufw --force disable",
         recommended=True),
     Tweak(
@@ -424,7 +464,8 @@ ufw --force enable""",
         _("NVMe: none · SATA SSD: mq-deadline · hard drives: BFQ. BFQ keeps the desktop "
         "responsive while a hard drive is busy copying or indexing."),
         probe=_iosched_ok,
-        apply=f"""modprobe bfq
+        apply=f"""{_iosched_save()}
+modprobe bfq
 echo bfq > /etc/modules-load.d/mintcare-bfq.conf
 cat > {IOSCHED_RULE} <<'EOF'
 # Managed by MintCare
@@ -438,7 +479,7 @@ udevadm settle
 for q in /sys/block/*/queue; do echo "$(basename $(dirname $q)): $(cat $q/scheduler)"; done | grep -v loop""",
         revert=f"""rm -f {IOSCHED_RULE} /etc/modules-load.d/mintcare-bfq.conf
 udevadm control --reload
-for q in /sys/block/sd*/queue; do [ "$(cat $q/rotational)" = 1 ] && echo mq-deadline > $q/scheduler || true; done""",
+{_iosched_restore()}""",
         available=lambda: bool(_disks())),
 
     # ----------------------------------------------------------- Boot menu
