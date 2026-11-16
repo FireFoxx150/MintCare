@@ -109,10 +109,12 @@ GROWTH = {"realloc": (WARN, _("{0} more reallocated sector(s) since {1} — the 
 WINDOW = 30 * 86400
 
 
-def selftest_steps(drives):
-    """Root steps that start a short SMART self-test on each drive. The result shows in the drive list later."""
-    return [(f"selftest{i}", _("Short self-test: {0} ({1})").format(d.get("model", ""), d["device"]),
-             f"smartctl -t short {shlex.quote(d['device'])}")
+def selftest_steps(drives, kind="short"):
+    """Root steps that start a SMART self-test ("short" or "long") on each drive. A long test reads the whole
+    drive and can take hours. The result shows in the drive list later."""
+    title = _("Long self-test: {0} ({1})") if kind == "long" else _("Short self-test: {0} ({1})")
+    return [(f"selftest{i}", title.format(d.get("model", ""), d["device"]),
+             f"smartctl -t {kind} {shlex.quote(d['device'])}")
             for i, d in enumerate(drives) if d.get("device")]
 
 
@@ -433,6 +435,53 @@ def batteries():
                      "design_wh": design / unit_wh if unit_wh and design else None,
                      "full_wh": full / unit_wh if unit_wh and full else None})
     return out_
+
+
+BATTERY_DAY = 86400
+
+
+def battery_track(bats, path=None, now=None):
+    """Keep one health reading per battery per day (about a year of them), so a falling trend can be shown."""
+    from . import maintenance
+    path = path or maintenance.STATE / "battery-history.json"
+    now = now or time.time()
+    try:
+        hist = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        hist = {}
+    changed = False
+    for b in bats:
+        if b.get("health") is None:
+            continue
+        samples = hist.setdefault(b["name"], [])
+        if not samples or now - samples[-1]["ts"] >= BATTERY_DAY:
+            samples.append({"ts": now, "health": b["health"]})
+            del samples[:-365]
+            changed = True
+    if changed:
+        try:
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            Path(path).write_text(json.dumps(hist))
+        except OSError:
+            pass
+
+
+def battery_trend(name, path=None):
+    """'Health fell from 92% to 88% since 03 Oct 2026' once a battery has lost capacity over a week or more; else ''."""
+    from . import maintenance
+    path = path or maintenance.STATE / "battery-history.json"
+    try:
+        samples = json.loads(Path(path).read_text()).get(name, [])
+    except (OSError, ValueError, AttributeError):
+        return ""
+    if len(samples) < 2:
+        return ""
+    first, last = samples[0], samples[-1]
+    if last["ts"] - first["ts"] < 7 * BATTERY_DAY or last["health"] >= first["health"]:
+        return ""
+    since = time.strftime("%d %b %Y", time.localtime(first["ts"]))
+    # xgettext:no-python-format
+    return _("Health fell from {0}% to {1}% since {2}").format(first["health"], last["health"], since)
 
 
 PLACEHOLDERS = ("system product name", "to be filled", "default string", "not applicable", "system manufacturer", "o.e.m")

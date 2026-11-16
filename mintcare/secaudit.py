@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 
 from .i18n import _, ngettext
-from .journal import _lines
+from .journal import LongLine, _lines
 from .util import has_cmd, out, pkg_installed, q, read, run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -41,7 +41,7 @@ def failed_logins(days=7):
     timer.start()
     try:
         for line in _lines(p.stdout):
-            if line is None:           # longer than MAX_LINE: not a login record, so it counts as nothing
+            if isinstance(line, LongLine):   # longer than MAX_LINE: not a login record, so it counts as nothing
                 continue
             m = re.search(r"pam_unix\(([^:()]+):auth\): authentication failure", line)   # linear: stops at the next "("
             if m:
