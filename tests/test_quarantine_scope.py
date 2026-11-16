@@ -1,8 +1,12 @@
 import io
 import os
+import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -73,6 +77,97 @@ class QuarantineScope(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(qdir, "inside.txt")))
             self.assertTrue(os.path.exists(outside))
             self.assertTrue(os.path.islink(link))
+
+
+def _in_quarantine(body, qdir):
+    """The generated root step, pointed at a throwaway folder instead of /var/lib/mintcare/quarantine."""
+    return body.replace("/var/lib/mintcare/quarantine", os.path.realpath(qdir))
+
+
+def _folder_on_another_disk(home):
+    """A new folder on a different filesystem from home, or None when this machine has none."""
+    here = os.stat(home).st_dev
+    for base in ("/dev/shm", f"/run/user/{os.getuid()}"):
+        if os.path.isdir(base) and os.access(base, os.W_OK) and os.stat(base).st_dev != here:
+            return tempfile.mkdtemp(dir=base)
+    return None
+
+
+class QuarantineMove(unittest.TestCase):
+    def test_a_folder_swapped_for_a_link_during_the_move_sends_nothing_outside(self):
+        # The old root step moved by path, so a folder swapped for a link just before the move sent it elsewhere.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as outside, \
+                tempfile.TemporaryDirectory() as qdir, tempfile.TemporaryDirectory() as bindir:
+            folder = os.path.join(home, "d")
+            os.mkdir(folder)
+            Path(folder, "file.txt").write_text("mine")
+            Path(outside, "file.txt").write_text("not mine")
+            swap = (f"#!/bin/sh\nrm -r {shlex.quote(folder)}\nln -s {shlex.quote(outside)} {shlex.quote(folder)}\n"
+                    f'exec {shlex.quote(shutil.which("mv"))} "$@"\n')
+            Path(bindir, "mv").write_text(swap)
+            os.chmod(Path(bindir, "mv"), 0o755)
+            _sid, _title, body = secaudit.quarantine_step([os.path.join(folder, "file.txt")], home=home)
+            env = dict(os.environ, PATH=bindir + os.pathsep + os.environ["PATH"])
+            subprocess.run(["bash", "-c", _in_quarantine(body, qdir)], capture_output=True, text=True,
+                           cwd=home, env=env)
+            self.assertEqual(Path(outside, "file.txt").read_text(), "not mine")
+            self.assertEqual(Path(qdir, "file.txt").read_text(), "mine")
+
+    def test_the_move_takes_the_file_from_the_folder_it_reached(self):
+        # A folder swapped for a link after it was reached, but before the rename, must not redirect the rename.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as outside, \
+                tempfile.TemporaryDirectory() as qdir:
+            home, outside, qdir = (os.path.realpath(p) for p in (home, outside, qdir))
+            folder = os.path.join(home, "d")
+            os.mkdir(folder)
+            Path(folder, "file.txt").write_text("mine")
+            Path(outside, "file.txt").write_text("not mine")
+            real_rename = os.rename
+
+            def swap_then_rename(src, dst, **kwargs):
+                real_rename(folder, folder + "-moved")
+                os.symlink(outside, folder)
+                return real_rename(src, dst, **kwargs)
+
+            target = os.path.join(folder, "file.txt")
+            argv = ["-c", qdir, home, "Quarantined {0}", "Skipped {0}", "Not quarantined {0}", target, target]
+            with mock.patch.object(os, "rename", swap_then_rename), mock.patch.object(sys, "argv", argv), \
+                    redirect_stdout(io.StringIO()):
+                exec(compile(secaudit.QUARANTINE_MOVER, "<quarantine>", "exec"), {"__name__": "__main__"})
+            self.assertEqual(Path(qdir, "file.txt").read_text(), "mine")
+            self.assertEqual(Path(outside, "file.txt").read_text(), "not mine")
+
+    def test_a_file_on_another_disk_is_left_in_place_and_not_copied(self):
+        with tempfile.TemporaryDirectory() as home:
+            other = _folder_on_another_disk(home)
+            if other is None:
+                self.skipTest("no writable folder on another filesystem to test with")
+            self.addCleanup(shutil.rmtree, other, True)
+            inside = os.path.join(home, "inside.txt")
+            Path(inside).write_text("mine")
+            _sid, _title, body = secaudit.quarantine_step([inside], home=home)
+            out = subprocess.run(["bash", "-c", _in_quarantine(body, other)], capture_output=True, text=True,
+                                 cwd=home).stdout
+            self.assertEqual(Path(inside).read_text(), "mine")
+            self.assertEqual(os.listdir(other), [])
+            self.assertIn(inside, out)
+
+    def test_a_folder_turned_into_a_link_after_the_check_is_refused(self):
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as outside, \
+                tempfile.TemporaryDirectory() as qdir:
+            folder = os.path.join(home, "d")
+            os.mkdir(folder)
+            Path(folder, "file.txt").write_text("mine")
+            Path(outside, "file.txt").write_text("not mine")
+            inside = os.path.join(folder, "file.txt")
+            _sid, _title, body = secaudit.quarantine_step([inside], home=home)
+            os.rename(folder, folder + "-moved")
+            os.symlink(outside, folder)
+            out = subprocess.run(["bash", "-c", _in_quarantine(body, qdir)], capture_output=True, text=True,
+                                 cwd=home).stdout
+            self.assertIn(f"Skipped, not a plain file in your home folder: {inside}", out)
+            self.assertEqual(Path(outside, "file.txt").read_text(), "not mine")
+            self.assertEqual(os.listdir(qdir), [])
 
 
 if __name__ == "__main__":

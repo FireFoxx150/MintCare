@@ -346,18 +346,83 @@ def rkhunter_step():
     return ("rkhunter", _("Rootkit check (rkhunter)"), "rkhunter --check --sk --rwo --nocolors 2>&1 || true")
 
 
+# Runs as root inside the sealed batch: its arguments are data, never code. Each folder is reached from /
+# one name at a time with O_NOFOLLOW, and the file is renamed inside the folder reached, so a path swapped
+# for a link after the check cannot send the move elsewhere.
+QUARANTINE_MOVER = """\
+import errno, os, stat, sys
+
+
+def walk(parts):
+    # O_PATH: walking a folder needs search permission only, not read.
+    fd = os.open("/", os.O_PATH | os.O_DIRECTORY)
+    try:
+        for part in parts:
+            nxt = os.open(part, os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = nxt
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def folder_of(target, home):
+    # A descriptor for the folder of target when target is a plain file under home, else None.
+    name = os.path.basename(target)
+    if not target.startswith(home) or not name:
+        return None
+    try:
+        fd = walk([p for p in os.path.dirname(target).split("/") if p])
+    except OSError:
+        return None
+    try:
+        if stat.S_ISREG(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode):
+            return fd
+    except OSError:
+        pass
+    os.close(fd)
+    return None
+
+
+qdir, home, ok, skipped, disk, *pairs = sys.argv[1:]
+home = home.rstrip("/") + "/"
+qfd = walk([p for p in qdir.split("/") if p])
+for target, shown in zip(pairs[::2], pairs[1::2]):
+    fd = folder_of(target, home)
+    if fd is None:
+        print(skipped.format(shown), flush=True)
+        continue
+    name = os.path.basename(target)
+    try:
+        os.rename(name, name, src_dir_fd=fd, dst_dir_fd=qfd)
+        print(ok.format(shown), flush=True)
+    except OSError as e:
+        if e.errno == errno.EXDEV:
+            print(disk.format(shown), flush=True)
+        else:
+            print(f"{shown}: {e.strerror}", file=sys.stderr, flush=True)
+    finally:
+        os.close(fd)
+os.close(qfd)
+"""
+
+
 def quarantine_step(paths, home=None):
     """Move infected files into /var/lib/mintcare/quarantine (root-only, not executable).
 
-    The root step checks each path again after the password prompt: only a plain file under your home
-    folder is moved, so a folder swapped for a link in the meantime cannot send the move elsewhere.
+    The root step moves only a plain file under your home folder, reached through folders it opens one name
+    at a time, so a folder swapped for a link after the check cannot send the move elsewhere. A file on another
+    disk from the quarantine folder is left in place, not copied.
     """
     home = os.path.realpath(home or os.path.expanduser("~"))
-    lines = ["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine"]
+    pairs = []
     for p in paths:
-        plain = (f"[ -f {q(p)} ] && [ ! -L {q(p)} ] && "
-                 f'case "$(realpath -e -- {q(p)})" in {q(home)}/*) true;; *) false;; esac')
-        lines.append(f"if {plain}; then mv -- {q(p)} /var/lib/mintcare/quarantine/ && echo {q('Quarantined ' + p)}; "
-                     f"else echo {q('Skipped, not a plain file in your home folder: ' + p)}; fi")
-    lines.append("chmod -R a-x /var/lib/mintcare/quarantine/* 2>/dev/null || true")
-    return ("quarantine", f"Quarantine {len(paths)} file(s)", "\n".join(lines))
+        pairs += [q(os.path.join(os.path.realpath(os.path.dirname(p)), os.path.basename(p))), q(p)]
+    args = [q(QUARANTINE_MOVER), "/var/lib/mintcare/quarantine", q(home), q("Quarantined {0}"),
+            q("Skipped, not a plain file in your home folder: {0}"),
+            q(_("Not quarantined, on another disk from the quarantine folder: {0}")), *pairs]
+    return ("quarantine", f"Quarantine {len(paths)} file(s)",
+            "\n".join(["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine",
+                       f"/usr/bin/python3 -I -c {' '.join(args)}",
+                       "chmod -R a-x /var/lib/mintcare/quarantine/* 2>/dev/null || true"]))
