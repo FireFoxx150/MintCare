@@ -37,6 +37,11 @@ class Buttons(unittest.TestCase):
         self.assertEqual(payload, (journal.dismiss_key(g), 5.0))
         self.assertIn("gkr-pam", label)
 
+    def test_messages_that_differ_only_at_the_end_get_different_labels(self):
+        one = group("systemd", "Timed out waiting for device dev-disk-by-uuid-12BE5C58BE5C3687.device", 1.0)
+        two = group("systemd", "Timed out waiting for device dev-disk-by-uuid-ECC8F392C8F35972.device", 1.0)
+        self.assertNotEqual(journal.dismiss_actions([one])[0][0], journal.dismiss_actions([two])[0][0])
+
     def test_serious_errors_and_catch_all_groups_get_no_button(self):
         serious = group("kernel", "I/O error, dev sda", 1.0, level=journal.FAIL)
         catch_all = group("(other kinds)", "", 1.0, level=journal.INFO)
@@ -46,11 +51,6 @@ class Buttons(unittest.TestCase):
         g = group("kernel", "x" * 100, 1.0)
         [(label, _kind, _payload)] = journal.dismiss_actions([g])
         self.assertLess(len(label), 80)
-
-    def test_messages_that_differ_only_at_the_end_get_different_labels(self):
-        one = group("systemd", "Timed out waiting for device dev-disk-by-uuid-12BE5C58BE5C3687.device", 1.0)
-        two = group("systemd", "Timed out waiting for device dev-disk-by-uuid-ECC8F392C8F35972.device", 1.0)
-        self.assertNotEqual(journal.dismiss_actions([one])[0][0], journal.dismiss_actions([two])[0][0])
 
 
 class Details(unittest.TestCase):
@@ -71,6 +71,31 @@ class Details(unittest.TestCase):
             kinds = [a[1] for a in checks.details("booterrors")[2]]
             self.assertIn("restore", kinds)
             self.assertNotIn("dismiss", kinds)
+
+
+class LongEntries(unittest.TestCase):
+    def setUp(self):
+        journal.clear_dismissed()
+
+    def tearDown(self):
+        journal.clear_dismissed()
+
+    def test_a_too_long_entry_takes_its_time_from_its_opening_text_and_can_be_dismissed(self):
+        head = '{"__CURSOR" : "s=1", "__REALTIME_TIMESTAMP" : "1794228866923275", "MESSAGE" : "'
+        groups = journal._Groups()
+        groups.add_long(journal._stamp(head))
+        [long_group] = groups.finish()
+        self.assertEqual(long_group["last"], 1794228866.923275)
+        self.assertEqual(journal.dismiss_key(long_group), journal.LONG_TAG)
+        [(_label, kind, payload)] = journal.dismiss_actions([long_group])
+        self.assertEqual(kind, "dismiss")
+        journal.set_dismissed(*payload)
+        self.assertEqual(journal.visible([long_group], journal.dismissed()), [])
+        newer = dict(long_group, last=long_group["last"] + 60)
+        self.assertEqual(journal.visible([newer], journal.dismissed()), [newer])
+
+    def test_a_line_without_a_time_gives_zero(self):
+        self.assertEqual(journal._stamp('{"MESSAGE" : "'), 0)
 
 
 class Saving(unittest.TestCase):
