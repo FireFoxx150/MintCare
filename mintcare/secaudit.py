@@ -466,4 +466,6 @@ def quarantine_step(paths, home=None):
     return ("quarantine", f"Quarantine {len(paths)} file(s)",
             "\n".join(["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine",
                        f"/usr/bin/python3 -I -c {' '.join(args)}",
-                       "chmod -R a-x /var/lib/mintcare/quarantine/* 2>/dev/null || true"]))
+                       # find skips top-level links: chmod would follow one named on its command line.
+                       "find /var/lib/mintcare/quarantine -mindepth 1 -maxdepth 1 ! -type l "
+                       "-exec chmod -R a-x {} + 2>/dev/null || true"]))

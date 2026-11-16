@@ -242,6 +242,23 @@ class QuarantineMove(unittest.TestCase):
             self.assertEqual(Path(qdir, "note.txt").read_text(), "other run")
             self.assertEqual(Path(qdir, "note.txt.1").read_text(), "mine")
 
+    def test_a_symlink_in_the_quarantine_folder_does_not_change_its_target(self):
+        # chmod follows a link named on its command line, so a link here must not reach an executable outside.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as outside, \
+                tempfile.TemporaryDirectory() as qdir:
+            home, outside, qdir = (os.path.realpath(p) for p in (home, outside, qdir))
+            tool = os.path.join(outside, "tool")
+            Path(tool).write_text("#!/bin/sh\n")
+            os.chmod(tool, 0o755)
+            os.symlink(tool, os.path.join(qdir, "link"))
+            script = os.path.join(home, "script.sh")
+            Path(script).write_text("#!/bin/sh\n")
+            os.chmod(script, 0o755)
+            _sid, _title, body = secaudit.quarantine_step([script], home=home)
+            subprocess.run(["bash", "-c", _in_quarantine(body, qdir)], capture_output=True, text=True, cwd=home)
+            self.assertEqual(os.stat(tool).st_mode & 0o777, 0o755)
+            self.assertEqual(os.stat(os.path.join(qdir, "script.sh")).st_mode & 0o111, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
