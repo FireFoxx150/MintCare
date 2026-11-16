@@ -321,9 +321,10 @@ def clam_scan(paths, on_line=lambda line: None, cancel=lambda: False):
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(b"\n".join(os.fsencode(p) for p in files) + b"\n")
+        # surrogateescape: a name that is not UTF-8 comes back exactly as os.walk gave it, so it matches `known`
         proc = subprocess.Popen(["clamscan", "-i", "--no-summary", f"--file-list={listing}"],
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace",
-                                bufsize=1)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                errors="surrogateescape", bufsize=1)
         known, infected = set(files), []
         for line in proc.stdout:
             if cancel():
@@ -334,6 +335,7 @@ def clam_scan(paths, on_line=lambda line: None, cancel=lambda: False):
             if m and m.group(1) in known:
                 infected.append((m.group(1), m.group(2)))
             on_line(line)
+        proc.stdout.close()
         rc = proc.wait()
     finally:
         os.remove(listing)

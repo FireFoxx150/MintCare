@@ -1,3 +1,4 @@
+import io
 import os
 import subprocess
 import tempfile
@@ -27,13 +28,29 @@ class ScannerOutput(unittest.TestCase):
             ok = os.path.join(home, "ok.txt")
             Path(ok).write_text("eicar")
             lines = [f"{ok}: Eicar-Test-Signature FOUND\n", "/etc/shadow: Eicar-Test-Signature FOUND\n"]
-            proc = mock.Mock(stdout=iter(lines))
+            proc = mock.Mock(stdout=io.StringIO("".join(lines)))
             proc.wait.return_value = 1
             with mock.patch.object(secaudit.subprocess, "Popen", return_value=proc) as popen:
                 res = secaudit.clam_scan([home])
             self.assertEqual(res["infected"], [(ok, "Eicar-Test-Signature")])
             self.assertIn("--file-list=", " ".join(popen.call_args.args[0]))
             self.assertNotIn("-r", popen.call_args.args[0])
+
+    def test_a_name_that_is_not_utf8_is_still_found(self):
+        # os.walk gives such a name with surrogate escapes; clamscan prints the raw bytes, which must map back to it
+        fake_clamscan = ('#!/bin/sh\n'
+                         'for arg in "$@"; do case "$arg" in --file-list=*) list="${arg#--file-list=}";; esac; done\n'
+                         'while IFS= read -r name; do printf \'%s: Eicar-Test-Signature FOUND\\n\' "$name"; done < "$list"\n')
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as bin_dir:
+            with open(os.path.join(os.fsencode(home), b"caf\xe9.exe"), "wb") as f:
+                f.write(b"eicar")
+            fake = Path(bin_dir, "clamscan")
+            fake.write_text(fake_clamscan)
+            fake.chmod(0o755)
+            with mock.patch.dict(os.environ, {"PATH": bin_dir + os.pathsep + os.environ.get("PATH", os.defpath)}):
+                res = secaudit.clam_scan([home])
+            self.assertEqual(res["infected"],
+                             [(os.path.join(home, os.fsdecode(b"caf\xe9.exe")), "Eicar-Test-Signature")])
 
 
 class QuarantineScope(unittest.TestCase):
