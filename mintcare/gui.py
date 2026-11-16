@@ -21,7 +21,7 @@ from .i18n import N_, _, ngettext
 from . import (__version__, alerts, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
                flatpaks, guard, hardware, lan, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
                space, theme, troubleshoot, tweaks, widgets)
-from .runner import run_steps  # noqa: E402
+from .runner import display_text, run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
 from .util import human, q, read, sysctl  # noqa: E402
 from .widgets import BLUE, EMERALD, ORANGE, VIOLET, Bar, LineChart, RingGauge, StackedBar, describe, show_or_hide  # noqa: E402
@@ -2271,7 +2271,7 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
         def line(text):
             counter["n"] += 1
             if counter["n"] % 25 == 0 or "FOUND" in text:
-                GLib.idle_add(self.mal_progress.set_text, text[-160:])
+                GLib.idle_add(self.mal_progress.set_text, display_text(text[-160:]))
 
         def done(res):
             self._mal_running = False
@@ -2285,8 +2285,8 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
                                          else _("The scanner reported an error — see the Activity log.")))
                                        + (" " + note if skipped else ""))
             for path, virus in found:
-                self.mal_results.pack_start(self._row(os.path.basename(path), virus, path, "dialog-error-symbolic"),
-                                            False, False, 0)
+                self.mal_results.pack_start(self._row(display_text(os.path.basename(path)), virus, display_text(path),
+                                                      "dialog-error-symbolic"), False, False, 0)
             if found:
                 self.mal_results.pack_start(self._btn(_("Quarantine these files"), lambda: self._root_job(
                     _("Quarantining…"), [secaudit.quarantine_step([p for p, _v in found])], "Security"),

@@ -22,6 +22,11 @@ class Runner(TempDirTest):
         self.assertEqual(res, {"a": 0, "b": 3})
         self.assertIn("hello", lines)
 
+    def test_output_that_is_not_utf8_is_shown_with_replacements(self):
+        lines = []
+        run_steps([("a", "raw", "printf 'caf\\xe9\\n'")], root=False, on_line=lines.append)
+        self.assertIn("caf\N{REPLACEMENT CHARACTER}", lines)
+
     def test_steps_cannot_read_stdin(self):
         res = run_steps([("a", "stdin", "read x && exit 9 || exit 0")], root=False, on_line=lambda _l: None)
         self.assertEqual(res["a"], 0)
@@ -47,6 +52,12 @@ class Runner(TempDirTest):
             tweaks.MARKERS = old
 
 
+class DisplayText(unittest.TestCase):
+    def test_bytes_that_are_not_utf8_show_as_replacement_characters(self):
+        self.assertEqual(runner.display_text("caf\udce9.txt"), "caf\N{REPLACEMENT CHARACTER}.txt")
+        self.assertEqual(runner.display_text("plain name.txt"), "plain name.txt")
+
+
 class SealedBatch(unittest.TestCase):
     def test_the_batch_is_read_only_and_reads_from_the_top(self):
         fd = runner._sealed("echo hi\n")
@@ -55,6 +66,13 @@ class SealedBatch(unittest.TestCase):
             self.assertEqual(os.read(fd, 100), b"echo hi\n")
             with self.assertRaises(PermissionError):
                 os.write(fd, b"rm -rf /")
+        finally:
+            os.close(fd)
+
+    def test_a_name_that_is_not_utf8_is_sealed_as_its_original_bytes(self):
+        fd = runner._sealed("echo caf\udce9\n")
+        try:
+            self.assertEqual(os.read(fd, 100), b"echo caf\xe9\n")
         finally:
             os.close(fd)
 

@@ -37,7 +37,8 @@ def _sealed(text):
     fd = os.memfd_create("mintcare-batch", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
     try:
         with os.fdopen(fd, "wb", closefd=False) as f:
-            f.write(text.encode())
+            # A name that is not UTF-8 reaches here as surrogates; surrogateescape writes back the bytes it came from.
+            f.write(text.encode(errors="surrogateescape"))
         fcntl.fcntl(fd, fcntl.F_ADD_SEALS,
                     fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE)
         os.lseek(fd, 0, os.SEEK_SET)
@@ -45,6 +46,11 @@ def _sealed(text):
         os.close(fd)
         raise
     return fd
+
+
+def display_text(text):
+    """Text that GTK can show: bytes that were not UTF-8 arrive as surrogates and show as U+FFFD."""
+    return "".join("\N{REPLACEMENT CHARACTER}" if "\ud800" <= c <= "\udfff" else c for c in text)
 
 
 def run_steps(steps, root, on_line=print):
@@ -64,8 +70,9 @@ def run_steps(steps, root, on_line=print):
         cmd = ["/bin/bash", "-c", ROOT_RUN]
     results = {}
     try:
+        # Root output can hold bytes that are not UTF-8; they show as U+FFFD rather than stop the batch.
         with subprocess.Popen(cmd, stdin=batch, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, bufsize=1) as p:
+                              text=True, errors="replace", bufsize=1) as p:
             prc = _stream(p, results, on_line)
     finally:
         os.close(batch)
