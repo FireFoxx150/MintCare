@@ -1,6 +1,7 @@
 """Login security (failed logins, SSH settings, AppArmor, auto-login, screen lock) and malware scans."""
 
 import glob
+import json
 import os
 import re
 import stat
@@ -10,7 +11,7 @@ import threading
 from pathlib import Path
 
 from .i18n import _, ngettext
-from .journal import LongLine, _lines
+from .journal import LongLine, _lines, _text
 from .util import has_cmd, out, pkg_installed, q, read, run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -23,11 +24,14 @@ LOG_TIMEOUT = 40               # seconds; a read that takes longer gives no resu
 def failed_logins(days=7):
     """{service: count} of failed password attempts in the last N days, counted as the journal streams.
 
-    The journal is never held in memory whole, and the number of services kept is capped.
+    Only sshd's own units count: ssh.service and its per-connection ssh@ instances. journald names the unit
+    (_SYSTEMD_UNIT), and a local user cannot place a process in those units, so text they write with logger
+    cannot count. The journal is never held in memory whole, and the number of services kept is capped.
     """
     counts, late = {}, [False]
     try:
-        p = subprocess.Popen(["journalctl", "--since", f"-{days} days", "-q", "--no-pager", "-o", "cat"],
+        p = subprocess.Popen(["journalctl", "--since", f"-{days} days", "-q", "--no-pager", "-o", "json",
+                              "--output-fields=_SYSTEMD_UNIT,MESSAGE"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, errors="replace",
                              env=dict(os.environ, LC_ALL="C", LANG="C"))
     except OSError:
@@ -43,10 +47,18 @@ def failed_logins(days=7):
         for line in _lines(p.stdout):
             if isinstance(line, LongLine):   # longer than MAX_LINE: not a login record, so it counts as nothing
                 continue
-            m = re.search(r"pam_unix\(([^:()]+):auth\): authentication failure", line)   # linear: stops at the next "("
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            unit = _text(entry.get("_SYSTEMD_UNIT")) if isinstance(entry, dict) else ""
+            if unit != "ssh.service" and not (unit.startswith("ssh@") and unit.endswith(".service")):
+                continue
+            msg = _text(entry.get("MESSAGE"))
+            m = re.search(r"pam_unix\(([^:()]+):auth\): authentication failure", msg)   # linear: stops at the next "("
             if m:
                 service = m.group(1)
-            elif "Failed password for" in line or "Invalid user" in line:
+            elif "Failed password for" in msg or "Invalid user" in msg:
                 service = "ssh"
             else:
                 continue
