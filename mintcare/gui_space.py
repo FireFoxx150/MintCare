@@ -648,7 +648,8 @@ class SpacePage:
         if not self.confirm(ngettext("Restore {0} file?", "Restore {0} files?", len(paths)).format(len(paths)),
                             "<tt>" + GLib.markup_escape_text("\n".join(dests[:12])) + "</tt>\n\n" +
                             _("Each file goes back to where it was. The current version is kept beside it "
-                              "as NAME.~1~, so you can switch back.")):
+                              "as NAME.~1~, so you can switch back.") + " " +
+                            _("Restored files are owned by root and have no setuid or setgid bit.")):
             return
         self._root_job(_("Restoring…"), [("ts-restore", _("Restore files from Timeshift"), script)], "Timeshift",
                        lambda r: maintenance.record("snapshot", _('Restored {0} from snapshot {1}').format(
