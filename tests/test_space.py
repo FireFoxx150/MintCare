@@ -1,8 +1,10 @@
+import errno
 import os
 import shlex
 import stat
 import subprocess
 import unittest
+from unittest import mock
 
 from mintcare import space
 from mintcare.widgets import _squarify
@@ -132,6 +134,15 @@ class TimeshiftRestore(TempDirTest):
         for name, bit in (("suid", stat.S_ISUID), ("sgid", stat.S_ISGID)):
             path = self.snap_file(f"usr/bin/{name}", 0o755 | bit)
             with self.assertRaises(ValueError):
+                space.restore_file_script("snap1", [path], base=self.tmp)
+
+    def test_refuses_files_with_file_capabilities(self):
+        path = self.snap_file("usr/bin/ping", 0o755)
+        with mock.patch.object(os, "getxattr", return_value=b"\x01\x00\x00\x02"):
+            with self.assertRaises(ValueError):
+                space.restore_file_script("snap1", [path], base=self.tmp)
+        with mock.patch.object(os, "getxattr", side_effect=OSError(errno.EACCES, "denied")):
+            with self.assertRaises(ValueError):          # an unexpected error refuses too
                 space.restore_file_script("snap1", [path], base=self.tmp)
 
     def test_copy_drops_setuid_and_keeps_rwx(self):

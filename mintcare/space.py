@@ -3,6 +3,7 @@
 Everything here runs unprivileged; deleting files moves them to the Trash.
 """
 
+import errno
 import hashlib
 import json
 import os
@@ -359,11 +360,21 @@ def snapshot_root(name, base=None):
     return os.path.join(base or snapshot_dir() or "", name, "localhost")
 
 
+def _has_file_caps(path):
+    """True if the file has Linux file capabilities, which grant privilege as setuid does."""
+    try:
+        os.getxattr(path, "security.capability")
+    except OSError as e:
+        return e.errno not in (errno.ENODATA, errno.ENOTSUP)   # no such attribute, or no xattr support
+    return True
+
+
 def restore_file_script(name, paths, base=None):
     """Root script putting files from a Timeshift snapshot back where they were. The current file is
     kept beside it as NAME.~1~ (cp --backup=numbered). Raises ValueError for anything that isn't a
-    regular file inside the snapshot, or is setuid/setgid. No -a: the copy keeps root's ownership and
-    drops the snapshot's setuid bits, but keeps its read, write and execute bits."""
+    regular file inside the snapshot, or grants privilege (setuid, setgid or file capabilities). No -a:
+    the copy keeps root's ownership and drops the snapshot's setuid bits, but keeps its read, write and
+    execute bits."""
     from .util import q
     root = os.path.realpath(snapshot_root(name, base))
     lines = []
@@ -373,6 +384,8 @@ def restore_file_script(name, paths, base=None):
             raise ValueError(f"{p} isn't a file inside snapshot {name}")
         if os.stat(real).st_mode & (stat.S_ISUID | stat.S_ISGID):
             raise ValueError(_("{0} has the setuid or setgid bit set, so it is not restored.").format(p))
+        if _has_file_caps(real):
+            raise ValueError(_("{0} has file capabilities set, so it is not restored.").format(p))
         dest = "/" + os.path.relpath(real, root)
         lines.append(f"mkdir -p {q(os.path.dirname(dest))} && cp --no-preserve=ownership --preserve=timestamps "
                      f"--backup=numbered -- {q(real)} {q(dest)} && echo {q('Restored ' + dest)}")
