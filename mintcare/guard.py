@@ -10,6 +10,7 @@ Neither part needs root. Both are off until you turn them on on the Security pag
 import hashlib
 import json
 import os
+import queue
 import shlex
 import shutil
 import sys
@@ -124,6 +125,25 @@ def check_download(path, notify):
         print(f"clamscan could not check {path}: {text}", file=sys.stderr, flush=True)
 
 
+def start_scanner(notify):
+    """Start the one thread that checks downloads, a file at a time. Returns the queue to put paths on.
+    One thread, so a burst of new files cannot start a ClamAV scan (and its memory) for every file."""
+    scans = queue.Queue()
+
+    def work():
+        while True:
+            path = scans.get()
+            try:
+                check_download(path, notify)
+            except Exception as err:            # one bad file must not stop the checks for the rest
+                print(f"clamscan could not check {path}: {err}", file=sys.stderr, flush=True)
+            finally:
+                scans.task_done()
+
+    threading.Thread(target=work, daemon=True).start()
+    return scans
+
+
 # ------------------------------------------------------------------ the service
 
 def _watch_folder(folder, handler):
@@ -160,6 +180,7 @@ def watch():
     if st["downloads"] and clamscan_ready() and os.path.isdir(space.downloads_dir()):
         seen = set()
         new_events = {E.CREATED, E.CHANGES_DONE_HINT, E.MOVED_IN, E.RENAMED}
+        scans = start_scanner(notify)
 
         def on_download(f, event):
             path, name = f.get_path(), f.get_basename()
@@ -171,7 +192,7 @@ def watch():
                 return
             if key not in seen:               # a download is checked once, however many events it causes
                 seen.add(key)
-                threading.Thread(target=check_download, args=(path, notify), daemon=True).start()
+                scans.put(path)
         monitors.append(_watch_folder(space.downloads_dir(), on_download))
     if monitors:
         GLib.MainLoop().run()

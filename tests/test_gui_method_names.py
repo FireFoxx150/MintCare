@@ -9,7 +9,8 @@ import pathlib
 import unittest
 
 PKG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mintcare")
-CLASSES = {"gui.py": "MintCareWindow", "gui_space.py": "SpacePage"}
+CLASSES = {"gui.py": "MintCareWindow", "gui_space.py": "SpacePage", "gui_clean.py": "CleanPage",
+           "gui_backup.py": "BackupPage", "gui_maintenance.py": "MaintenancePage"}
 
 
 class WindowMethodNames(unittest.TestCase):

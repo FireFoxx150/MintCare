@@ -28,7 +28,7 @@ class Probes(unittest.TestCase):
         for i in cleaner.ITEMS:
             if i.available():
                 with self.subTest(item=i.id):
-                    size, detail = i.scan()
+                    size, detail, _script = cleaner.measure(i)
                     self.assertTrue(size is None or size >= 0)
                     self.assertIsInstance(detail, str)
 

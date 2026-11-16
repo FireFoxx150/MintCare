@@ -98,11 +98,17 @@ def s_thumbs():
     return dir_size(HOME / ".cache/thumbnails"), _("Preview images regenerated on demand")
 
 
-def _stale_cache_files(days=30):
+# Developer and AI model caches under ~/.cache. The stale sweep leaves them alone: they are big and slow to
+# download again, and their own items (Developer caches, AI model downloads) clean them when you choose.
+KEPT_CACHES = ("pip", "yarn", "go-build", "huggingface")
+
+
+def _stale_cache_files(days=30, cache=HOME / ".cache"):
     cutoff = time.time() - days * 86400
-    root = HOME / ".cache"
+    kept = {str(cache / name) for name in KEPT_CACHES}
     total = n = 0
-    for dirpath, _d, files in os.walk(root, onerror=lambda e: None):
+    for dirpath, dirs, files in os.walk(cache, onerror=lambda e: None):
+        dirs[:] = [d for d in dirs if os.path.join(dirpath, d) not in kept]
         for f in files:
             try:
                 st = os.lstat(os.path.join(dirpath, f))
@@ -117,6 +123,13 @@ def _stale_cache_files(days=30):
 def s_usercache():
     size, n = _stale_cache_files()
     return size, _('{0:,} files in ~/.cache unused for 30+ days').format(n)
+
+
+def usercache_script(cache=HOME / ".cache"):
+    """Delete stale files under ~/.cache, then the folders left empty. KEPT_CACHES are never touched."""
+    keep = " ".join(f"! -path {q(str(cache / name) + '/*')} ! -path {q(str(cache / name))}" for name in KEPT_CACHES)
+    return (f"find {q(cache)} -type f -atime +30 -mtime +30 {keep} -delete; "
+            f"find {q(cache)} -mindepth 1 -type d -empty {keep} -delete")
 
 
 DEV_CACHES = [HOME / ".cache/pip", HOME / ".npm/_cacache", HOME / ".cache/yarn",
@@ -320,13 +333,12 @@ def stale_folders(root=None, days=STALE_DAYS):
 
 def s_stale():
     found = stale_folders()
-    # the scan records what it found, and the Trash step then moves exactly those folders
-    BY_ID["stale"].user_script = "\n".join(f"gio trash {q(p)}" for p, _n in found) or None
+    script = "\n".join(f"gio trash {q(p)}" for p, _n in found) or None   # what Clean runs for exactly these folders
     if not found:
-        return 0, _("none found")
+        return 0, _("none found"), script
     names = ", ".join(os.path.relpath(p, HOME) for p, _n in found[:3])
     return sum(n for _p, n in found), ngettext("{0} folder, for example {1}", "{0} folders, for example {1}",
-                                               len(found)).format(len(found), names)
+                                               len(found)).format(len(found), names), script
 
 
 RECENT_FILE = HOME / ".local/share/recently-used.xbel"
@@ -394,13 +406,12 @@ def broken_launchers(dirs=LAUNCHER_DIRS):
 
 def s_broken():
     found = broken_links() + broken_launchers()
-    # the scan records what it found, and the Trash step then moves exactly those links and launchers
-    BY_ID["broken"].user_script = "\n".join(f"gio trash {q(p)}" for p in found) or None
+    script = "\n".join(f"gio trash {q(p)}" for p in found) or None   # what Clean runs for exactly these links
     if not found:
-        return 0, _("none found")
+        return 0, _("none found"), script
     names = ", ".join(os.path.relpath(p, HOME) if p.startswith(str(HOME) + os.sep) else p for p in found[:3])
     return None, ngettext("{0} broken link or launcher, for example {1}", "{0} broken links or launchers, for example {1}",
-                          len(found)).format(len(found), names)
+                          len(found)).format(len(found), names), script
 
 
 # ------------------------------------------------------------------ data left by removed apt apps
@@ -436,14 +447,22 @@ def s_leftovers():
     from . import packages
     gone = {p["pkg"] for e in packages.history() for p in e["remove"] + e["purge"]}
     found = leftover_dirs(gone, packages.installed())
-    # the scan records what it found, and the Trash step then moves exactly those folders
-    BY_ID["leftovers"].user_script = "\n".join(f"gio trash {q(p)}" for p in found) or None
+    script = "\n".join(f"gio trash {q(p)}" for p in found) or None   # what Clean runs for exactly these folders
     if not found:
-        return 0, _("none found")
+        return 0, _("none found"), script
     names = ", ".join(os.path.relpath(p, HOME) for p in found[:3])
     return sum(dir_size(p) for p in found), ngettext("{0} folder from a removed app, for example {1}",
                                                      "{0} folders from removed apps, for example {1}",
-                                                     len(found)).format(len(found), names)
+                                                     len(found)).format(len(found), names), script
+
+
+def measure(item):
+    """(bytes or None, detail, script): the script is what Clean runs for what this scan found. Most scans return
+    two values and use the item's own script; the three that find files also return the script they built."""
+    found = item.scan()
+    if len(found) == 3:
+        return found
+    return found[0], found[1], item.user_script
 
 
 ITEMS = [
@@ -473,9 +492,7 @@ ITEMS = [
               _("The list of recently opened files that the file manager and apps show. Your files aren't touched."),
               s_recent, user_script=f"rm -f {q(RECENT_FILE)}", default=False),
     CleanItem("usercache", _("Stale application cache"), _("Cache files no app has touched in 30 days."),
-              s_usercache,
-              user_script=f"find {q(HOME / '.cache')} -type f -atime +30 -mtime +30 -delete; "
-                          f"find {q(HOME / '.cache')} -mindepth 1 -type d -empty -delete"),
+              s_usercache, user_script=usercache_script()),
     *_browser_items(),
     CleanItem("flatpakdata", _("Data of removed Flatpak apps"),
               _("Settings and files that uninstalled Flatpak apps left in ~/.var/app. Moved to the Trash."),

@@ -6,6 +6,7 @@ Cinnamon's own Startup Applications tool does.
 """
 
 import os
+import re
 from pathlib import Path
 
 from gi.repository import GLib
@@ -24,6 +25,12 @@ ESSENTIAL_PREFIXES = (
 
 def _desktops():
     return [d for d in os.environ.get("XDG_CURRENT_DESKTOP", "").split(":") if d]
+
+
+def desktop_exec(args):
+    """An Exec= value for a .desktop file: each word in double quotes, with the characters the spec reserves escaped."""
+    words = [re.sub(r'(["`$\\])', r"\\\1", a).replace("%", "%%") for a in args]
+    return " ".join(f'"{w}"' for w in words)
 
 
 def _get(kf, key, default=""):

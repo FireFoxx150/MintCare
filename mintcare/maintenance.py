@@ -6,6 +6,7 @@ Everything here is per-user: settings in ~/.config/mintcare, history and change 
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -267,12 +268,17 @@ def launcher():
     return [sys.executable, str(Path(__file__).resolve().parent.parent / "mintcare.py")]
 
 
+def relaunch_command():
+    """Start MintCare again a second later, so this process has time to quit. The arguments reach the shell only as "$@"."""
+    return ["bash", "-c", 'sleep 1; exec "$@"', "mintcare", *launcher()]
+
+
 CALENDAR = {"daily": "daily", "weekly": "Mon *-*-* 10:00", "monthly": "*-*-01 10:00"}
 
 
 def install_timer(frequency):
     UNIT_DIR.mkdir(parents=True, exist_ok=True)
-    cmd = " ".join(launcher() + ["maintain"])
+    cmd = shlex.join(launcher() + ["maintain"])
     (UNIT_DIR / SERVICE).write_text(f"""# Managed by MintCare
 [Unit]
 Description=MintCare scheduled check-up
@@ -338,7 +344,7 @@ def run_maintenance(notify=True, on_line=None):
     counts = {st: sum(1 for _c, r in results if r.status == st) for st in ("fail", "warn", "info")}
     record_score(max(0, 100 - counts["fail"] * 15 - counts["warn"] * 5), counts)  # tips do not count
 
-    wanted = set(s.get("clean", []))
+    wanted = set(s.get("clean", [])) & set(SAFE_CLEAN)     # settings can name any item; only SAFE_CLEAN runs unattended
     items = [i for i in cleaner.ITEMS if i.user_script and not i.root_script and i.available()
              and (i.id in wanted or ("browser" in wanted and i.id.startswith("browser-")))]
     before = shutil.disk_usage(str(Path.home())).free
