@@ -1,6 +1,7 @@
 """Junk cleaner. scan() runs unprivileged and estimates what each item frees."""
 
 import os
+import re
 import shlex
 import shutil
 import time
@@ -402,6 +403,49 @@ def s_broken():
                           len(found)).format(len(found), names)
 
 
+# ------------------------------------------------------------------ data left by removed apt apps
+
+SHARED_DIRS = {"autostart", "dconf", "systemd", "fontconfig", "fonts", "icons", "themes", "applications", "Trash",
+               "mintcare"}
+LEFTOVER_BASES = [HOME / ".config", HOME / ".local/share", HOME / ".cache"]
+
+
+def _norm(name):
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def leftover_dirs(removed, installed, bases=None):
+    """Folders in ~/.config, ~/.local/share and ~/.cache named after a removed package, unless an installed
+    package has the same name too."""
+    gone = {_norm(p) for p in removed} - {_norm(p) for p in installed}
+    found = []
+    for base in bases or LEFTOVER_BASES:
+        try:
+            entries = list(os.scandir(base))
+        except OSError:
+            continue
+        for e in entries:
+            if e.name.startswith(".") or e.name in SHARED_DIRS or not e.is_dir(follow_symlinks=False):
+                continue
+            if _norm(e.name) in gone:
+                found.append(e.path)
+    return sorted(found)
+
+
+def s_leftovers():
+    from . import packages
+    gone = {p["pkg"] for e in packages.history() for p in e["remove"] + e["purge"]}
+    found = leftover_dirs(gone, packages.installed())
+    # the scan records what it found, and the Trash step then moves exactly those folders
+    BY_ID["leftovers"].user_script = "\n".join(f"gio trash {q(p)}" for p in found) or None
+    if not found:
+        return 0, _("none found")
+    names = ", ".join(os.path.relpath(p, HOME) for p in found[:3])
+    return sum(dir_size(p) for p in found), ngettext("{0} folder from a removed app, for example {1}",
+                                                     "{0} folders from removed apps, for example {1}",
+                                                     len(found)).format(len(found), names)
+
+
 ITEMS = [
     CleanItem("apt", _("Package download cache"), _("Downloaded .deb files that are already installed."),
               s_apt, root_script="apt-get clean"),
@@ -462,6 +506,10 @@ ITEMS = [
               _("Symbolic links and app launchers whose target is gone, in your home folder. Links to unplugged drives "
                 "are listed too. Moved to the Trash."),
               s_broken, default=False),
+    CleanItem("leftovers", _("Data of removed apt apps"),
+              _("Settings and caches that packages you removed left in ~/.config, ~/.local/share and ~/.cache. "
+                "Moved to the Trash."),
+              s_leftovers, default=False),
     CleanItem("trash", _("Empty Trash"), _("Permanently deletes everything in your Trash."),
               s_trash, default=False, user_script="gio trash --empty"),
 ]

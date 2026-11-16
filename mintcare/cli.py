@@ -178,6 +178,12 @@ def cmd_alerts(args):
     return 0
 
 
+def cmd_guard(args):
+    from . import guard
+    guard.watch()
+    return 0
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="mintcare", description="Clean, optimise and repair Linux Mint.")
     ap.add_argument("--version", action="version", version=f"MintCare {__version__}")
@@ -198,6 +204,7 @@ def main(argv):
     mt = sub.add_parser("maintain", help="scheduled check-up: scan, safe clean, notify")
     mt.add_argument("--no-notify", action="store_true")
     sub.add_parser("alerts", help="announce disk, battery and temperature problems that are new (used by the alerts timer)")
+    sub.add_parser("guard", help="watch decoy files and check new downloads (used by the guard service)")
     sp = sub.add_parser("space", help="what's using disk space")
     sp.add_argument("path", nargs="?", help="folder to analyse (default: your home)")
     cl = sub.add_parser("clean", help="show or remove junk")
@@ -207,4 +214,5 @@ def main(argv):
     if a.cmd == "clean" and a.run == []:
         a.run = ["default"]
     return {"scan": cmd_scan, "tweaks": cmd_tweaks, "clean": cmd_clean, "hardware": cmd_hardware, "support-bundle": cmd_support_bundle, "space": cmd_space,
-            "maintain": cmd_maintain, "report": cmd_report, "backup": cmd_backup, "alerts": cmd_alerts}[a.cmd](a)
+            "maintain": cmd_maintain, "report": cmd_report, "backup": cmd_backup, "alerts": cmd_alerts,
+            "guard": cmd_guard}[a.cmd](a)

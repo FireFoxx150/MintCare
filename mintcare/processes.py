@@ -153,3 +153,34 @@ def gpu_processes():
 def end_step(pid, name, force=False):
     sig = "KILL" if force else "TERM"
     return ("kill", f"End {name} ({pid})", f"kill -{sig} {int(pid)}")
+
+
+def nice_of(pid):
+    """Nice value of a process (-20 most urgent to 19 least), or None when it can't be read."""
+    st = read(f"/proc/{pid}/stat")
+    f = st[st.rfind(")") + 2:].split() if st else []
+    try:
+        return int(f[16])                 # field 19 of /proc/<pid>/stat, counted from the state field
+    except (IndexError, ValueError):
+        return None
+
+
+def lower_priority(pid, name, nice=10):
+    """Make one of your own programs less urgent: nice +10 for the processor, the idle class for disk.
+    Needs no password. Returns (ok, message); refuses if that PID now belongs to a different program."""
+    pid = int(pid)
+    if read(f"/proc/{pid}/comm") != name[:15]:
+        return False, _("{0} has already closed").format(name)
+    rc, o = run(["renice", "-n", str(int(nice)), "-p", str(pid)], timeout=10)
+    if rc != 0:
+        return False, o or _("Could not change the priority")
+    run(["ionice", "-c", "3", "-p", str(pid)], timeout=10)
+    return True, ""
+
+
+def restore_step(pid, name, nice=0):
+    """Root step putting a program back to the priority it had before it was lowered. Raising priority needs
+    administrator rights, which is why this is a root step."""
+    p = int(pid)
+    return (f"restore{p}", _("Restore normal priority: {0} ({1})").format(name, p),
+            f"renice -n {int(nice)} -p {p}\nionice -c 2 -n 4 -p {p}")

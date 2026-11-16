@@ -53,9 +53,9 @@ Requires only what Mint ships: Python 3, GTK 3 (python3-gi) and pkexec.
 | **Packages** | Largest packages, what you installed, held packages; apt history with *Undo*; kernel manager; mirror speed test and switch (backed up); Mint upgrade check with a readiness list; the upgrade checklist covers disk space, snapshot, updates, PPAs, held and half-installed packages, DKMS drivers and power |
 | **Flatpak apps** | Every Flatpak with size, origin and a sandbox rating; Flatseal-style switches (network, home, whole filesystem, Downloads, devices, sound, X11) via per-user overrides; update, repair, uninstall |
 | **Clean** | Measures and removes junk |
-| **Processes** | Live CPU/RAM list, *What is this?* (with the owning package), end or force-end |
+| **Processes** | Live CPU/RAM list, *What is this?* (with the owning package), end or force-end, and *Lower priority* for your own programs (*Restore priority* asks for your password) |
 | **Hardware** | Firmware updates via fwupd/LVFS; SMART health per drive (NVMe wear/spare/errors, HDD reallocated/pending/CRC), live temperature tiles, CPU/GPU throttling, full `smartctl -x` report and buttons for short and long self-tests; error counters tracked over time, with a warning when they grow |
-| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…); login audit (failed logins, SSH settings, AppArmor, auto-login, screen lock), disk encryption and auditd checks, and a read-only Lynis hardening audit whose WARN labels flag findings that might break something if changed; ClamAV and rkhunter scans with quarantine; unknown listeners explained (program, package, service) with a keep-or-turn-off suggestion |
+| **Security** | Every listening service, whether other computers can reach it, firewall state and rules (admin), program identification, and *Turn off* for risky services (SSH, Samba, RDP, databases…); login audit (failed logins, SSH settings, AppArmor, auto-login, screen lock), disk encryption and auditd checks, and a read-only Lynis hardening audit whose WARN labels flag findings that might break something if changed; ClamAV and rkhunter scans with quarantine; unknown listeners explained (program, package, service) with a keep-or-turn-off suggestion; connections right now per program; devices on your network from the neighbour table, with new ones flagged; real-time protection with decoy files and ClamAV checks of downloads (both optional) |
 | **Troubleshoot** | Sound, network and Wi-Fi (with an internet speed test), printers, Bluetooth, crash reports and maintenance tasks, each with one-click fixes |
 | **Boot & Startup** | Boot timeline (firmware/loader/kernel/services), boot-time history, slowest units with *blocks boot* markers and Disable/Enable for known-safe services, startup-app switches; delay startup apps (10 s, 30 s, 1 min) so the desktop is ready sooner |
 | **Backup** | rsync snapshots of chosen folders to another drive (unchanged files hard-linked), schedule, keep N or daily/weekly/monthly copies, check against the originals by checksum; export/import MintCare settings to move to another PC; restore files, folders or a whole snapshot, keeping anything replaced as NAME.before-restore |
@@ -92,7 +92,7 @@ APT cache, old kernels/orphans, leftover configs, journal >7 days, rotated logs,
 crash reports, unused Flatpak runtimes, per-browser caches (Firefox, Brave, Chrome,
 Chromium, Vivaldi, Edge, Opera, LibreWolf; skipped while the browser is open),
 thumbnails, stale ~/.cache files, recent-files list and broken links or launchers (both off by default),
-developer caches (opt-in), data left by removed Flatpak apps and unused Cinnamon
+developer caches (opt-in), data left by removed Flatpak apps and removed apt apps (opt-in), and unused Cinnamon
 add-ons (opt-in, moved to the Trash), Trash (opt-in).
 
 ## How changes are made safely
@@ -123,6 +123,7 @@ mintcare hardware          # drives, temperatures, boot time
 mintcare space [PATH]      # biggest folders/files and snapshot count
 mintcare maintain [--no-notify]  # what the scheduled check-up runs
 mintcare alerts            # announce new disk, battery and temperature problems (the alerts timer runs this)
+mintcare guard             # watch the decoy files and check new downloads (the guard service runs this)
 mintcare backup            # back up your folders now (what the backup timer runs)
 mintcare report [-o FILE] [--personal]  # HTML health report
 mintcare --tray            # start the GUI hidden in the tray

@@ -2,6 +2,7 @@
 firewall is in front of it. Read with `ss` (no root); root only reveals extra process names.
 """
 
+import ipaddress
 import re
 from dataclasses import dataclass
 
@@ -88,6 +89,56 @@ def parse_ss(text):
 def listeners():
     rc, o = run(["ss", "-tulnpH"])
     return parse_ss(o) if rc == 0 else []
+
+
+@dataclass
+class Connection:
+    proto: str
+    remote: str
+    port: int
+    process: str = ""
+    pid: int = 0
+
+
+def _loopback(host):
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:               # "*" or a name: not a remote computer we can show
+        return True
+
+
+def parse_connections(text):
+    """Connections to other computers from `ss -tunpH` (established ones only). Loopback is skipped."""
+    found = []
+    for line in text.splitlines():
+        f = line.split()
+        if len(f) < 6 or f[1] != "ESTAB":
+            continue
+        host, _x, port = f[5].rpartition(":")
+        host = host.strip("[]")
+        if not port.isdigit() or _loopback(host):
+            continue
+        m = re.search(r'users:\(\("([^"]+)",pid=(\d+)', line)
+        found.append(Connection(f[0], host, int(port), m.group(1) if m else "", int(m.group(2)) if m else 0))
+    return found
+
+
+def connections():
+    rc, o = run(["ss", "-tunpH"])
+    return parse_connections(o) if rc == 0 else []
+
+
+def by_program(conns):
+    """[(program, pid, connection count, ['host:port', …])], the busiest first."""
+    groups = {}
+    for c in conns:
+        g = groups.setdefault((c.process, c.pid), {"count": 0, "remotes": []})
+        g["count"] += 1
+        remote = f"{c.remote}:{c.port}"
+        if remote not in g["remotes"]:
+            g["remotes"].append(remote)
+    rows = [(name, pid, g["count"], g["remotes"]) for (name, pid), g in groups.items()]
+    return sorted(rows, key=lambda r: -r[2])
 
 
 def firewall_enabled():

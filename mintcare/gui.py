@@ -20,7 +20,7 @@ from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from .i18n import N_, _, ngettext
 from . import (__version__, alerts, assistant, autostart, backup, bench, boot, checks, cleaner, firmware,  # noqa: E402
-               flatpaks, hardware, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
+               flatpaks, guard, hardware, lan, maintenance, packages, ports, processes, secaudit, selfupdate, sources,
                space, theme, troubleshoot, tweaks, widgets)
 from .runner import run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
@@ -1989,6 +1989,21 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.port_card, self.port_list = list_card()
         page.pack_start(self.port_card, False, False, 0)
 
+        hc = hbox(8)
+        hc.pack_start(label(_("CONNECTIONS RIGHT NOW"), ("kicker",)), True, True, 0)
+        hc.pack_end(self._btn(_("Refresh"), self.refresh_network, icon_name="view-refresh-symbolic"), False, False, 0)
+        page.pack_start(hc, False, False, 0)
+        self.conn_card, self.conn_list = list_card()
+        page.pack_start(self.conn_card, False, False, 0)
+
+        hd = hbox(8)
+        hd.pack_start(label(_("DEVICES ON YOUR NETWORK"), ("kicker",)), True, True, 0)
+        hd.pack_end(self._btn(_("Mark all as known"), self._mark_all_devices, icon_name="emblem-ok-symbolic"),
+                    False, False, 0)
+        page.pack_start(hd, False, False, 0)
+        self.dev_card, self.dev_list = list_card()
+        page.pack_start(self.dev_card, False, False, 0)
+
         page.pack_start(label(_("LOGIN SECURITY"), ("kicker",)), False, False, 0)
         self.login_card, self.login_list = list_card()
         page.pack_start(self.login_card, False, False, 0)
@@ -1996,6 +2011,30 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(label(_("SYSTEM SECURITY"), ("kicker",)), False, False, 0)
         self.system_card, self.system_list = list_card()
         page.pack_start(self.system_card, False, False, 0)
+
+        page.pack_start(label(_("REAL-TIME PROTECTION"), ("kicker",)), False, False, 0)
+        rt = card()
+        self._rt_loading = False
+        self.rt_decoys = describe(Gtk.Switch(valign=Gtk.Align.CENTER), _("Decoy files"))
+        self.rt_downloads = describe(Gtk.Switch(valign=Gtk.Align.CENTER), _("Scan downloads with ClamAV"))
+        for sw, title, text, name in (
+                (self.rt_decoys, _("Decoy files"),
+                 _("Three files named !MintCare decoy in Documents. Software that encrypts a folder often reaches "
+                   "them early, so you are warned at once if one changes, disappears or is renamed."), "decoys"),
+                (self.rt_downloads, _("Scan downloads with ClamAV"),
+                 _("Checks each file when its download finishes. Nothing is deleted; you are told about anything "
+                   "found."), "downloads")):
+            row = hbox(12)
+            t = vbox(2)
+            t.pack_start(label(title, ("h2",)), False, False, 0)
+            t.pack_start(label(text, ("muted",), wrap=True), False, False, 0)
+            row.pack_start(t, True, True, 0)
+            row.pack_end(sw, False, False, 0)
+            rt.pack_start(row, False, False, 6)
+            sw.connect("notify::active", lambda s, _p, n=name: self._on_guard_toggle(n, s))
+        self.rt_note = label("", ("muted",), wrap=True)
+        rt.pack_start(self.rt_note, False, False, 0)
+        page.pack_start(rt, False, False, 0)
 
         page.pack_start(label(_("MALWARE SCAN"), ("kicker",)), False, False, 0)
         mc = card()
@@ -2032,6 +2071,75 @@ class MintCareWindow(Gtk.ApplicationWindow):
         self.bg(secaudit.system_items, self._render_system)
         self._render_malware()
         self._render_lynis()
+        self._render_realtime()
+        self.refresh_network()
+
+    def refresh_network(self):
+        self.bg(ports.connections, self._render_connections)
+        self.bg(lan.neighbours, self._render_lan_devices)
+
+    def _render_connections(self, conns):
+        self._clear(self.conn_list, "conn_row")
+        rows = ports.by_program(conns or [])
+        if not rows:
+            r = Gtk.ListBoxRow(activatable=False)
+            r.add(label(_("No programs are connected to other computers right now."), ("muted",)))
+            self.conn_list.add(r)
+        for name, pid, count, remotes in rows[:30]:
+            more = _(" and {0} more").format(len(remotes) - 3) if len(remotes) > 3 else ""
+            self.conn_list.add(self._row(
+                name or _("Another user's program"), ", ".join(remotes[:3]) + more,
+                f"PID {pid}" if pid else "", None,
+                [(ngettext("{0} connection", "{0} connections", count).format(count), "dim")], []))
+        self.conn_list.show_all()
+
+    def _render_lan_devices(self, devices):
+        self._clear(self.dev_list, "dev_row")
+        devices = devices or []
+        self._devices_now = [d["mac"] for d in devices]
+        if not devices:
+            r = Gtk.ListBoxRow(activatable=False)
+            r.add(label(_("No other devices have talked to this PC recently."), ("muted",)))
+            self.dev_list.add(r)
+        known = lan.known()
+        for d in devices[:40]:
+            new = d["mac"] not in known
+            btns = [self._btn(_("Mark as known"), lambda m=d["mac"]: self._mark_devices([m]), tag="dev_row")] \
+                if new else []
+            pills = [(_("New"), "warn")] if new else [(_("Known"), "ok")]
+            meta = d["mac"] + (f"  ·  {d['dev']}" if d["dev"] else "")
+            self.dev_list.add(self._row(", ".join(d["ips"]) or d["mac"], meta, "", None, pills, btns))
+        self.dev_list.show_all()
+
+    def _mark_devices(self, macs):
+        lan.mark_known(macs)
+        self.refresh_network()
+
+    def _mark_all_devices(self):
+        lan.mark_known(getattr(self, "_devices_now", []))
+        self.refresh_network()
+
+    def _render_realtime(self):
+        st = guard.state()
+        ready = guard.clamscan_ready()
+        self._rt_loading = True
+        self.rt_decoys.set_active(bool(st["decoys"]))
+        self.rt_downloads.set_active(bool(st["downloads"]) and ready)
+        self.rt_downloads.set_sensitive(ready)
+        self.rt_note.set_text("" if ready else _("ClamAV isn't installed (clamscan not found). Install the clamav "
+                                                  "package to use this."))
+        self._rt_loading = False
+
+    def _on_guard_toggle(self, name, sw):
+        if self._rt_loading:
+            return
+        try:
+            guard.set_feature(name, sw.get_active(), folder=guard.documents_dir() if name == "decoys" else None)
+            self.set_status(_("Real-time protection updated"))
+        except Exception as e:
+            self.log(_('Real-time protection: {0}').format(e))
+            self.set_status(_("Could not change real-time protection"), bad=True)
+        self._render_realtime()
 
     def _render_login(self, items):
         self._clear(self.login_list, "login_row")
@@ -3983,6 +4091,7 @@ class MintCareWindow(Gtk.ApplicationWindow):
         page.pack_start(self.proc_card, False, False, 0)
         self._proc_prev = None
         self._proc_open = set()
+        self._lowered = {}                    # pid -> (name, nice before MintCare lowered it)
         for w in (self.proc_sort, self.proc_all):
             w.connect("changed" if isinstance(w, Gtk.ComboBoxText) else "toggled", lambda *_x: self._poll_procs(True))
         self.proc_filter.connect("search-changed", lambda *_x: self._poll_procs(True))
@@ -4015,6 +4124,8 @@ class MintCareWindow(Gtk.ApplicationWindow):
         shown = [r for r in rows if (self.proc_all.get_active() or r["mine"]) and not r["kernel"]
                  and (not flt or flt in r["name"].lower() or flt in r["cmd"].lower())]
         shown.sort(key=lambda r: -r[key])
+        live = {r["pid"] for r in rows}
+        self._lowered = {pid: v for pid, v in self._lowered.items() if pid in live}
         tot_cpu = sum(r["cpu"] for r in rows)
         # xgettext:no-python-format
         self.proc_head.set_text(_('{0} processes · {1:.0f}% of all CPU · showing {2}').format(len(rows), tot_cpu / (os.cpu_count() or 1), min(len(shown), 40)))
@@ -4022,6 +4133,10 @@ class MintCareWindow(Gtk.ApplicationWindow):
             pills = [] if r["mine"] else [(r["user"], "dim")]
             btns = [self._btn(_("What is this?"), lambda r=r: self._proc_info(r), tag="proc_row"),
                     self._btn(_("End"), lambda r=r: self._end_proc(r), tag="proc_row")]
+            if r["mine"]:
+                btns.insert(1, self._btn(_("Lower priority"), lambda r=r: self._lower_proc(r), tag="proc_row"))
+            if r["pid"] in self._lowered:
+                btns.append(self._btn(_("Restore priority"), lambda r=r: self._restore_proc(r), tag="proc_row"))
             row = self._row(r["name"], "", r["cmd"][:300], None, pills, btns,
                             f"{r['cpu']:4.0f}% · {human(r['rss'])}")
             if r["pid"] in self._proc_open:
@@ -4043,6 +4158,26 @@ class MintCareWindow(Gtk.ApplicationWindow):
     def _proc_info(self, r):
         (self._proc_open.discard if r["pid"] in self._proc_open else self._proc_open.add)(r["pid"])
         self._poll_procs(True)
+
+    def _lower_proc(self, r):
+        before = processes.nice_of(r["pid"])
+        ok, msg = processes.lower_priority(r["pid"], r["name"])
+        if ok and before is not None:
+            self._lowered[r["pid"]] = (r["name"], before)
+            self.set_status(_("{0} now runs at lower priority").format(r["name"]))
+        else:
+            self.set_status(msg or _("Could not change the priority"), bad=True)
+        self._poll_procs(True)
+
+    def _restore_proc(self, r):
+        name, nice = self._lowered.get(r["pid"], (r["name"], 0))
+        step = processes.restore_step(r["pid"], name, nice)
+
+        def done(results):
+            if results.get(step[0]) == 0:
+                self._lowered.pop(r["pid"], None)
+            self._poll_procs(True)
+        self._root_job(_("Restoring priority…"), [step], _("Processes"), done_cb=done)
 
     def _end_proc(self, r):
         d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
