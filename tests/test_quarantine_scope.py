@@ -1,3 +1,4 @@
+import ctypes
 import io
 import os
 import shlex
@@ -122,18 +123,22 @@ class QuarantineMove(unittest.TestCase):
             os.mkdir(folder)
             Path(folder, "file.txt").write_text("mine")
             Path(outside, "file.txt").write_text("not mine")
-            real_rename = os.rename
+            real_renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
+            swapped = []
 
-            def swap_then_rename(src, dst, **kwargs):
-                real_rename(folder, folder + "-moved")
-                os.symlink(outside, folder)
-                return real_rename(src, dst, **kwargs)
+            def swap_then_rename(*args):
+                if not swapped:
+                    swapped.append(True)
+                    os.rename(folder, folder + "-moved")
+                    os.symlink(outside, folder)
+                return real_renameat2(*args)
 
             target = os.path.join(folder, "file.txt")
             argv = ["-c", qdir, home, "Quarantined {0}", "Skipped {0}", "Not quarantined {0}", target, target]
-            with mock.patch.object(os, "rename", swap_then_rename), mock.patch.object(sys, "argv", argv), \
-                    redirect_stdout(io.StringIO()):
+            with mock.patch.object(ctypes, "CDLL", return_value=mock.Mock(renameat2=swap_then_rename)), \
+                    mock.patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()):
                 exec(compile(secaudit.QUARANTINE_MOVER, "<quarantine>", "exec"), {"__name__": "__main__"})
+            self.assertEqual(swapped, [True])
             self.assertEqual(Path(qdir, "file.txt").read_text(), "mine")
             self.assertEqual(Path(outside, "file.txt").read_text(), "not mine")
 
@@ -214,6 +219,28 @@ class QuarantineMove(unittest.TestCase):
             self.assertEqual([line for line in lines if line.startswith("@@MINTCARE-END")], [])
             self.assertEqual(Path(target).read_text(), "mine")
             self.assertEqual(Path(qdir, name).read_text(), "earlier")
+
+    def test_a_name_claimed_during_the_run_is_not_replaced(self):
+        # Another run takes note.txt just before this run's rename: the rename must not replace the file it took.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as qdir:
+            home, qdir = os.path.realpath(home), os.path.realpath(qdir)
+            target = os.path.join(home, "note.txt")
+            Path(target).write_text("mine")
+            real_renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
+            claimed = []
+
+            def claim_then_rename(*args):
+                if not claimed:
+                    claimed.append(True)
+                    Path(qdir, "note.txt").write_text("other run")
+                return real_renameat2(*args)
+
+            argv = ["-c", qdir, home, "Quarantined {0}", "Skipped {0}", "Not quarantined {0}", target, target]
+            with mock.patch.object(ctypes, "CDLL", return_value=mock.Mock(renameat2=claim_then_rename)), \
+                    mock.patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()):
+                exec(compile(secaudit.QUARANTINE_MOVER, "<quarantine>", "exec"), {"__name__": "__main__"})
+            self.assertEqual(Path(qdir, "note.txt").read_text(), "other run")
+            self.assertEqual(Path(qdir, "note.txt.1").read_text(), "mine")
 
 
 if __name__ == "__main__":

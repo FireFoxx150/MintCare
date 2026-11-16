@@ -362,7 +362,22 @@ def rkhunter_step():
 # one name at a time with O_NOFOLLOW, and the file is renamed inside the folder reached, so a path swapped
 # for a link after the check cannot send the move elsewhere.
 QUARANTINE_MOVER = """\
-import errno, os, stat, sys
+import ctypes, errno, os, stat, sys
+
+
+# renameat2 with RENAME_NOREPLACE moves a file in one atomic step, and fails with EEXIST rather than replacing a file
+# already at the new name. Any other failure is raised; there is no fallback to a plain rename.
+_renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
+_renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+_renameat2.restype = ctypes.c_int
+RENAME_NOREPLACE = 1
+
+
+def rename_no_replace(src_fd, src, dst_fd, dst):
+    if _renameat2(src_fd, os.fsencode(src), dst_fd, os.fsencode(dst), RENAME_NOREPLACE) == 0:
+        return
+    err = ctypes.get_errno()
+    raise OSError(err, os.strerror(err))
 
 
 def show(text):
@@ -413,17 +428,15 @@ for target, shown in zip(pairs[::2], pairs[1::2]):
         continue
     name = os.path.basename(target)
     try:
-        # Check, then rename: two steps. Two quarantine runs at the same time could pick the same free name, and
-        # the second rename would then replace the first file. Use a no-replace rename if that can happen.
+        # Each candidate is one atomic step: a taken name fails with EEXIST, so the next free name is tried.
         dst, n = name, 0
         while True:
             try:
-                os.stat(dst, dir_fd=qfd, follow_symlinks=False)
-            except FileNotFoundError:
+                rename_no_replace(fd, name, qfd, dst)
                 break
-            n += 1
-            dst = f"{name}.{n}"
-        os.rename(name, dst, src_dir_fd=fd, dst_dir_fd=qfd)
+            except FileExistsError:
+                n += 1
+                dst = f"{name}.{n}"
         print(ok.format(show(shown)), flush=True)
     except OSError as e:
         if e.errno == errno.EXDEV:
