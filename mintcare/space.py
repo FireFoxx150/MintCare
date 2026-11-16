@@ -362,7 +362,8 @@ def snapshot_root(name, base=None):
 def restore_file_script(name, paths, base=None):
     """Root script putting files from a Timeshift snapshot back where they were. The current file is
     kept beside it as NAME.~1~ (cp --backup=numbered). Raises ValueError for anything that isn't a
-    regular file inside the snapshot."""
+    regular file inside the snapshot, or is setuid/setgid. No -a: the copy keeps root's ownership and
+    drops the snapshot's setuid bits, but keeps its read, write and execute bits."""
     from .util import q
     root = os.path.realpath(snapshot_root(name, base))
     lines = []
@@ -370,9 +371,11 @@ def restore_file_script(name, paths, base=None):
         real = os.path.realpath(p)
         if not real.startswith(root + os.sep) or not os.path.isfile(real):
             raise ValueError(f"{p} isn't a file inside snapshot {name}")
+        if os.stat(real).st_mode & (stat.S_ISUID | stat.S_ISGID):
+            raise ValueError(_("{0} has the setuid or setgid bit set, so it is not restored.").format(p))
         dest = "/" + os.path.relpath(real, root)
-        lines.append(f"mkdir -p {q(os.path.dirname(dest))} && cp -a --backup=numbered -- {q(real)} {q(dest)} "
-                     f"&& echo {q('Restored ' + dest)}")
+        lines.append(f"mkdir -p {q(os.path.dirname(dest))} && cp --no-preserve=ownership --preserve=timestamps "
+                     f"--backup=numbered -- {q(real)} {q(dest)} && echo {q('Restored ' + dest)}")
     return "\n".join(lines)
 
 

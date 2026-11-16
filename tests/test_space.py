@@ -1,4 +1,7 @@
 import os
+import shlex
+import stat
+import subprocess
 import unittest
 
 from mintcare import space
@@ -101,6 +104,14 @@ class OldDownloads(TempDirTest):
 
 
 class TimeshiftRestore(TempDirTest):
+    def snap_file(self, rel, mode=0o644):
+        path = os.path.join(self.tmp, "snap1", "localhost", rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write("x")
+        os.chmod(path, mode)
+        return path
+
     def test_only_files_inside_the_snapshot(self):
         root = os.path.join(self.tmp, "snap1", "localhost")
         os.makedirs(os.path.join(root, "etc"))
@@ -108,11 +119,31 @@ class TimeshiftRestore(TempDirTest):
             f.write("x")
         os.symlink("/etc/passwd", os.path.join(root, "etc", "escape"))
         script = space.restore_file_script("snap1", [os.path.join(root, "etc", "fstab")], base=self.tmp)
-        self.assertIn("cp -a --backup=numbered", script)
+        for flag in ("cp -a", "--archive", "--preserve=mode", "--preserve=all"):   # would keep owner and setuid
+            self.assertNotIn(flag, script)
+        self.assertIn("cp --no-preserve=ownership", script)                        # the copy belongs to root
+        self.assertIn("--backup=numbered", script)
         self.assertIn(" /etc/fstab ", script)
         for bad in (os.path.join(root, "etc"), os.path.join(root, "etc", "escape"), "/etc/hosts"):
             with self.assertRaises(ValueError):
                 space.restore_file_script("snap1", [bad], base=self.tmp)
+
+    def test_refuses_setuid_and_setgid_files(self):
+        for name, bit in (("suid", stat.S_ISUID), ("sgid", stat.S_ISGID)):
+            path = self.snap_file(f"usr/bin/{name}", 0o755 | bit)
+            with self.assertRaises(ValueError):
+                space.restore_file_script("snap1", [path], base=self.tmp)
+
+    def test_copy_drops_setuid_and_keeps_rwx(self):
+        path = self.snap_file("usr/bin/tool", 0o755)
+        cp = shlex.split(space.restore_file_script("snap1", [path], base=self.tmp).split(" && ")[1])
+        os.chmod(path, 0o4755)                        # the snapshot file turns setuid after the check
+        dest = os.path.join(self.tmp, "out", "tool")
+        os.makedirs(os.path.dirname(dest))
+        subprocess.run(cp[:-1] + [dest], check=True)  # the script's own cp, aimed at a temp path
+        mode = os.stat(dest).st_mode
+        self.assertFalse(mode & (stat.S_ISUID | stat.S_ISGID))
+        self.assertTrue(mode & stat.S_IRUSR and mode & stat.S_IWUSR and mode & stat.S_IXUSR)
 
 
 @unittest.skipUnless(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"), "needs a display")
