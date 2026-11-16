@@ -1,3 +1,27 @@
+mintcare (1.12.13) noble; urgency=medium
+
+  * Security: disk encryption and auditd checks, and a read-only Lynis
+    hardening audit card.
+  * Security: connections right now per program, and devices on your network
+    with new ones flagged.
+  * Security: real-time protection with decoy files and ClamAV checks of
+    downloads, both optional.
+  * Security: updates install only when their checksums carry a valid
+    signature from the MintCare release key.
+  * Hardware: short and long SMART self-test buttons; error counters are
+    tracked over time and warn when they grow.
+  * Processes: lower the priority of your own programs; Restore priority asks
+    for your password.
+  * Maintenance: threshold alerts every 15 minutes for a full disk, a low
+    battery, or a hot processor or drive.
+  * Boot errors: dismiss the ones you have looked at; dismissals last until
+    the next boot.
+  * Flatpak: the update count refreshes on Rescan and after an update.
+  * Failed-login reader: the cost is bounded per line, so a very long journal
+    line cannot slow the check.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Mon, 16 Nov 2026 11:57:09 +0000
+
 mintcare (1.12.12) noble; urgency=medium
 
   * Assistant: the AI assistant is removed.

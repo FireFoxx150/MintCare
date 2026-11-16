@@ -227,6 +227,22 @@ def network():
 NET_RESET = "nmcli networking off; sleep 2; nmcli networking on"
 DNS_FLUSH = "resolvectl flush-caches && systemctl restart systemd-resolved"
 
+# Maintenance tasks: (id, title, what it fixes, runs as, command, tool it needs). Root tasks ask for a password.
+UPKEEP = [
+    ("fonts", _("Rebuild the font cache"), _("Fixes fonts that look wrong or are missing in apps."),
+     "user", "fc-cache -f", "fc-cache"),
+    ("menu", _("Refresh the application menu"),
+     _("Fixes apps that are missing from the menu after an install or removal."),
+     "user", 'update-desktop-database "$HOME/.local/share/applications"', "update-desktop-database"),
+    ("locate", _("Update the file search index"), _("Lets file search find files added since the last update."),
+     "root", "updatedb", "updatedb"),
+]
+
+
+def upkeep_tasks():
+    """The maintenance tasks whose tool is installed here."""
+    return [t for t in UPKEEP if has_cmd(t[5])]
+
 
 # ------------------------------------------------------------------ printers
 

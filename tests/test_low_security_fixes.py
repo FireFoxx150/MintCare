@@ -31,7 +31,9 @@ class BoundedBootErrors(unittest.TestCase):  # F7
     def test_a_line_past_the_limit_is_counted_not_kept(self):
         with mock.patch.object(journal, "MAX_LINE", 10):
             got = list(journal._lines(io.StringIO("short\n" + "x" * 25 + "\nok\n")))
-        self.assertEqual(got, ["short\n", None, "ok\n"])
+        self.assertEqual([type(x) for x in got], [str, journal.LongLine, str])
+        self.assertEqual(got[0], "short\n")
+        self.assertEqual(got[2], "ok\n")
 
     def test_a_boot_that_takes_too_long_says_so(self):
         class Stream:

@@ -128,6 +128,10 @@ def explain(who, msg):
     return INFO, "", None
 
 
+# Saved name of the too-long-entries group. A fixed tag, so a dismissal survives a change of language.
+LONG_TAG = "long-entries"
+
+
 class _Groups:
     """Errors counted by program and message shape. Memory stays bounded: once MAX_GROUPS kinds are kept, new
     kinds share one heading that keeps their count and the most serious level among them."""
@@ -159,7 +163,8 @@ class _Groups:
 
     def add_long(self, ts):
         if self.long is None:
-            self.long = {"who": _("(long entries)"), "count": 0, "sample": "", "last": 0, "level": WARN,
+            self.long = {"who": _("(long entries)"), "tag": LONG_TAG, "count": 0, "sample": "", "last": 0,
+                         "level": WARN,
                          "explanation": _("Journal entries too long to read were skipped, and are counted here. "
                                           "Open the System journal to see them."), "action": None}
         self._count(self.long, ts)
@@ -170,8 +175,22 @@ class _Groups:
         return out
 
 
+class LongLine:
+    """A journal line longer than MAX_LINE. Only its opening text is kept, enough to read its time."""
+
+    def __init__(self, head):
+        self.head = head
+
+
+def _stamp(text):
+    """Seconds since the epoch from the opening text of a journal entry, or 0 if it has no time."""
+    m = re.search(r'"__REALTIME_TIMESTAMP"\s*:\s*"(\d+)"', text)
+    return int(m.group(1)) / 1e6 if m else 0
+
+
 def _lines(stream):
-    """The lines of a text stream, one at a time. A line longer than MAX_LINE is read to its end and yielded as None."""
+    """The lines of a text stream, one at a time. A line longer than MAX_LINE is read to its end and yielded
+    as a LongLine holding its opening text."""
     while True:
         line = stream.readline(MAX_LINE)
         if not line:
@@ -179,11 +198,12 @@ def _lines(stream):
         if line.endswith("\n"):
             yield line
             continue
+        head = line
         while True:
             more = stream.readline(MAX_LINE)
             if not more or more.endswith("\n"):
                 break
-        yield None
+        yield LongLine(head)
 
 
 def _grouped_stream():
@@ -204,8 +224,8 @@ def _grouped_stream():
     timer.start()
     try:
         for line in _lines(p.stdout):
-            if line is None:
-                groups.add_long(0)
+            if isinstance(line, LongLine):
+                groups.add_long(_stamp(line.head))
                 continue
             e = _parse(line)
             if e:
@@ -255,4 +275,71 @@ def actions(groups=None):
         if a and a not in seen:
             seen.add(a)
             out_.append(a)
+    return out_
+
+
+# ------------------------------------------------------------------ dismissing
+
+def dismiss_key(g):
+    """The saved name of a kind of error: its tag, or its program and message shape as _Groups keys them."""
+    if g.get("tag"):
+        return g["tag"]
+    shape = re.sub(r"\d+", "#", g["sample"])[:120]
+    return f"{g['who']}\t{shape}"
+
+
+def _boot_id():
+    """The random ID of this boot. Dismissals are kept for this boot only."""
+    try:
+        with open("/proc/sys/kernel/random/boot_id") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def dismissed():
+    """{key: seconds} of the kinds dismissed in this boot, from settings."""
+    from .maintenance import load_settings
+    s = load_settings()
+    raw = s.get("dismissed_errors", {})
+    if s.get("dismissed_boot") != _boot_id() or not isinstance(raw, dict):
+        return {}
+    return {k: float(v) for k, v in raw.items() if isinstance(v, (int, float))}
+
+
+def visible(groups, hidden):
+    """The groups to show. A dismissed kind stays hidden until it happens again after it was dismissed."""
+    out_ = []
+    for g in groups:
+        seen = hidden.get(dismiss_key(g))
+        if seen is None or g["last"] > seen:
+            out_.append(g)
+    return out_
+
+
+def set_dismissed(key, seen):
+    from .maintenance import load_settings, save_settings
+    s = load_settings()
+    s["dismissed_errors"] = {**dismissed(), key: seen}
+    s["dismissed_boot"] = _boot_id()
+    save_settings(s)
+
+
+def clear_dismissed():
+    from .maintenance import load_settings, save_settings
+    s = load_settings()
+    s["dismissed_errors"] = {}
+    s["dismissed_boot"] = _boot_id()
+    save_settings(s)
+
+
+def dismiss_actions(groups):
+    """Buttons that hide one kind of error. Serious errors and the catch-all groups can't be hidden,
+    except the too-long-entries group, which has a tag."""
+    out_ = []
+    for g in groups:
+        if g["level"] in (INFO, WARN) and (g["sample"] or g.get("tag")):
+            name = g["sample"] or g["who"]
+            text = name if len(name) <= 60 else name[:36] + "…" + name[-18:]
+            out_.append((_("Dismiss “{0}”").format(text), "dismiss", (dismiss_key(g), g["last"])))
     return out_

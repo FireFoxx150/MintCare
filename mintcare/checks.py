@@ -110,6 +110,28 @@ def c_hostname():
                   Fix("root", f"echo '127.0.1.1\t{host}' >> /etc/hosts", _("Add entry")))
 
 
+def wifi_security(listing):
+    """(status, summary) for the Wi-Fi network in use, from `nmcli -t -f ACTIVE,SECURITY device wifi list`."""
+    active = [line.split(":", 1)[1].strip() for line in listing.splitlines() if line.startswith("yes:")]
+    if not active:
+        return OK, _("Not on Wi-Fi, so there's no Wi-Fi network to check")
+    sec = active[0]
+    if sec in ("", "--"):
+        return WARN, _("The Wi-Fi network you use has no password, so others nearby can read your traffic")
+    if "WEP" in sec.split():
+        return WARN, _("The Wi-Fi network uses WEP, which can be broken in minutes; set WPA2 or WPA3 on the router")
+    if "WPA1" in sec.split() and "WPA2" not in sec and "WPA3" not in sec:
+        return WARN, _("The Wi-Fi network uses WPA1, which is old; set WPA2 or WPA3 on the router")
+    return OK, _("The Wi-Fi network you use is protected ({0})").format(sec)
+
+
+def c_wifi():
+    if not has_cmd("nmcli"):
+        return Result(INFO, _("NetworkManager isn't installed, so Wi-Fi security can't be checked"))
+    return Result(*wifi_security(out(["nmcli", "-t", "-f", "ACTIVE,SECURITY", "device", "wifi", "list",
+                                      "--rescan", "no"], timeout=10)))
+
+
 # ------------------------------------------------------------------ Packages
 
 def c_dpkg_audit():
@@ -358,9 +380,12 @@ def c_user_failed_units():
 
 def c_boot_errors():
     from . import journal
-    groups = journal.grouped()
-    if not groups:
+    everything = journal.grouped()
+    if not everything:
         return Result(OK, _("No errors logged since boot"))
+    groups = journal.visible(everything, journal.dismissed())
+    if not groups:
+        return Result(OK, _("Every error since boot has been dismissed"))
     by = {lvl: [g for g in groups if g["level"] == lvl] for lvl in (FAIL, WARN, INFO, OK)}
     crashes = sum(g["count"] for g in groups if g["who"].startswith("crash:"))
     parts = []
@@ -373,8 +398,10 @@ def c_boot_errors():
         parts.append(_('{0} to look at').format(len(look)))
     if by[OK]:
         parts.append(f"{len(by[OK])} harmless")
+    if len(everything) > len(groups):
+        parts.append(_('{0} dismissed').format(len(everything) - len(groups)))
     level = FAIL if by[FAIL] else WARN if by[WARN] else INFO if by[INFO] else OK
-    return Result(level, _('{0} kind(s) of error since boot: ').format(len(groups)) + ", ".join(parts) +
+    return Result(level, _('{0} kind(s) of error since boot: ').format(len(everything)) + ", ".join(parts) +
                   " — click for details and explanations")
 
 
@@ -653,6 +680,7 @@ CHECKS = [
     Check("dns", _("DNS resolution"), _("Network"), c_dns),
     Check("bbr", _("TCP BBR congestion control"), _("Network"), c_bbr),
     Check("hostname", _("Hostname resolution"), _("Network"), c_hostname),
+    Check("wifi", _("Wi-Fi security"), _("Network"), c_wifi),
     Check("dpkg", _("Interrupted package installs"), _("Packages"), c_dpkg_audit),
     Check("aptbroken", _("Broken dependencies"), _("Packages"), c_apt_broken),
     Check("updates", _("Pending updates"), _("Packages"), c_updates),
@@ -703,6 +731,7 @@ DETAIL_COMMANDS = {
     "dns": "resolvectl status | head -30; echo; getent ahosts linuxmint.com | head -3",
     "bbr": "sysctl net.ipv4.tcp_congestion_control net.core.default_qdisc net.ipv4.tcp_available_congestion_control",
     "hostname": "hostname; echo; cat /etc/hosts",
+    "wifi": "nmcli -f ACTIVE,SECURITY device wifi list --rescan no | head -8",
     "dpkg": "dpkg --audit || true",
     "aptbroken": "apt-get -s -o Debug::NoLocking=1 check",
     "updates": "apt list --upgradable 2>/dev/null",
@@ -752,8 +781,13 @@ def details(check_id):
         return None
     if check_id == "booterrors":
         from . import journal
-        groups = journal.grouped()
-        return cmd, journal.report(groups), journal.actions(groups)
+        everything, hidden = journal.grouped(), journal.dismissed()
+        groups = journal.visible(everything, hidden)
+        acts = journal.actions(groups) + journal.dismiss_actions(groups)
+        if len(everything) > len(groups):
+            acts.append((_("Restore dismissed errors"), "restore", None))
+        text = _("Every error since boot has been dismissed") if everything and not groups else journal.report(groups)
+        return cmd, text, acts
     rc, o = run(["bash", "-c", cmd], timeout=30)
     return cmd, o or _("(no output)"), DETAIL_ACTIONS.get(check_id, [])
 
