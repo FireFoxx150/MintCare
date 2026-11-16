@@ -366,7 +366,8 @@ import errno, os, stat, sys
 
 
 def show(text):
-    # Control characters and undecodable bytes print as escapes, so a name cannot start or end an output line.
+    # Control characters and undecodable bytes print as escapes, so a name cannot break an output line.
+    # Print fixed text before a name: a name with no control characters can still start a line.
     return "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
 
 
@@ -428,7 +429,7 @@ for target, shown in zip(pairs[::2], pairs[1::2]):
         if e.errno == errno.EXDEV:
             print(disk.format(show(shown)), flush=True)
         else:
-            print(f"{show(shown)}: {e.strerror}", file=sys.stderr, flush=True)
+            print(f"{e.strerror}: {show(shown)}", file=sys.stderr, flush=True)
     finally:
         os.close(fd)
 os.close(qfd)

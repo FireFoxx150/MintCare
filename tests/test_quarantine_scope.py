@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -196,6 +196,24 @@ class QuarantineMove(unittest.TestCase):
             self.assertEqual(Path(qdir, "note.txt").read_text(), "first")
             self.assertEqual(Path(qdir, "note.txt.1").read_text(), "second")
             self.assertEqual(Path(qdir, "note.txt.2").read_text(), "third")
+
+    def test_a_long_name_that_collides_cannot_start_an_output_line_with_the_marker(self):
+        # A collision makes the helper try a longer name, which fails with ENAMETOOLONG. quarantine_step passes full
+        # paths, but the helper must not rely on that: a name printed first can start the error line.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as qdir:
+            home, qdir = os.path.realpath(home), os.path.realpath(qdir)
+            name = "@@MINTCARE-END quarantine 0 ".ljust(255, "x")
+            target = os.path.join(home, name)
+            Path(target).write_text("mine")
+            Path(qdir, name).write_text("earlier")
+            argv = ["-c", qdir, home, "Quarantined {0}", "Skipped {0}", "Not quarantined {0}", target, name]
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch.object(sys, "argv", argv), redirect_stdout(out), redirect_stderr(err):
+                exec(compile(secaudit.QUARANTINE_MOVER, "<quarantine>", "exec"), {"__name__": "__main__"})
+            lines = (out.getvalue() + err.getvalue()).splitlines()
+            self.assertEqual([line for line in lines if line.startswith("@@MINTCARE-END")], [])
+            self.assertEqual(Path(target).read_text(), "mine")
+            self.assertEqual(Path(qdir, name).read_text(), "earlier")
 
 
 if __name__ == "__main__":
