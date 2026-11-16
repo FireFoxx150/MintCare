@@ -3,6 +3,7 @@ import io
 import json
 import os
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -96,11 +97,14 @@ class StreamedLoginCounts(unittest.TestCase):  # F8
     def test_a_read_that_runs_past_the_limit_gives_no_result(self):
         class Stream:
             def __init__(self, stop):
-                self.stop = stop
+                self.stop, self.sent = stop, False
 
-            def __iter__(self):
-                yield "pam_unix(sudo:auth): authentication failure\n"
+            def readline(self, _n=-1):
+                if not self.sent:
+                    self.sent = True
+                    return "pam_unix(sudo:auth): authentication failure\n"
                 self.stop.wait(5)
+                return ""
 
             def close(self):
                 pass
@@ -118,6 +122,19 @@ class StreamedLoginCounts(unittest.TestCase):  # F8
 
         with mock.patch.object(secaudit, "LOG_TIMEOUT", 0.05), mock.patch.object(secaudit.subprocess, "Popen", Proc):
             self.assertEqual(secaudit.failed_logins(), {})
+
+    def test_a_long_line_without_a_colon_is_not_matched_slowly(self):
+        # 144 KB of "pam_unix(" and no colon: the old pattern took seconds on it, and the timer cannot stop it
+        lines = io.StringIO("pam_unix(" * 16000 + "\n" + "pam_unix(sshd:auth): authentication failure\n")
+        started = time.monotonic()
+        counts = self._counts(lines)
+        self.assertLess(time.monotonic() - started, 3)
+        self.assertEqual(counts, {"sshd": 1})
+
+    def test_a_line_past_the_limit_counts_as_nothing(self):
+        lines = io.StringIO("pam_unix(" * 3000 + "sudo:auth): authentication failure\n"
+                            "pam_unix(sshd:auth): authentication failure\n")
+        self.assertEqual(self._counts(lines), {"sshd": 1})
 
 
 class IterativeWalk(TempDirTest):  # F10
