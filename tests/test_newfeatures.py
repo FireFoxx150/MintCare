@@ -1,5 +1,6 @@
 """Software sources, open ports, self-update and the health trend."""
 import hashlib
+import io
 import os
 import subprocess
 import time
@@ -317,3 +318,84 @@ class Backup(TempDirTest):
             self.assertEqual((old / "Docs/a.txt").read_text(), "one")
         finally:
             backup.HOME, maintenance.STATE = old_home, old_state
+
+
+class FakeRsync:
+    """Stands in for rsync inside run_backup: makes the folder it is asked to write, prints `lines`, exits with `rc`."""
+    def __init__(self, rc, lines=()):
+        self.rc, self.lines = rc, lines
+
+    def Popen(self, args, **_kw):
+        Path(args[-1]).mkdir(parents=True)
+        proc = mock.Mock()
+        proc.stdout = io.StringIO("".join(line + "\n" for line in self.lines))
+        proc.wait.return_value = self.rc
+        return proc
+
+
+class PartialCopies(TempDirTest):
+    def setUp(self):
+        super().setUp()
+        from mintcare import backup
+        self.backup = backup
+        self.home, self.dest = Path(self.tmp) / "home", Path(self.tmp) / "dest"
+        (self.home / "Docs").mkdir(parents=True)
+        (self.home / "Docs" / "a.txt").write_text("one")
+        self.dest.mkdir()
+        self.old_home, self.old_state = backup.HOME, maintenance.STATE
+        backup.HOME, maintenance.STATE = self.home, Path(self.tmp) / "state"
+        maintenance.STATE.mkdir()
+
+    def tearDown(self):
+        self.backup.HOME, maintenance.STATE = self.old_home, self.old_state
+        super().tearDown()
+
+    def copy(self, rc, lines=()):
+        """One backup, with rsync replaced by FakeRsync(rc, lines)."""
+        cfg = {"dest": str(self.dest), "folders": [str(self.home / "Docs")], "excludes": []}
+        with mock.patch.object(self.backup, "subprocess") as sp:
+            sp.Popen = FakeRsync(rc, lines).Popen
+            return self.backup.run_backup(cfg)
+
+    def partials(self):
+        return [p.name for p in self.backup.root(self.dest).iterdir() if p.name.endswith(".partial")]
+
+    def test_exit_23_keeps_the_snapshot_and_names_the_skipped_file(self):
+        lines = ['rsync: [sender] send_files failed to open "/home/u/Docs/secret.txt": Permission denied (13)',
+                 "rsync error: some files/attrs were not transferred (see previous errors) (code 23)"]
+        result = self.copy(23, lines)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["skipped"], ["/home/u/Docs/secret.txt"])
+        self.assertNotIn("secret.txt", (maintenance.STATE / "last-backup.json").read_text())
+        self.assertEqual(len(self.backup.snapshots(self.dest)), 1)
+        self.assertEqual(self.partials(), [])
+
+    def test_exit_24_is_an_ordinary_snapshot(self):
+        result = self.copy(24, ['file has vanished: "/home/u/Docs/tmp.txt"'])
+        self.assertTrue(result["ok"], result)
+        self.assertNotIn("skipped", result)
+        self.assertEqual(len(self.backup.snapshots(self.dest)), 1)
+
+    def test_a_failed_copy_leaves_no_partial_folder(self):
+        self.assertFalse(self.copy(11, ["rsync: write failed on a file"])["ok"])
+        self.assertEqual(self.partials(), [])
+
+    def test_leftover_partial_folders_are_not_snapshots(self):
+        (self.backup.root(self.dest) / "2000-01-01_00-00.partial").mkdir(parents=True)
+        result = self.copy(0)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual([p.name for p in self.backup.snapshots(self.dest)], [Path(result["snapshot"]).name])
+
+
+class Estimate(TempDirTest):
+    def test_folders_the_backup_skips_are_not_counted(self):
+        from mintcare import backup
+        docs = Path(self.tmp) / "Docs"
+        for rel, size in (("a.txt", 100), ("node_modules/big.bin", 1 << 20), (".cache/x.bin", 1 << 20),
+                          ("notes.tmp", 1 << 20)):
+            (docs / rel).parent.mkdir(parents=True, exist_ok=True)
+            (docs / rel).write_bytes(b"x" * size)
+        everything = backup.estimate([str(docs)], excludes=[])
+        kept = backup.estimate([str(docs)], excludes=backup.DEFAULT_EXCLUDES)
+        self.assertGreaterEqual(everything, 3 << 20)
+        self.assertLess(kept, 1 << 20)

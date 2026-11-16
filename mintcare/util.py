@@ -56,10 +56,13 @@ def unit_active(unit):
     return out(["systemctl", "is-active", unit]) == "active"
 
 
-def dir_size(path):
-    """Size in bytes of everything under path that we can read."""
+def dir_size(path, skip=None):
+    """Size in bytes of everything under path that we can read. skip(path) leaves out a file or folder and what is in it."""
     total = 0
-    for root, _dirs, files in os.walk(path, onerror=lambda e: None):
+    for root, dirs, files in os.walk(path, onerror=lambda e: None):
+        if skip:
+            dirs[:] = [d for d in dirs if not skip(os.path.join(root, d))]
+            files = [f for f in files if not skip(os.path.join(root, f))]
         for f in files:
             try:
                 st = os.lstat(os.path.join(root, f))

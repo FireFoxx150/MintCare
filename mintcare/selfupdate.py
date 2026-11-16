@@ -21,6 +21,8 @@ RELEASES_PAGE = f"https://github.com/{REPO}/releases"
 # The public half of the release key is installed with the package. Its private half is kept off
 # GitHub, so someone who can change a release cannot also change the key that checks it.
 RELEASE_KEY = Path("/usr/share/mintcare/release-signing.pub")
+# The most a package download may be when the release does not say how big it is.
+MAX_PACKAGE = 200 << 20
 
 
 def _cache_file():
@@ -158,22 +160,31 @@ def signed_release(info, key=RELEASE_KEY, timeout=30):
 
 
 def download(info, progress=lambda done, total: None):
-    """Fetch the .deb into memory and check it against the release's SHA-256. Returns the bytes."""
+    """Fetch the .deb into memory and check it against the release's SHA-256. Returns the bytes.
+
+    Reading stops once the file is bigger than the release says (plus a megabyte), so a bad answer cannot fill memory.
+    """
     if not info.get("asset"):
         raise RuntimeError(_("This release has no .deb attached"))
+    too_big = _("The download is bigger than the release says — not installing it")
+    limit = int(info["size"]) + (1 << 20) if info.get("size") else MAX_PACKAGE
     h = hashlib.sha256()
     chunks = []
     req = urllib.request.Request(info["asset"], headers={"User-Agent": f"MintCare/{__version__}"})
     with urllib.request.urlopen(req, timeout=30) as r:
         total = int(r.headers.get("Content-Length") or info.get("size") or 0)
+        if total > limit:
+            raise RuntimeError(too_big)
         done = 0
         while True:
             chunk = r.read(1 << 16)
             if not chunk:
                 break
+            done += len(chunk)
+            if done > limit:
+                raise RuntimeError(too_big)
             chunks.append(chunk)
             h.update(chunk)
-            done += len(chunk)
             progress(done, total)
     if info.get("sha256"):
         if h.hexdigest() != info["sha256"]:

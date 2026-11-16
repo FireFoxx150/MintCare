@@ -75,15 +75,16 @@ def cmd_tweaks(args):
 
 def cmd_clean(args):
     items = [i for i in cleaner.ITEMS if i.available()]
+    scripts = {}
     for i in items:
-        size, detail = i.scan()
+        size, detail, scripts[i.id] = cleaner.measure(i)
         mark = "x" if i.default else " "
         print(f" [{mark}] {i.id:<11} {human(size) if size else '—':>9}  {i.title}: {detail}")
     if not args.run:
         print("\nRun with --run to clean the [x] items, or --run ID... for specific ones.")
         return 0
     chosen = [i for i in items if (i.id in args.run if args.run != ["default"] else i.default)]
-    run_steps([(i.id, i.title, i.user_script) for i in chosen if i.user_script], root=False)
+    run_steps([(i.id, i.title, scripts[i.id]) for i in chosen if scripts[i.id]], root=False)
     run_steps([(i.id, i.title, i.root_script) for i in chosen if i.root_script], root=True)
     return 0
 
@@ -163,6 +164,10 @@ def cmd_backup(args):
         r = backup.run_backup(progress=lambda pct, text: print(f"\r{text}", end="", flush=True))
         print()
         print(f"Backup: {r['files']} changed file(s) -> {r['snapshot']}" if r["ok"] else f"Backup failed: {r['error']}")
+        if r.get("warning"):
+            print(r["warning"])
+            for path in r["skipped"]:
+                print(f"  {path}")
         rc = 0 if r["ok"] else 1
     if b.get("restic_repo"):                       # the encrypted copy, once it has been set up
         ok, text = backup.restic_backup(b)

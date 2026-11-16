@@ -2,9 +2,12 @@
 Decoys live in temporary folders, scans are stubbed, and the only process whose priority changes is a
 `sleep` started by the test itself. Nothing here runs as root, starts the user service or changes the system."""
 
+import io
 import os
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 from unittest import mock
 
@@ -83,6 +86,42 @@ class Downloads(unittest.TestCase):
         self.assertIn(" guard", text)
         self.assertIn("Restart=on-failure", text)
 
+    def test_a_burst_of_downloads_is_checked_one_at_a_time(self):
+        lock, running, peak, checked = threading.Lock(), [0], [0], []
+
+        def slow_check(path, notify):
+            with lock:
+                running[0] += 1
+                peak[0] = max(peak[0], running[0])
+            time.sleep(0.01)
+            with lock:
+                running[0] -= 1
+            checked.append(path)
+
+        with mock.patch.object(guard, "check_download", slow_check):
+            scans = guard.start_scanner(lambda text: None)
+            for i in range(20):
+                scans.put(f"/home/u/Downloads/file{i}.zip")
+            scans.join()
+        self.assertEqual(len(checked), 20)
+        self.assertEqual(peak[0], 1)
+
+    def test_a_failed_check_does_not_stop_the_rest(self):
+        checked = []
+
+        def check(path, notify):
+            if path.endswith("bad.zip"):
+                raise OSError("boom")
+            checked.append(path)
+
+        with mock.patch.object(guard, "check_download", check), \
+                mock.patch("sys.stderr", new_callable=io.StringIO):
+            scans = guard.start_scanner(lambda text: None)
+            scans.put("/home/u/Downloads/bad.zip")
+            scans.put("/home/u/Downloads/ok.zip")
+            scans.join()
+        self.assertEqual(checked, ["/home/u/Downloads/ok.zip"])
+
 
 class Priority(unittest.TestCase):
     def test_own_process_reports_a_nice_value(self):
@@ -114,6 +153,23 @@ class Priority(unittest.TestCase):
         step = processes.restore_step("4242", "firefox", nice=-3)
         self.assertEqual(step[0], "restore4242")
         self.assertIn("renice -n -3 -p 4242", step[2])
+
+
+class ProcessInfo(unittest.TestCase):
+    def test_the_package_lookup_runs_once_per_program(self):
+        processes._owner.cache_clear()
+        calls = []
+
+        def fake_out(cmd, timeout=20):
+            calls.append(cmd[0])
+            return "coreutils: /usr/bin/ls" if cmd[0] == "dpkg" else "GNU ls"
+
+        with mock.patch.object(processes, "out", side_effect=fake_out), \
+                mock.patch.object(processes.os, "readlink", return_value="/usr/bin/ls"):
+            for _ in range(3):
+                info = processes.describe({"pid": 1234, "name": "ls", "kernel": False})
+        self.assertEqual(calls.count("dpkg"), 1)
+        self.assertEqual((info["package"], info["summary"]), ("coreutils", "GNU ls"))
 
 
 if __name__ == "__main__":
