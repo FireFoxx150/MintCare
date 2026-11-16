@@ -1,3 +1,4 @@
+import time
 import unittest
 
 from mintcare import report
@@ -11,6 +12,17 @@ class BundleLogs(unittest.TestCase):
         self.assertNotIn("01:00:5e", clean)
         self.assertIn("[ip]", clean)
         self.assertIn("[mac]", clean)
+
+    def test_long_word_run_is_scrubbed_quickly(self):
+        # Quadratic before the \b anchor: about 2.7 s for this 40 KB line.
+        start = time.monotonic()
+        report._scrub_log("ab12" * 10000)
+        self.assertLess(time.monotonic() - start, 1.0)
+
+    def test_url_credentials_are_removed_after_a_word_run(self):
+        clean = report._scrub_log("ab12" * 100 + "://user:secret@example.com/repo")
+        self.assertNotIn("secret", clean)
+        self.assertIn("://example.com/repo", clean)
 
 
 if __name__ == "__main__":
