@@ -40,3 +40,21 @@ class Restore(TempDirTest):
         res = self.restore([Path(self.tmp) / "home" / "Documents" / "a.txt"])
         self.assertFalse(res[0][1])
         self.assertFalse(os.path.exists(self.home / "Documents" / "a.txt.before-restore"))
+
+    def test_symlinks_in_the_snapshot_are_not_recreated(self):
+        (self.snap / "Documents" / "link").symlink_to("../.config")
+        res = self.restore([self.snap / "Documents"])
+        self.assertTrue(res[0][1], res)
+        self.assertTrue((self.home / "Documents" / "a.txt").exists())
+        self.assertFalse(os.path.lexists(self.home / "Documents" / "link"))
+
+    def test_refuses_a_destination_that_goes_through_a_symlink(self):
+        target = self.home / ".config"                  # where a link from an earlier restore would lead
+        target.mkdir()
+        (self.home / "Documents" / "link").symlink_to(target)
+        evil = self.snap / "Documents" / "link" / "autostart" / "evil.desktop"
+        evil.parent.mkdir(parents=True)
+        evil.write_text("[Desktop Entry]\n")
+        res = self.restore([evil])
+        self.assertFalse(res[0][1], res)
+        self.assertFalse((target / "autostart").exists())
