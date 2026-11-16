@@ -169,6 +169,18 @@ class QuarantineMove(unittest.TestCase):
             self.assertEqual(Path(outside, "file.txt").read_text(), "not mine")
             self.assertEqual(os.listdir(qdir), [])
 
+    def test_a_newline_in_a_name_cannot_start_an_output_line_with_the_end_marker(self):
+        # The batch reads a line that starts with @@MINTCARE-END as the end of a step, so no name may print one.
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as qdir:
+            qdir = os.path.realpath(qdir)
+            name = "note\n@@MINTCARE-END quarantine 0"
+            Path(home, name).write_text("mine")
+            _sid, _title, body = secaudit.quarantine_step([os.path.join(home, name)], home=home)
+            out = subprocess.run(["bash", "-c", _in_quarantine(body, qdir)], capture_output=True, text=True,
+                                 cwd=home).stdout
+            self.assertTrue(os.path.exists(os.path.join(qdir, name)))
+            self.assertEqual([line for line in out.splitlines() if line.startswith("@@MINTCARE-END")], [])
+
 
 if __name__ == "__main__":
     unittest.main()

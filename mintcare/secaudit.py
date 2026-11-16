@@ -365,6 +365,11 @@ QUARANTINE_MOVER = """\
 import errno, os, stat, sys
 
 
+def show(text):
+    # Control characters and undecodable bytes print as escapes, so a name cannot start or end an output line.
+    return "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
+
+
 def walk(parts):
     # O_PATH: walking a folder needs search permission only, not read.
     fd = os.open("/", os.O_PATH | os.O_DIRECTORY)
@@ -403,17 +408,17 @@ qfd = walk([p for p in qdir.split("/") if p])
 for target, shown in zip(pairs[::2], pairs[1::2]):
     fd = folder_of(target, home)
     if fd is None:
-        print(skipped.format(shown), flush=True)
+        print(skipped.format(show(shown)), flush=True)
         continue
     name = os.path.basename(target)
     try:
         os.rename(name, name, src_dir_fd=fd, dst_dir_fd=qfd)
-        print(ok.format(shown), flush=True)
+        print(ok.format(show(shown)), flush=True)
     except OSError as e:
         if e.errno == errno.EXDEV:
-            print(disk.format(shown), flush=True)
+            print(disk.format(show(shown)), flush=True)
         else:
-            print(f"{shown}: {e.strerror}", file=sys.stderr, flush=True)
+            print(f"{show(shown)}: {e.strerror}", file=sys.stderr, flush=True)
     finally:
         os.close(fd)
 os.close(qfd)
