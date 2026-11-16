@@ -174,11 +174,21 @@ def dismiss_key(g):
     return f"{g['who']}\t{shape}"
 
 
+def _boot_id():
+    """The random ID of this boot. Dismissals are kept for this boot only."""
+    try:
+        with open("/proc/sys/kernel/random/boot_id") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 def dismissed():
-    """{key: seconds} of the kinds the user dismissed, from settings."""
+    """{key: seconds} of the kinds dismissed in this boot, from settings."""
     from .maintenance import load_settings
-    raw = load_settings().get("dismissed_errors", {})
-    if not isinstance(raw, dict):
+    s = load_settings()
+    raw = s.get("dismissed_errors", {})
+    if s.get("dismissed_boot") != _boot_id() or not isinstance(raw, dict):
         return {}
     return {k: float(v) for k, v in raw.items() if isinstance(v, (int, float))}
 
@@ -196,7 +206,8 @@ def visible(groups, hidden):
 def set_dismissed(key, seen):
     from .maintenance import load_settings, save_settings
     s = load_settings()
-    s["dismissed_errors"] = {**s.get("dismissed_errors", {}), key: seen}
+    s["dismissed_errors"] = {**dismissed(), key: seen}
+    s["dismissed_boot"] = _boot_id()
     save_settings(s)
 
 
@@ -204,6 +215,7 @@ def clear_dismissed():
     from .maintenance import load_settings, save_settings
     s = load_settings()
     s["dismissed_errors"] = {}
+    s["dismissed_boot"] = _boot_id()
     save_settings(s)
 
 
@@ -212,6 +224,7 @@ def dismiss_actions(groups):
     out_ = []
     for g in groups:
         if g["level"] in (INFO, WARN) and g["sample"]:
-            text = g["sample"] if len(g["sample"]) <= 40 else g["sample"][:39] + "…"
+            name = g["sample"]
+            text = name if len(name) <= 60 else name[:36] + "…" + name[-18:]     # the end tells similar messages apart
             out_.append((_("Dismiss “{0}”").format(text), "dismiss", (dismiss_key(g), g["last"])))
     return out_

@@ -1,5 +1,6 @@
 """Dismissing a kind of boot error hides it until it happens again, and never touches the journal."""
 import unittest
+from unittest import mock
 
 from mintcare import journal
 
@@ -46,6 +47,11 @@ class Buttons(unittest.TestCase):
         [(label, _kind, _payload)] = journal.dismiss_actions([g])
         self.assertLess(len(label), 80)
 
+    def test_messages_that_differ_only_at_the_end_get_different_labels(self):
+        one = group("systemd", "Timed out waiting for device dev-disk-by-uuid-12BE5C58BE5C3687.device", 1.0)
+        two = group("systemd", "Timed out waiting for device dev-disk-by-uuid-ECC8F392C8F35972.device", 1.0)
+        self.assertNotEqual(journal.dismiss_actions([one])[0][0], journal.dismiss_actions([two])[0][0])
+
 
 class Details(unittest.TestCase):
     def setUp(self):
@@ -76,6 +82,13 @@ class Saving(unittest.TestCase):
         self.assertIn("maintenance", load_settings())
         journal.clear_dismissed()
         self.assertEqual(journal.dismissed(), {})
+
+    def test_dismissals_end_at_the_next_boot(self):
+        with mock.patch.object(journal, "_boot_id", return_value="boot-one"):
+            journal.set_dismissed("kernel\tx", 42.0)
+            self.assertEqual(journal.dismissed(), {"kernel\tx": 42.0})
+        with mock.patch.object(journal, "_boot_id", return_value="boot-two"):
+            self.assertEqual(journal.dismissed(), {})
 
 
 if __name__ == "__main__":
