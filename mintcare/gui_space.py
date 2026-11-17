@@ -556,6 +556,7 @@ class SpacePage:
         row.pack_end(self.action_button(_("Open Timeshift"), lambda: subprocess.Popen(
             ["timeshift-launcher"], start_new_session=True), icon_name="document-open-recent-symbolic"),
             False, False, 0)
+        row.pack_end(self.action_button(_("Trust this drive"), self.trust_timeshift_drive), False, False, 0)
         c.pack_start(row, False, False, 0)
         box.pack_start(c, False, False, 0)
         box.pack_start(label(_("Snapshots share unchanged files, so deleting one frees only what changed "
@@ -654,6 +655,27 @@ class SpacePage:
         self._root_job(_("Restoring…"), [("ts-restore", _("Restore files from Timeshift"), script)], "Timeshift",
                        lambda r: maintenance.record("snapshot", _('Restored {0} from snapshot {1}').format(
                            ", ".join(dests[:3]), name), r.get("ts-restore") == 0))
+
+    def trust_timeshift_drive(self):
+        d = space.snapshot_dir()
+        if not d:
+            self.set_status(_("Mount the Timeshift backup drive first, then trust it."), bad=True)
+            return
+        serial = space.drive_serial(d)
+        try:
+            script = space.trust_script(serial)
+        except ValueError as e:
+            self.set_status(str(e), bad=True)
+            return
+        if not self.confirm(_("Trust this drive"),
+                            _("Only the drive with serial {0} will be used for Timeshift file restores. "
+                              "Trust it?").format(GLib.markup_escape_text(serial))):
+            return
+
+        def done(r):
+            if r.get("ts-trust") == 0:
+                self.set_status(_("This drive is now trusted for Timeshift file restores."))
+        self._root_job(_("Trust this drive"), [("ts-trust", _("Trust this drive"), script)], "Timeshift", done)
 
     def delete_snapshots(self):
         names = [n for n, v in self.snap_sel.items() if v]

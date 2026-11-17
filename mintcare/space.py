@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import STATE_DIR
 from .i18n import _
 from .util import out, read
 
@@ -360,6 +361,53 @@ def snapshot_root(name, base=None):
     return os.path.join(base or snapshot_dir() or "", name, "localhost")
 
 
+PIN_DIR = STATE_DIR                 # root-owned: only the trust step writes here
+PIN_NAME = "timeshift-device"
+
+
+def pinned_serial():
+    """Serial of the backup drive the user trusted, or ''."""
+    return read(os.path.join(PIN_DIR, PIN_NAME))
+
+
+def drive_serial(path):
+    """Serial of the disk under the filesystem holding path, or ''. Needs no root."""
+    dev = out(["findmnt", "-no", "SOURCE", "--target", path])
+    if not dev:
+        return ""
+    # -s walks from the partition (or mapper device) up to its disk, which is the one with a serial
+    return next((s.strip() for s in out(["lsblk", "-rsno", "SERIAL", dev]).splitlines() if s.strip()), "")
+
+
+def _not_trusted():
+    return _("The backup drive isn't the one you trusted, so nothing was restored.")
+
+
+def _pin_error(root, pinned):
+    """Why a restore from root must be refused, or '' if it may go ahead."""
+    if not pinned:
+        return _("No backup drive is trusted yet. Use Trust this drive first, then restore again.")
+    return "" if drive_serial(root) == pinned else _not_trusted()
+
+
+def _pin_fn(root, pinned):
+    """Shell function, true while the disk under root still has the pinned serial. The restore script
+    calls it before each copy, so a drive swapped in after the check above is still refused."""
+    from .util import q
+    return (f'pin_ok() {{ [ "$(lsblk -rsno SERIAL "$(findmnt -no SOURCE --target {q(root)})" | grep -m1 . '
+            f"| sed 's/^[[:space:]]*//;s/[[:space:]]*$//')\" = {q(pinned)} ]; }}")
+
+
+def trust_script(serial):
+    """Root step recording serial as the trusted backup drive. It writes only the pin file."""
+    from .util import q
+    serial = serial.strip()
+    if not serial:
+        raise ValueError(_("Couldn't read this drive's serial number, so it can't be trusted."))
+    path = os.path.join(PIN_DIR, PIN_NAME)
+    return f"mkdir -p {q(PIN_DIR)} && printf '%s\\n' {q(serial)} > {q(path)} && chmod 0644 {q(path)}"
+
+
 def _has_file_caps(path):
     """True if the file has Linux file capabilities, which grant privilege as setuid does."""
     try:
@@ -372,11 +420,15 @@ def _has_file_caps(path):
 def restore_file_script(name, paths, base=None):
     """Root script putting files from a Timeshift snapshot back where they were. The current file is
     kept beside it as NAME.~1~ (cp --backup=numbered). Raises ValueError for anything that isn't a
-    regular file inside the snapshot, or grants privilege (setuid, setgid or file capabilities). No -a:
-    the copy keeps root's ownership and drops the snapshot's setuid bits, but keeps its read, write and
-    execute bits."""
+    regular file inside the snapshot, or grants privilege (setuid, setgid or file capabilities), and
+    unless the trusted backup drive holds the snapshot. No -a: the copy keeps root's ownership and
+    drops the snapshot's setuid bits, but keeps its read, write and execute bits."""
     from .util import q
     root = os.path.realpath(snapshot_root(name, base))
+    pinned = pinned_serial()
+    err = _pin_error(root, pinned)
+    if err:
+        raise ValueError(err)
     lines = []
     for p in paths:
         real = os.path.realpath(p)
@@ -387,9 +439,11 @@ def restore_file_script(name, paths, base=None):
         if _has_file_caps(real):
             raise ValueError(_("{0} has file capabilities set, so it is not restored.").format(p))
         dest = "/" + os.path.relpath(real, root)
-        lines.append(f"mkdir -p {q(os.path.dirname(dest))} && cp --no-preserve=ownership --preserve=timestamps "
-                     f"--backup=numbered -- {q(real)} {q(dest)} && echo {q('Restored ' + dest)}")
-    return "\n".join(lines)
+        guard = f"pin_ok || {{ echo {q(_not_trusted())} >&2; exit 1; }}"   # checked again right before the copy
+        lines.append(f"{guard}; mkdir -p {q(os.path.dirname(dest))} && cp --no-preserve=ownership "
+                     f"--preserve=timestamps --backup=numbered -- {q(real)} {q(dest)} "
+                     f"&& echo {q('Restored ' + dest)}")
+    return "\n".join([_pin_fn(root, pinned)] + lines) if lines else ""
 
 
 def delete_snapshot_script(name):

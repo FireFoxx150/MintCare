@@ -106,6 +106,14 @@ class OldDownloads(TempDirTest):
 
 
 class TimeshiftRestore(TempDirTest):
+    def setUp(self):
+        super().setUp()
+        self.pin = self.write("timeshift-device", b"SERIAL-A\n")       # the trusted drive
+        for patch in (mock.patch.object(space, "PIN_DIR", self.tmp),
+                      mock.patch.object(space, "drive_serial", return_value="SERIAL-A")):
+            patch.start()
+            self.addCleanup(patch.stop)
+
     def snap_file(self, rel, mode=0o644):
         path = os.path.join(self.tmp, "snap1", "localhost", rel)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -145,6 +153,21 @@ class TimeshiftRestore(TempDirTest):
             with self.assertRaises(ValueError):          # an unexpected error refuses too
                 space.restore_file_script("snap1", [path], base=self.tmp)
 
+    def test_refuses_a_drive_with_another_serial(self):
+        """Same filesystem UUID, different disk: the serial no longer matches the pin."""
+        with mock.patch.object(space, "drive_serial", return_value="SERIAL-B"):
+            with self.assertRaisesRegex(ValueError, "isn't the one you trusted"):
+                space.restore_file_script("snap1", [self.snap_file("etc/fstab")], base=self.tmp)
+
+    def test_pinned_drive_is_allowed(self):
+        script = space.restore_file_script("snap1", [self.snap_file("etc/fstab")], base=self.tmp)
+        self.assertIn("pin_ok || {", script)                # the pin is checked again before each copy
+
+    def test_refuses_until_a_drive_is_pinned(self):
+        os.remove(self.pin)
+        with self.assertRaisesRegex(ValueError, "No backup drive is trusted yet"):
+            space.restore_file_script("snap1", [self.snap_file("etc/fstab")], base=self.tmp)
+
     def test_copy_drops_setuid_and_keeps_rwx(self):
         path = self.snap_file("usr/bin/tool", 0o755)
         cp = shlex.split(space.restore_file_script("snap1", [path], base=self.tmp).split(" && ")[1])
@@ -155,6 +178,24 @@ class TimeshiftRestore(TempDirTest):
         mode = os.stat(dest).st_mode
         self.assertFalse(mode & (stat.S_ISUID | stat.S_ISGID))
         self.assertTrue(mode & stat.S_IRUSR and mode & stat.S_IWUSR and mode & stat.S_IXUSR)
+
+
+class PinnedDrive(TempDirTest):
+    def test_trust_writes_the_serial_verbatim(self):
+        serial = "A'B $(touch injected)"                  # quoting must hold for hostile values
+        with mock.patch.object(space, "PIN_DIR", self.tmp):
+            subprocess.run(["sh", "-c", space.trust_script(serial)], cwd=self.tmp, check=True)
+        with open(os.path.join(self.tmp, space.PIN_NAME)) as f:
+            self.assertEqual(f.read(), serial + "\n")
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "injected")))
+
+    def test_empty_serial_cannot_be_trusted(self):
+        with self.assertRaises(ValueError):
+            space.trust_script("  ")
+
+    def test_serial_comes_from_the_first_disk_up_the_chain(self):
+        with mock.patch.object(space, "out", side_effect=["/dev/mapper/crypt", "\nSERIAL-X\n"]):
+            self.assertEqual(space.drive_serial("/mnt/x"), "SERIAL-X")
 
 
 @unittest.skipUnless(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"), "needs a display")
