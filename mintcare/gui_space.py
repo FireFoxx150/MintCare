@@ -663,7 +663,7 @@ class SpacePage:
         lines = []
         for n in names:
             c = info.get(n, {}).get("comment")
-            lines.append(f"• {n}" + (f" — <b>“{GLib.markup_escape_text(c)}”</b>" if c else ""))
+            lines.append(f"• {GLib.markup_escape_text(n)}" + (f" — <b>“{GLib.markup_escape_text(c)}”</b>" if c else ""))
         if not self.confirm(_('Delete {0} Timeshift snapshot(s)?').format(len(names)),
                             "\n".join(lines) + _("\n\nThis can't be undone; you won't be able to roll back to "
                             "these points.")):

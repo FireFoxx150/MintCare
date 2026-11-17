@@ -16,10 +16,10 @@ def run(cmd, timeout=20, env_extra=None):
         p = subprocess.run(
             cmd if isinstance(cmd, list) else ["bash", "-c", cmd],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, timeout=timeout, env=env,
+            text=True, errors="replace", timeout=timeout, env=env,
         )
         return p.returncode, p.stdout.strip()
-    except (OSError, subprocess.TimeoutExpired) as e:
+    except (OSError, ValueError, subprocess.TimeoutExpired) as e:
         return 127, str(e)
 
 
@@ -33,8 +33,8 @@ def has_cmd(name):
 
 def read(path, default=""):
     try:
-        return Path(path).read_text().strip()
-    except OSError:
+        return Path(path).read_text(errors="replace").strip()
+    except (OSError, ValueError):
         return default
 
 

@@ -79,7 +79,7 @@ def collect(private=True, progress=lambda _s: None):
 def _scrub(text, private):
     if not private:
         return text
-    text = re.sub(r"(\w+://)[^/@\s]+@", r"\1", text)   # credentials in URLs (apt sources)
+    text = re.sub(r"\b(\w+://)[^/@\s]+@", r"\1", text)   # credentials in URLs (apt sources)
     text = re.sub(r"\b\d{1,3}(\.\d{1,3}){3}\b", "[ip]", text)
     text = re.sub(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b", "[mac]", text)   # hardware (MAC) addresses
     home, user, host = str(Path.home()), getpass.getuser(), socket.gethostname()
