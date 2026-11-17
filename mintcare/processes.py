@@ -1,5 +1,6 @@
 """Process explorer: top CPU/RAM users, what each one is, and ending them."""
 
+import functools
 import os
 import signal
 import time
@@ -106,6 +107,17 @@ def processes(prev=None):
     return rows, (cur, now)
 
 
+@functools.lru_cache(maxsize=256)
+def _owner(exe):
+    """(package, its summary) that owns an executable. Looked up once per program, not on every refresh."""
+    pkg = ""
+    o = out(["dpkg", "-S", exe.replace(" (deleted)", "")], timeout=10)
+    if ":" in o and _("no path found") not in o:
+        pkg = o.split(":", 1)[0].split(",")[0].strip()
+    summary = out(["dpkg-query", "-W", "-f=${binary:Summary}", pkg]) if pkg else ""
+    return pkg, summary
+
+
 def describe(p):
     """Plain-English description plus the owning package's summary, if any."""
     text = KNOWN.get(p["name"], "")
@@ -114,12 +126,7 @@ def describe(p):
         exe = os.readlink(f"/proc/{p['pid']}/exe")
     except OSError:
         pass
-    pkg = ""
-    if exe:
-        o = out(["dpkg", "-S", exe.replace(" (deleted)", "")], timeout=10)
-        if ":" in o and _("no path found") not in o:
-            pkg = o.split(":", 1)[0].split(",")[0].strip()
-    summary = out(["dpkg-query", "-W", "-f=${binary:Summary}", pkg]) if pkg else ""
+    pkg, summary = _owner(exe) if exe else ("", "")
     if p["kernel"]:
         text = text or _("A kernel thread — part of Linux itself.")
     return {"text": text, "exe": exe, "package": pkg, "summary": summary}

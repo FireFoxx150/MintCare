@@ -4,9 +4,11 @@ plus export/import of MintCare settings. Runs as you; no root needed.
 Layout: <destination>/MintCare-backups/<computer>/<YYYY-MM-DD_HH-MM>/<folders…>
 """
 
+import fnmatch
 import json
 import os
 import re
+import shlex
 import shutil
 import socket
 import subprocess
@@ -15,7 +17,7 @@ from pathlib import Path
 
 from gi.repository import GLib
 
-from .i18n import _
+from .i18n import _, ngettext
 from . import __version__
 from .util import has_cmd, human, out, run
 
@@ -67,8 +69,7 @@ def snapshots(dest):
     r = root(dest)
     if not r.is_dir():
         return []
-    snaps = sorted([p for p in r.iterdir() if re.match(r"\d{4}-\d\d-\d\d_\d\d-\d\d", p.name) and p.is_dir()],
-                   reverse=True)
+    snaps = sorted([p for p in r.iterdir() if DATED.fullmatch(p.name) and p.is_dir()], reverse=True)
     return snaps
 
 
@@ -101,12 +102,27 @@ def check_destination(dest):
 
 
 def estimate(folders, excludes=DEFAULT_EXCLUDES):
+    """Bytes a backup of these folders would copy, leaving out what the excludes skip (close to what rsync does)."""
     from .util import dir_size
-    return sum(dir_size(f) for f in folders if os.path.isdir(f))
+    return sum(dir_size(f, lambda p, f=f: _skipped(p, f, excludes)) for f in folders if os.path.isdir(f))
+
+
+def _skipped(path, folder, excludes):
+    """Whether an exclude pattern leaves this path out. A pattern with a slash is matched against the path inside
+    the folder being backed up; one without a slash is matched against each name, as rsync matches it."""
+    rel, name = os.path.relpath(path, folder), os.path.basename(path)
+    for pat in excludes:
+        if "/" in pat:
+            if rel == pat or rel.endswith("/" + pat):
+                return True
+        elif fnmatch.fnmatchcase(name, pat):
+            return True
+    return False
 
 
 def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
-    """Make one snapshot. Returns {'ok', 'snapshot', 'transferred', 'files', 'error'}."""
+    """Make one snapshot. Returns {'ok', 'snapshot', 'transferred', 'files', 'error'}, and 'skipped' and 'warning'
+    when rsync could not copy some files."""
     b = b or config()
     problems = [t for lvl, t in check_destination(b["dest"]) if lvl == "fail"]
     if problems:
@@ -131,7 +147,7 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
     args += [f"{HOME}/./{os.path.relpath(f, HOME)}" if f.startswith(str(HOME)) else f for f in folders]
     args.append(str(partial) + "/")
     proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
-    stats, tail = {}, []
+    stats, tail, skipped = {}, [], []
     for line in proc.stdout:
         if cancel():
             proc.terminate()
@@ -143,13 +159,16 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
                            ("transferred", "Total transferred file size")):
             if line.startswith(label):
                 stats[key] = line.split(":", 1)[1].strip().split(" bytes")[0]
+        if line.startswith("rsync: ") and "failed" in line:      # a file rsync could not copy
+            skipped.append(line.split('"')[1] if '"' in line else line.strip())
         tail = (tail + [line.rstrip()])[-6:]
     rc = proc.wait()
     proc.stdout.close()                # the pipe stays open otherwise, and Python warns about it
     if cancel():
         shutil.rmtree(partial, ignore_errors=True)
         return {"ok": False, "error": "Cancelled"}
-    if rc not in (0, 24):              # 24 = some files vanished during the copy (normal for live folders)
+    if rc not in (0, 23, 24):          # 23: some files could not be copied; 24: some vanished (normal for live folders)
+        shutil.rmtree(partial, ignore_errors=True)       # a failed copy is not a snapshot
         return {"ok": False, "error": _('rsync failed (exit {0}): ').format(rc) + " ".join(tail[-2:])}
     partial.rename(target)
     old = snapshots(b["dest"])
@@ -167,13 +186,19 @@ def run_backup(b=None, progress=lambda pct, text: None, cancel=lambda: False):
         pass
     result = {"ok": True, "snapshot": str(target), "files": stats.get("files", "?"),
               "transferred": stats.get("transferred", "?"), "ts": time.time()}
+    if rc == 23:                       # the snapshot is kept, and the user is told what is missing from it
+        result["skipped"] = skipped
+        result["warning"] = ngettext("{0} file could not be copied, so it is not in this backup",
+                                     "{0} files could not be copied, so they are not in this backup",
+                                     len(skipped)).format(len(skipped))
     from . import maintenance
+    stored = {k: v for k, v in result.items() if k != "skipped"}      # file names stay out of the state file
     try:
-        (maintenance.STATE / "last-backup.json").write_text(json.dumps(result))
+        (maintenance.STATE / "last-backup.json").write_text(json.dumps(stored))
     except OSError:
         pass
     maintenance.record("backup", _('Backed up {0} folder(s) to {1}').format(len(folders), b['dest']), True,
-                       _('{0} files changed').format(result['files']))
+                       result.get("warning") or _('{0} files changed').format(result['files']))
     return result
 
 
@@ -290,7 +315,7 @@ def install_timer(frequency):
     from . import maintenance
     d = maintenance.UNIT_DIR
     d.mkdir(parents=True, exist_ok=True)
-    cmd = " ".join(maintenance.launcher() + ["backup"])
+    cmd = shlex.join(maintenance.launcher() + ["backup"])
     (d / SERVICE).write_text(f"# Managed by MintCare\n[Unit]\nDescription=MintCare home folder backup\n\n"
                              f"[Service]\nType=oneshot\nExecStart={cmd}\nNice=15\nIOSchedulingClass=idle\n")
     (d / TIMER).write_text(f"# Managed by MintCare\n[Unit]\nDescription=MintCare home folder backup ({frequency})\n\n"

@@ -38,11 +38,10 @@ class StaleProjects(TempDirTest):
         found = {os.path.relpath(p, self.root) for p, _n in cleaner.stale_folders(root=self.root)}
         self.assertEqual(found, {"stale_app/node_modules", "rust_old/target", "venv_old/.venv"})
 
-    def test_the_scan_records_what_the_trash_step_moves(self):
+    def test_the_scan_returns_what_the_trash_step_moves(self):
         with mock.patch.object(cleaner, "STALE_ROOT", self.root):
-            size, detail = cleaner.s_stale()
+            size, detail, script = cleaner.s_stale()
         self.assertGreater(size, 0)
-        script = cleaner.BY_ID["stale"].user_script
         self.assertIn(f"gio trash {cleaner.q(str(self.root / 'stale_app/node_modules'))}", script)
         self.assertNotIn("fresh_app", script)
         self.assertIn("3 folders", detail)
@@ -51,9 +50,9 @@ class StaleProjects(TempDirTest):
         empty = self.root / "empty"
         empty.mkdir()
         with mock.patch.object(cleaner, "STALE_ROOT", empty):
-            size, _detail = cleaner.s_stale()
+            size, _detail, script = cleaner.s_stale()
         self.assertEqual(size, 0)
-        self.assertIsNone(cleaner.BY_ID["stale"].user_script)
+        self.assertIsNone(script)
 
 
 if __name__ == "__main__":

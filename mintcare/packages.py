@@ -236,6 +236,14 @@ def test_mirrors(progress=lambda done, total: None, limit=12):
     return results
 
 
+def _replace_in_file(path, old, new):
+    """Shell command that replaces every `old` with `new` in a file. Python does the replacing, and the values are
+    quoted, so no character of a mirror address is read by the shell or taken as a sed pattern."""
+    code = ('import pathlib, sys; p = pathlib.Path(sys.argv[1]); '
+            'p.write_text(p.read_text(encoding="utf-8").replace(sys.argv[2], sys.argv[3]), encoding="utf-8")')
+    return f"python3 -c {q(code)} {q(str(path))} {q(old)} {q(new)}"
+
+
 def switch_mirrors_step(mint_url, ubuntu_url):
     """Rewrite the official sources to the chosen mirrors (backup kept in /var/lib/mintcare)."""
     cur_mint, cur_ubu = current_mirrors()
@@ -243,9 +251,9 @@ def switch_mirrors_step(mint_url, ubuntu_url):
     script = (f"mkdir -p /var/lib/mintcare\n[ -f /var/lib/mintcare/official-package-repositories.list.orig ] || "
               f"cp -a {f} /var/lib/mintcare/official-package-repositories.list.orig\n")
     if mint_url and mint_url != cur_mint:
-        script += f"sed -i 's|{cur_mint}|{mint_url}|g' {f}\n"
+        script += _replace_in_file(OFFICIAL_LIST, cur_mint, mint_url) + "\n"
     if ubuntu_url and ubuntu_url != cur_ubu:
-        script += f"sed -i 's|{cur_ubu}|{ubuntu_url}|g' {f}\n"
+        script += _replace_in_file(OFFICIAL_LIST, cur_ubu, ubuntu_url) + "\n"
     script += f"cat {f}\napt-get update 2>&1 | tail -3"
     return ("mirrors", _("Switch to the fastest mirrors"), script)
 

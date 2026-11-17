@@ -7,7 +7,7 @@ from mintcare import report
 class BundleLogs(unittest.TestCase):
     def test_addresses_are_removed_from_log_text(self):
         text = "IN=enp4s0 MAC=01:00:5e:00:00:01:60:8d:26:d9:d7:14:08:00 SRC=192.168.1.254 DST=224.0.0.1"
-        clean = report._scrub_log(text)
+        clean = report._scrub(text, True)
         self.assertNotIn("192.168", clean)
         self.assertNotIn("01:00:5e", clean)
         self.assertIn("[ip]", clean)
@@ -16,11 +16,11 @@ class BundleLogs(unittest.TestCase):
     def test_long_word_run_is_scrubbed_quickly(self):
         # Quadratic before the \b anchor: about 2.7 s for this 40 KB line.
         start = time.monotonic()
-        report._scrub_log("ab12" * 10000)
+        report._scrub("ab12" * 10000, True)
         self.assertLess(time.monotonic() - start, 1.0)
 
     def test_url_credentials_are_removed_after_a_word_run(self):
-        clean = report._scrub_log("ab12" * 100 + "://user:secret@example.com/repo")
+        clean = report._scrub("ab12" * 100 + "://user:secret@example.com/repo", True)
         self.assertNotIn("secret", clean)
         self.assertIn("://example.com/repo", clean)
 

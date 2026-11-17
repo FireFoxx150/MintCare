@@ -80,6 +80,8 @@ def _scrub(text, private):
     if not private:
         return text
     text = re.sub(r"\b(\w+://)[^/@\s]+@", r"\1", text)   # credentials in URLs (apt sources)
+    text = re.sub(r"\b\d{1,3}(\.\d{1,3}){3}\b", "[ip]", text)
+    text = re.sub(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b", "[mac]", text)   # hardware (MAC) addresses
     home, user, host = str(Path.home()), getpass.getuser(), socket.gethostname()
     for old, new in ((home, "~"), (f"/home/{user}", "~"), (host, "this-pc")):
         if old:
@@ -283,13 +285,6 @@ def save_scheduled(fmt="pdf", folder=None, keep=10, private=True):
     return str(path)
 
 
-def _scrub_log(text):
-    """Log text with names removed, plus IP and hardware (MAC) addresses."""
-    text = _scrub(text, True)
-    text = re.sub(r"\b\d{1,3}(\.\d{1,3}){3}\b", "[ip]", text)
-    return re.sub(r"\b[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}\b", "[mac]", text)
-
-
 def write_support_bundle(path, progress=lambda _s: None):
     """A zip for asking for help: the health report, hardware list and recent activity, all with personal details removed."""
     import zipfile
@@ -300,7 +295,7 @@ def write_support_bundle(path, progress=lambda _s: None):
     activity = "\n".join(f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(ev.get('ts', 0)))}  {ev.get('kind', '')}  "
                          f"{'ok' if ev.get('ok', True) else 'failed'}  {ev.get('title', '')}"
                          for ev in maintenance.history(limit=300)) or "No activity recorded yet."
-    journal = _scrub_log(out(["journalctl", "-b", "-p", "warning", "--no-pager", "-n", "300"], timeout=30))
+    journal = _scrub(out(["journalctl", "-b", "-p", "warning", "--no-pager", "-n", "300"], timeout=30), True)
     readme = ("MintCare support bundle\n"
               "Send this file when asking for help. Computer name, user name, home folder paths and drive\n"
               "serial numbers are removed.\n\n"

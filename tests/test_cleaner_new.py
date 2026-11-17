@@ -1,9 +1,54 @@
 """Leftover Flatpak data and unused Cinnamon add-ons are found, and nothing is guessed when lists can't be read."""
+import os
+import subprocess
+import time
 from pathlib import Path
 from unittest import mock
 
-from mintcare import cleaner
+from mintcare import checks, cleaner, maintenance
 from tests.helpers import TempDirTest
+
+
+class StaleCache(TempDirTest):
+    def test_the_sweep_leaves_developer_and_model_caches_alone(self):
+        cache = Path(self.tmp) / ".cache"
+        old = time.time() - 60 * 86400
+        for rel in ("pip/wheel.whl", "huggingface/hub/model.bin", "junk/old.dat"):
+            p = cache / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("x")
+            os.utime(p, (old, old))
+        self.assertEqual(cleaner._stale_cache_files(cache=cache)[1], 1)      # only junk/old.dat is counted
+        subprocess.run(["bash", "-c", cleaner.usercache_script(cache)], check=True)
+        self.assertTrue((cache / "pip" / "wheel.whl").exists())
+        self.assertTrue((cache / "huggingface" / "hub" / "model.bin").exists())
+        self.assertFalse((cache / "junk").exists())                          # the old file and its empty folder
+
+
+class ScheduledCleaning(TempDirTest):
+    def test_only_safe_items_run_unattended(self):
+        settings = {"maintenance": {"clean": ["trash", "thumbs", "usercache", "devcache"]}}
+        with mock.patch.object(maintenance, "load_settings", return_value=settings), \
+                mock.patch.object(checks, "CHECKS", []), \
+                mock.patch("mintcare.runner.run_steps", return_value={}) as steps:
+            maintenance.run_maintenance(notify=False)
+        self.assertEqual([step[0] for step in steps.call_args.args[0]], ["thumbs", "usercache"])
+
+
+class ScanScripts(TempDirTest):
+    def test_each_scan_keeps_the_script_for_what_it_found(self):
+        first, second = Path(self.tmp) / "old_a", Path(self.tmp) / "old_b"
+        with mock.patch.object(cleaner, "stale_folders", return_value=[(str(first), 10)]):
+            _size, _detail, script = cleaner.s_stale()
+        with mock.patch.object(cleaner, "stale_folders", return_value=[(str(second), 10)]):
+            cleaner.s_stale()
+        self.assertIn(str(first), script)
+        self.assertNotIn(str(second), script)
+        self.assertIsNone(cleaner.BY_ID["stale"].user_script)      # a scan never changes the item itself
+
+    def test_a_plain_scan_uses_the_item_script(self):
+        item = cleaner.CleanItem("plain", "Plain", "A plain item", lambda: (5, "five"), user_script="echo hi")
+        self.assertEqual(cleaner.measure(item), (5, "five", "echo hi"))
 
 
 class Leftovers(TempDirTest):
