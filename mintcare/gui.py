@@ -24,7 +24,7 @@ from . import (__version__, alerts, autostart, backup, bench, boot, checks, clea
 from .runner import run_steps  # noqa: E402
 from .stats import Sampler  # noqa: E402
 from .util import human, q, read, sysctl  # noqa: E402
-from .widgets import BLUE, EMERALD, ORANGE, VIOLET, Bar, LineChart, RingGauge, StackedBar, describe  # noqa: E402
+from .widgets import BLUE, EMERALD, ORANGE, VIOLET, Bar, LineChart, RingGauge, StackedBar, describe, show_or_hide  # noqa: E402
 
 STATUS_ICON = {
     checks.OK: ("emblem-ok-symbolic", "ok"),
@@ -1846,7 +1846,7 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
              _('You have the latest version, <b>{0}</b>.').format(__version__)) + _('  <small>Checked at {0}.</small>').format(checked))
         notes = info.get("notes", "").strip()
         self.sw_notes.set_text(notes[:600] if newer else "")
-        self.sw_update_btn.set_visible(newer and selfupdate.installed_from_package())
+        show_or_hide(self.sw_update_btn, newer and selfupdate.installed_from_package())
 
     def load_software(self):
         self._render_mintcare_card()
@@ -2304,7 +2304,7 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
         self.fw_text.set_text(_("Incoming connections are blocked unless you allowed them. Outgoing traffic is "
                                 "unaffected.") if fw else
                               _("Anything listening on the network can be reached by other computers."))
-        self.fw_btn.set_visible(not fw)
+        show_or_hide(self.fw_btn, not fw)
         self._action_buttons = [b for b in self._action_buttons if not getattr(b, "port_row", False)]
         for ch in self.port_list.get_children():
             ch.destroy()
@@ -2692,9 +2692,9 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
 
         def done(res):
             names, now = res
-            self.power_row.set_visible(bool(names))
+            show_or_hide(self.power_row, bool(names))
             for name, b in self.power_btns.items():
-                b.set_visible(name in names)
+                show_or_hide(b, name in names)
                 ctx = b.get_style_context()
                 ctx.remove_class("primary")
                 ctx.remove_class("ghost")
@@ -3236,10 +3236,10 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
             gain = [b for b, cur in zip(best, (cur_m, cur_u)) if b and b["url"] != cur]
             self.mir_status.set_text(_('Tested mirrors in {0}. ').format(r['country'] or _('your area')) +
                                      (_("A faster mirror is available.") if gain else _("You're already on the fastest.")))
-            self.mir_use_btn.set_visible(bool(gain))
+            show_or_hide(self.mir_use_btn, bool(gain))
             self.mir_list.show_all()
         self.bg(lambda: packages.test_mirrors(prog), done)
-        self.mir_restore_btn.set_visible(Path("/var/lib/mintcare/official-package-repositories.list.orig").exists())
+        show_or_hide(self.mir_restore_btn, Path("/var/lib/mintcare/official-package-repositories.list.orig").exists())
 
     def use_fastest_mirrors(self):
         r = getattr(self, "mirror_results", None)
@@ -4235,7 +4235,7 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
         else:
             self.fwup_lbl.set_text(_('Firmware is up to date for {0} updatable device(s).').format(len(updatable))
                                    + (_(' The firmware catalogue was refreshed {0} ago.').format(age) if age else ""))
-        self.fw_install_btn.set_visible(bool(ups))
+        show_or_hide(self.fw_install_btn, bool(ups))
         self.fwdev_exp.set_label(_('Devices ({0}, {1} support updates)').format(len(devs), len(updatable)))
         for d in devs:
             r = hbox(8)
