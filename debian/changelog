@@ -1,3 +1,29 @@
+mintcare (1.12.14) noble; urgency=medium
+
+  * Backup: when some files can't be read, the backup keeps what it copied
+    and reports how many files it skipped. A failed backup no longer leaves a
+    partial copy behind.
+  * Backup: the size estimate leaves out the folders and files that the
+    exclude list skips.
+  * Downloads: new downloads are checked one at a time, so unpacking many
+    files at once no longer starts a scan for each of them.
+  * Clean: the stale cache clean keeps pip, yarn, go-build and Hugging Face
+    caches. Scheduled cleaning runs only its safe items, whatever the
+    settings file says.
+  * Clean: each item removes exactly the folders its scan listed.
+  * Firewall: turning the firewall on keeps SSH open when an SSH server is
+    running, so remote login still works.
+  * Optimise: the I/O scheduler revert puts back each disk's previous
+    scheduler.
+  * Processes: details for an open process load in the background, and the
+    package lookup is kept for each program.
+  * Timers, the tray entry and the restart work when MintCare's path contains
+    spaces.
+  * Reports and the support bundle mask IP and MAC addresses.
+  * Updates: a download bigger than the release says is refused.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Mon, 16 Nov 2026 23:56:05 +0000
+
 mintcare (1.12.13) noble; urgency=medium
 
   * Security: disk encryption and auditd checks, and a read-only Lynis
