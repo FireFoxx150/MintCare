@@ -11,7 +11,7 @@ from gi.repository import GLib, Gtk
 from . import backup, maintenance
 from .i18n import _, ngettext
 from .util import human
-from .widgets import describe
+from .widgets import describe, show_or_hide
 # gui imports this module after defining these helpers, so they exist here (import gui, not this module, first)
 from .gui import STATUS_ICON, card, css, hbox, icon, label, list_card, scrolled, vbox
 
@@ -192,7 +192,7 @@ class BackupPage:
 
     def _restic_state(self):
         ready = backup.restic_ready()
-        self.rs_install.set_visible(not ready)
+        show_or_hide(self.rs_install, not ready)
         for w in (self.rs_repo, self.rs_pass, self.rs_setup_btn, self.rs_now_btn):
             w.set_sensitive(ready)
         if not ready:
