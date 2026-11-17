@@ -6,6 +6,7 @@ from collections import deque
 import gi
 
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 gi.require_version("PangoCairo", "1.0")
 from gi.repository import Gdk, Gtk, Pango, PangoCairo  # noqa: E402
 
@@ -42,6 +43,18 @@ def describe(widget, name=None, description=None):
     if description is not None:
         acc.set_description(description)
     return widget
+
+
+def show_or_hide(widget, shown):
+    """Show or hide a widget. For a widget made with set_no_show_all(True), use this instead of set_visible() or
+    show_all(): both skip the widgets inside a no-show-all widget, so the button would show without its label."""
+    if not shown:
+        widget.hide()
+        return
+    widget.show()
+    if isinstance(widget, Gtk.Container):
+        for child in widget.get_children():
+            child.show_all()
 
 
 def _text(cr, widget, text, font, color, cx, cy):
