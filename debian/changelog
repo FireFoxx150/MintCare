@@ -1,3 +1,14 @@
+mintcare (1.12.16) noble; urgency=medium
+
+  * Processes and command output: bytes that are not valid UTF-8 no longer stop
+    the Processes page or the ports scan.
+  * Support bundle: the credential scrub no longer stalls on very long
+    log lines.
+  * Snapshot delete: the snapshot name is escaped in the confirmation, so markup
+    in a name cannot change what the dialog shows.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Fri, 20 Nov 2026 23:02:23 +0000
+
 mintcare (1.12.15) noble; urgency=medium
 
   * Software & updates: the Update now button shows its label. Buttons that
