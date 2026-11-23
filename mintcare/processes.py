@@ -5,7 +5,7 @@ import os
 import signal
 import time
 
-from .i18n import _
+from .i18n import _, ngettext
 from .util import has_cmd, out, read, run
 
 KNOWN = {
@@ -60,7 +60,7 @@ def _clk():
 
 
 def snapshot():
-    """{pid: (utime+stime ticks, wall time)} for CPU % between two samples."""
+    """({pid: (utime+stime ticks, parent pid, start ticks after boot)}, wall time) for CPU % between two samples."""
     out_ = {}
     for d in os.listdir("/proc"):
         if not d.isdigit():
@@ -70,20 +70,25 @@ def snapshot():
             continue
         f = st[st.rfind(")") + 2:].split()
         try:
-            out_[int(d)] = int(f[11]) + int(f[12])
+            out_[int(d)] = (int(f[11]) + int(f[12]), int(f[1]), int(f[19]))
         except (IndexError, ValueError):
             pass
     return out_, time.monotonic()
 
 
 def processes(prev=None):
-    """List of dicts with pid, name, user, cpu (% of one core), rss bytes, cmd, mine."""
+    """List of dicts with pid, ppid, name, user, cpu (% of one core), rss and swap bytes, age and cpu_time in
+    seconds, cmd, mine."""
     cur, now = snapshot()
     ticks = _clk()
     me = os.getuid()
+    try:
+        uptime = float(read("/proc/uptime").split()[0])
+    except (IndexError, ValueError):
+        uptime = 0.0
     rows = []
     users = {}
-    for pid, total in cur.items():
+    for pid, (total, ppid, start) in cur.items():
         status = read(f"/proc/{pid}/status")
         if not status:
             continue
@@ -91,10 +96,11 @@ def processes(prev=None):
         name = fields.get("Name", "?").strip()
         uid = int(fields.get("Uid", "0").split()[0])
         rss = int(fields.get("VmRSS", "0 kB").split()[0]) * 1024 if "VmRSS" in fields else 0
+        swap = int(fields.get("VmSwap", "0 kB").split()[0]) * 1024 if "VmSwap" in fields else 0
         cpu = 0.0
         if prev and pid in prev[0]:
             dt = max(now - prev[1], 1e-3)
-            cpu = 100.0 * (total - prev[0][pid]) / ticks / dt
+            cpu = 100.0 * (total - prev[0][pid][0]) / ticks / dt
         if uid not in users:
             try:
                 import pwd
@@ -102,8 +108,9 @@ def processes(prev=None):
             except KeyError:
                 users[uid] = str(uid)
         cmd = read(f"/proc/{pid}/cmdline").replace("\0", " ").strip()
-        rows.append({"pid": pid, "name": name, "user": users[uid], "uid": uid, "cpu": max(0.0, cpu),
-                     "rss": rss, "cmd": cmd or f"[{name}]", "mine": uid == me, "kernel": not cmd})
+        rows.append({"pid": pid, "ppid": ppid, "name": name, "user": users[uid], "uid": uid, "cpu": max(0.0, cpu),
+                     "rss": rss, "swap": swap, "age": max(0.0, uptime - start / ticks), "cpu_time": total / ticks,
+                     "cmd": cmd or f"[{name}]", "mine": uid == me, "kernel": not cmd})
     return rows, (cur, now)
 
 
@@ -135,6 +142,99 @@ def describe(p):
 def end(pid, force=False):
     """End one of your own processes. Raises PermissionError for other users' processes."""
     os.kill(pid, signal.SIGKILL if force else signal.SIGTERM)
+
+
+# Never offered by the memory-waster scan: the desktop session and the services it needs. Names are as
+# /proc/<pid>/status shows them, cut to 15 characters.
+SESSION = frozenset({
+    "Xorg", "Xwayland", "systemd", "dbus-daemon", "dbus-broker", "pipewire", "pipewire-pulse", "wireplumber",
+    "nemo-desktop", "gnome-keyring-d", "polkit-gnome-au", "polkit-mate-aut", "pulseaudio", "ibus-daemon",
+    "xapp-sn-watcher", "blueman-applet", "nm-applet", "mintreport-tray", "mintUpdate", "mintcare",
+})
+SESSION_PREFIXES = ("cinnamon", "csd-", "xdg-", "gvfs", "at-spi", "ibus-", "evolution-", "gsd-", "dconf")
+
+WASTE_MIN = 200 * 2 ** 20               # memory (resident + swap) an idle program must hold to be listed
+DUP_MIN = 50 * 2 ** 20                  # memory an idle extra copy of a program must hold to be listed
+IDLE_AGE = 30 * 60                      # seconds a program must have run before it can count as idle
+
+
+def protected_pids(pid=None):
+    """MintCare's own process and every process above it (the terminal or launcher that started it)."""
+    pid = os.getpid() if pid is None else pid
+    seen = set()
+    while pid > 1 and pid not in seen:
+        seen.add(pid)
+        st = read(f"/proc/{pid}/stat")
+        try:
+            pid = int(st[st.rfind(")") + 2:].split()[1])
+        except (IndexError, ValueError):
+            break
+    return seen
+
+
+def _session(name):
+    return name in SESSION or name.startswith(SESSION_PREFIXES)
+
+
+def _idle(r):
+    """Has run IDLE_AGE or longer, used no processor in the last sample and under 1% of one core on average."""
+    return r["age"] >= IDLE_AGE and r["cpu"] < 0.1 and r["cpu_time"] < 0.01 * r["age"]
+
+
+def memory_wasters(rows, protected=()):
+    """Your own programs that hold memory while doing nothing: [(row, reason)], most memory first.
+
+    rows come from processes() with a CPU sample (prev). A program is listed when it is idle (see _idle) and
+    either holds WASTE_MIN or more, or is an older copy of a program running the exact same command line and
+    holds DUP_MIN or more; the newest copy is kept. Copies started by another copy (the worker processes of
+    browsers and similar apps) are not counted as duplicates. Kernel threads, other users' processes, the
+    desktop session (SESSION), MintCare and the processes above it are never listed."""
+    cand = [r for r in rows if r["mine"] and not r["kernel"] and r["pid"] not in protected
+            and not _session(r["name"])]
+    by_pid = {r["pid"]: r for r in rows}
+    groups = {}
+    for r in cand:
+        parent = by_pid.get(r["ppid"])
+        if parent is None or parent["name"] != r["name"]:
+            groups.setdefault(r["cmd"], []).append(r)
+    older = set()
+    for copies in groups.values():
+        if len(copies) > 1:
+            newest = min(copies, key=lambda r: r["age"])
+            older.update(r["pid"] for r in copies if r is not newest)
+    found = []
+    for r in cand:
+        mem = r["rss"] + r["swap"]
+        if not _idle(r):
+            continue
+        hours = r["age"] / 3600
+        if r["pid"] in older and mem >= DUP_MIN:
+            found.append((r, _("Another copy of this program is running; this older copy has been idle")))
+        elif mem >= WASTE_MIN:
+            found.append((r, ngettext("Idle for most of the {0} hour it has been running",
+                                      "Idle for most of the {0} hours it has been running",
+                                      int(hours)).format(int(hours)) if hours >= 1 else
+                          _("Idle since it started")))
+    return sorted(found, key=lambda f: -(f[0]["rss"] + f[0]["swap"]))
+
+
+def end_checked(pid, name, force=False):
+    """End one of your own processes if it is still the same program. Returns "ended", "gone" or "denied".
+    Checking the name first means a PID reused by another program since the scan is left alone."""
+    if read(f"/proc/{int(pid)}/comm") != name[:15]:
+        return "gone"
+    try:
+        end(int(pid), force)
+    except ProcessLookupError:
+        return "gone"
+    except PermissionError:
+        return "denied"
+    return "ended"
+
+
+def still_running(targets):
+    """The (pid, name) pairs from targets that are still running as the same program."""
+    return [(pid, name) for pid, name in targets if read(f"/proc/{int(pid)}/comm") == name[:15]]
 
 
 def parse_gpu_processes(text):
