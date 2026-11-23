@@ -1,3 +1,21 @@
+mintcare (1.12.17) noble; urgency=medium
+
+  * Timeshift file restore: restored files are owned by root and lose the
+    snapshot's setuid and setgid bits. Files with file capabilities are
+    refused. Symlinks in the snapshot are skipped, and a destination path
+    that goes through a symlink is refused.
+  * Timeshift file restore now needs a trusted backup drive. Use Trust this
+    drive on the Timeshift snapshots tab once; restores from a drive with
+    another serial number are refused.
+  * Malware quarantine: files move through folder handles, never replace a
+    file already in the quarantine folder, and are refused when on another
+    disk. File names that are not UTF-8 are matched and shown safely.
+  * Failed SSH logins are counted only from sshd's own services.
+  * Clearing execute bits leaves top-level symlinks alone.
+  * Tests no longer need a real home folder, so Launchpad builds pass.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Mon, 23 Nov 2026 10:56:16 +0000
+
 mintcare (1.12.16) noble; urgency=medium
 
   * Processes and command output: bytes that are not valid UTF-8 no longer stop
