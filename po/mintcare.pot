@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: MintCare 1.12.13\n"
+"Project-Id-Version: MintCare 1.12.16\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 23:10+0000\n"
+"POT-Creation-Date: 2026-11-23 10:41+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -77,7 +77,7 @@ msgstr ""
 msgid "{0} free on the destination ({1})"
 msgstr ""
 
-#: mintcare/backup.py:132 mintcare/backup.py:291
+#: mintcare/backup.py:132 mintcare/backup.py:309
 msgid "None of the chosen folders exist"
 msgstr ""
 
@@ -103,15 +103,19 @@ msgstr ""
 msgid "{0} files changed"
 msgstr ""
 
-#: mintcare/backup.py:262
+#: mintcare/backup.py:251
+msgid "the path goes through a symlink, so nothing was written"
+msgstr ""
+
+#: mintcare/backup.py:280
 msgid "Choose a folder or repository first"
 msgstr ""
 
-#: mintcare/backup.py:271
+#: mintcare/backup.py:289
 msgid "Type a password first"
 msgstr ""
 
-#: mintcare/backup.py:364
+#: mintcare/backup.py:382
 msgid "This isn't a MintCare settings file"
 msgstr ""
 
@@ -2085,10 +2089,10 @@ msgstr ""
 
 #: mintcare/gui.py:1043 mintcare/gui.py:1187 mintcare/gui.py:1241
 #: mintcare/gui.py:3417 mintcare/gui.py:4737 mintcare/gui_backup.py:124
-#: mintcare/gui_backup.py:353 mintcare/gui_backup.py:412
-#: mintcare/gui_backup.py:425 mintcare/gui_space.py:94
+#: mintcare/gui_backup.py:355 mintcare/gui_backup.py:414
+#: mintcare/gui_backup.py:427 mintcare/gui_space.py:94
 #: mintcare/gui_space.py:253 mintcare/gui_space.py:304
-#: mintcare/gui_space.py:625
+#: mintcare/gui_space.py:626
 msgid "Cancel"
 msgstr ""
 
@@ -2164,7 +2168,7 @@ msgstr ""
 msgid "Start in tray at login: on"
 msgstr ""
 
-#: mintcare/gui.py:1187 mintcare/gui_backup.py:412
+#: mintcare/gui.py:1187 mintcare/gui_backup.py:414
 msgid "Export"
 msgstr ""
 
@@ -5265,86 +5269,86 @@ msgstr ""
 msgid "Restored {0}"
 msgstr ""
 
-#: mintcare/gui_backup.py:313
+#: mintcare/gui_backup.py:315
 #, python-brace-format
 msgid "Restored {0} from the backup of {1}"
 msgstr ""
 
-#: mintcare/gui_backup.py:314
+#: mintcare/gui_backup.py:316
 #, python-brace-format
 msgid "Restore finished with {0} problem(s) — see the Activity log"
 msgstr ""
 
-#: mintcare/gui_backup.py:315
+#: mintcare/gui_backup.py:317
 msgid "Restore finished"
 msgstr ""
 
-#: mintcare/gui_backup.py:316 mintcare/gui_space.py:653
+#: mintcare/gui_backup.py:318 mintcare/gui_space.py:655
 msgid "Restoring…"
 msgstr ""
 
-#: mintcare/gui_backup.py:330
+#: mintcare/gui_backup.py:332
 #, python-brace-format
 msgid "Backup timer: {0}"
 msgstr ""
 
-#: mintcare/gui_backup.py:338
+#: mintcare/gui_backup.py:340
 msgid "Choose a destination first"
 msgstr ""
 
-#: mintcare/gui_backup.py:344
+#: mintcare/gui_backup.py:346
 msgid "Automatic backup turned on"
 msgstr ""
 
-#: mintcare/gui_backup.py:347
+#: mintcare/gui_backup.py:349
 msgid "Automatic backup turned off"
 msgstr ""
 
-#: mintcare/gui_backup.py:353
+#: mintcare/gui_backup.py:355
 msgid "Choose"
 msgstr ""
 
-#: mintcare/gui_backup.py:360
+#: mintcare/gui_backup.py:362
 msgid "Choose where to keep backups"
 msgstr ""
 
-#: mintcare/gui_backup.py:368
+#: mintcare/gui_backup.py:370
 msgid "Add a folder to back up"
 msgstr ""
 
-#: mintcare/gui_backup.py:401
+#: mintcare/gui_backup.py:403
 #, python-brace-format
 msgid "Backup done: {0} changed file(s)"
 msgstr ""
 
-#: mintcare/gui_backup.py:402
+#: mintcare/gui_backup.py:404
 #, python-brace-format
 msgid "Backup: {0}"
 msgstr ""
 
-#: mintcare/gui_backup.py:409
+#: mintcare/gui_backup.py:411
 msgid "Export MintCare settings"
 msgstr ""
 
-#: mintcare/gui_backup.py:419
+#: mintcare/gui_backup.py:421
 #, python-brace-format
 msgid "Exported settings and {0} optimisation(s)"
 msgstr ""
 
-#: mintcare/gui_backup.py:422
+#: mintcare/gui_backup.py:424
 msgid "Import MintCare settings"
 msgstr ""
 
-#: mintcare/gui_backup.py:425
+#: mintcare/gui_backup.py:427
 msgid "Import"
 msgstr ""
 
-#: mintcare/gui_backup.py:433
+#: mintcare/gui_backup.py:435
 #, python-brace-format
 msgid "Import failed: {0}"
 msgstr ""
 
-#: mintcare/gui_backup.py:443
+#: mintcare/gui_backup.py:445
 #, python-brace-format
 msgid "Imported settings; {0} optimisation(s) selected — press Apply changes"
 msgstr ""
@@ -5398,7 +5402,7 @@ msgstr ""
 msgid "Freed {0}"
 msgstr ""
 
-#: mintcare/gui_clean.py:123 mintcare/gui_space.py:678
+#: mintcare/gui_clean.py:123 mintcare/gui_space.py:701
 #, python-brace-format
 msgid "Freed {0} on /"
 msgstr ""
@@ -6037,109 +6041,133 @@ msgstr ""
 msgid "Delete selected"
 msgstr ""
 
-#: mintcare/gui_space.py:561
+#: mintcare/gui_space.py:559 mintcare/gui_space.py:670
+#: mintcare/gui_space.py:678
+msgid "Trust this drive"
+msgstr ""
+
+#: mintcare/gui_space.py:562
 msgid ""
 "Snapshots share unchanged files, so deleting one frees only what changed "
 "around it. The newest snapshot is always kept, and snapshots you gave a "
 "comment are never pre-selected."
 msgstr ""
 
-#: mintcare/gui_space.py:580
+#: mintcare/gui_space.py:581
 msgid "Schedule: "
 msgstr ""
 
-#: mintcare/gui_space.py:580
+#: mintcare/gui_space.py:581
 #, python-brace-format
 msgid "{0} (keeps {1})"
 msgstr ""
 
-#: mintcare/gui_space.py:583
+#: mintcare/gui_space.py:584
 msgid "No automatic schedule."
 msgstr ""
 
-#: mintcare/gui_space.py:585
+#: mintcare/gui_space.py:586
 #, python-brace-format
 msgid "A full system copy is about {0}; later snapshots store only changes."
 msgstr ""
 
-#: mintcare/gui_space.py:594
+#: mintcare/gui_space.py:595
 msgid "No snapshots."
 msgstr ""
 
-#: mintcare/gui_space.py:609
+#: mintcare/gui_space.py:610
 msgid "newest · kept"
 msgstr ""
 
-#: mintcare/gui_space.py:613
+#: mintcare/gui_space.py:614
 msgid "{0} · {1:,} files"
 msgstr ""
 
-#: mintcare/gui_space.py:615
+#: mintcare/gui_space.py:616
 msgid "Restore a file…"
 msgstr ""
 
-#: mintcare/gui_space.py:628
+#: mintcare/gui_space.py:629
 msgid "Restore selected"
 msgstr ""
 
-#: mintcare/gui_space.py:639
+#: mintcare/gui_space.py:640
 #, python-brace-format
 msgid "Restore from the {0} snapshot"
 msgstr ""
 
-#: mintcare/gui_space.py:648
+#: mintcare/gui_space.py:649
 #, python-brace-format
 msgid "Restore {0} file?"
 msgid_plural "Restore {0} files?"
 msgstr[0] ""
 msgstr[1] ""
 
-#: mintcare/gui_space.py:650
+#: mintcare/gui_space.py:651
 msgid ""
 "Each file goes back to where it was. The current version is kept beside it "
 "as NAME.~1~, so you can switch back."
 msgstr ""
 
 #: mintcare/gui_space.py:653
+msgid "Restored files are owned by root and have no setuid or setgid bit."
+msgstr ""
+
+#: mintcare/gui_space.py:655
 msgid "Restore files from Timeshift"
 msgstr ""
 
-#: mintcare/gui_space.py:654
+#: mintcare/gui_space.py:656
 #, python-brace-format
 msgid "Restored {0} from snapshot {1}"
 msgstr ""
 
-#: mintcare/gui_space.py:660
+#: mintcare/gui_space.py:662
+msgid "Mount the Timeshift backup drive first, then trust it."
+msgstr ""
+
+#: mintcare/gui_space.py:671
+#, python-brace-format
+msgid ""
+"Only the drive with serial {0} will be used for Timeshift file restores. "
+"Trust it?"
+msgstr ""
+
+#: mintcare/gui_space.py:677
+msgid "This drive is now trusted for Timeshift file restores."
+msgstr ""
+
+#: mintcare/gui_space.py:683
 msgid "Tick the snapshots you want to delete first"
 msgstr ""
 
-#: mintcare/gui_space.py:667
+#: mintcare/gui_space.py:690
 #, python-brace-format
 msgid "Delete {0} Timeshift snapshot(s)?"
 msgstr ""
 
-#: mintcare/gui_space.py:668
+#: mintcare/gui_space.py:691
 msgid ""
 "\n"
 "\n"
 "This can't be undone; you won't be able to roll back to these points."
 msgstr ""
 
-#: mintcare/gui_space.py:671
+#: mintcare/gui_space.py:694
 #, python-brace-format
 msgid "Delete snapshot {0}"
 msgstr ""
 
-#: mintcare/gui_space.py:676
+#: mintcare/gui_space.py:699
 msgid "Snapshot clean-up"
 msgstr ""
 
-#: mintcare/gui_space.py:679
+#: mintcare/gui_space.py:702
 #, python-brace-format
 msgid "Deleted {0} snapshot(s), freed {1}"
 msgstr ""
 
-#: mintcare/gui_space.py:681
+#: mintcare/gui_space.py:704
 msgid "Deleting snapshots…"
 msgstr ""
 
@@ -7295,21 +7323,45 @@ msgstr ""
 msgid "Test all software sources (apt-get update)"
 msgstr ""
 
-#: mintcare/space.py:142
+#: mintcare/space.py:144
 msgid "Folders are nested too deeply to scan."
 msgstr ""
 
-#: mintcare/space.py:325
+#: mintcare/space.py:327
 msgid "Timeshift is not set up."
 msgstr ""
 
-#: mintcare/space.py:327
+#: mintcare/space.py:329
 msgid "BTRFS snapshots are managed inside Timeshift."
 msgstr ""
 
-#: mintcare/space.py:330
+#: mintcare/space.py:332
 msgid ""
 "The Timeshift backup drive isn't mounted, so snapshots can't be listed here."
+msgstr ""
+
+#: mintcare/space.py:383
+msgid "The backup drive isn't the one you trusted, so nothing was restored."
+msgstr ""
+
+#: mintcare/space.py:389
+msgid ""
+"No backup drive is trusted yet. Use Trust this drive first, then restore "
+"again."
+msgstr ""
+
+#: mintcare/space.py:406
+msgid "Couldn't read this drive's serial number, so it can't be trusted."
+msgstr ""
+
+#: mintcare/space.py:438
+#, python-brace-format
+msgid "{0} has the setuid or setgid bit set, so it is not restored."
+msgstr ""
+
+#: mintcare/space.py:440
+#, python-brace-format
+msgid "{0} has file capabilities set, so it is not restored."
 msgstr ""
 
 #: mintcare/theme.py:41
