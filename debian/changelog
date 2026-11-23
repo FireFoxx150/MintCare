@@ -1,3 +1,14 @@
+mintcare (1.12.18) noble; urgency=medium
+
+  * Processes: new Find memory wasters button. It lists your own programs
+    that have been idle for 30 minutes or more while holding 200 MB or more
+    of memory, and older idle copies of a program that is running twice.
+    The desktop session, MintCare and other users' processes are never
+    listed. Ticked programs are asked to close; any that don't close are
+    offered a force end.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Mon, 23 Nov 2026 12:46:31 +0000
+
 mintcare (1.12.17) noble; urgency=medium
 
   * Timeshift file restore: restored files are owned by root and lose the
