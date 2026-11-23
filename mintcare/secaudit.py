@@ -1,6 +1,7 @@
 """Login security (failed logins, SSH settings, AppArmor, auto-login, screen lock) and malware scans."""
 
 import glob
+import json
 import os
 import re
 import stat
@@ -10,7 +11,7 @@ import threading
 from pathlib import Path
 
 from .i18n import _, ngettext
-from .journal import LongLine, _lines
+from .journal import LongLine, _lines, _text
 from .util import has_cmd, out, pkg_installed, q, read, run
 
 OK, INFO, WARN, FAIL = "ok", "info", "warn", "fail"
@@ -23,11 +24,14 @@ LOG_TIMEOUT = 40               # seconds; a read that takes longer gives no resu
 def failed_logins(days=7):
     """{service: count} of failed password attempts in the last N days, counted as the journal streams.
 
-    The journal is never held in memory whole, and the number of services kept is capped.
+    Only sshd's own units count: ssh.service and its per-connection ssh@ instances. journald names the unit
+    (_SYSTEMD_UNIT), and a local user cannot place a process in those units, so text they write with logger
+    cannot count. The journal is never held in memory whole, and the number of services kept is capped.
     """
     counts, late = {}, [False]
     try:
-        p = subprocess.Popen(["journalctl", "--since", f"-{days} days", "-q", "--no-pager", "-o", "cat"],
+        p = subprocess.Popen(["journalctl", "--since", f"-{days} days", "-q", "--no-pager", "-o", "json",
+                              "--output-fields=_SYSTEMD_UNIT,MESSAGE"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, errors="replace",
                              env=dict(os.environ, LC_ALL="C", LANG="C"))
     except OSError:
@@ -43,10 +47,18 @@ def failed_logins(days=7):
         for line in _lines(p.stdout):
             if isinstance(line, LongLine):   # longer than MAX_LINE: not a login record, so it counts as nothing
                 continue
-            m = re.search(r"pam_unix\(([^:()]+):auth\): authentication failure", line)   # linear: stops at the next "("
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            unit = _text(entry.get("_SYSTEMD_UNIT")) if isinstance(entry, dict) else ""
+            if unit != "ssh.service" and not (unit.startswith("ssh@") and unit.endswith(".service")):
+                continue
+            msg = _text(entry.get("MESSAGE"))
+            m = re.search(r"pam_unix\(([^:()]+):auth\): authentication failure", msg)   # linear: stops at the next "("
             if m:
                 service = m.group(1)
-            elif "Failed password for" in line or "Invalid user" in line:
+            elif "Failed password for" in msg or "Invalid user" in msg:
                 service = "ssh"
             else:
                 continue
@@ -321,9 +333,10 @@ def clam_scan(paths, on_line=lambda line: None, cancel=lambda: False):
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(b"\n".join(os.fsencode(p) for p in files) + b"\n")
+        # surrogateescape: a name that is not UTF-8 comes back exactly as os.walk gave it, so it matches `known`
         proc = subprocess.Popen(["clamscan", "-i", "--no-summary", f"--file-list={listing}"],
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace",
-                                bufsize=1)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                errors="surrogateescape", bufsize=1)
         known, infected = set(files), []
         for line in proc.stdout:
             if cancel():
@@ -334,6 +347,7 @@ def clam_scan(paths, on_line=lambda line: None, cancel=lambda: False):
             if m and m.group(1) in known:
                 infected.append((m.group(1), m.group(2)))
             on_line(line)
+        proc.stdout.close()
         rc = proc.wait()
     finally:
         os.remove(listing)
@@ -344,18 +358,114 @@ def rkhunter_step():
     return ("rkhunter", _("Rootkit check (rkhunter)"), "rkhunter --check --sk --rwo --nocolors 2>&1 || true")
 
 
+# Runs as root inside the sealed batch: its arguments are data, never code. Each folder is reached from /
+# one name at a time with O_NOFOLLOW, and the file is renamed inside the folder reached, so a path swapped
+# for a link after the check cannot send the move elsewhere.
+QUARANTINE_MOVER = """\
+import ctypes, errno, os, stat, sys
+
+
+# renameat2 with RENAME_NOREPLACE moves a file in one atomic step, and fails with EEXIST rather than replacing a file
+# already at the new name. Any other failure is raised; there is no fallback to a plain rename.
+_renameat2 = ctypes.CDLL(None, use_errno=True).renameat2
+_renameat2.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+_renameat2.restype = ctypes.c_int
+RENAME_NOREPLACE = 1
+
+
+def rename_no_replace(src_fd, src, dst_fd, dst):
+    if _renameat2(src_fd, os.fsencode(src), dst_fd, os.fsencode(dst), RENAME_NOREPLACE) == 0:
+        return
+    err = ctypes.get_errno()
+    raise OSError(err, os.strerror(err))
+
+
+def show(text):
+    # Control characters and undecodable bytes print as escapes, so a name cannot break an output line.
+    # Print fixed text before a name: a name with no control characters can still start a line.
+    return "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
+
+
+def walk(parts):
+    # O_PATH: walking a folder needs search permission only, not read.
+    fd = os.open("/", os.O_PATH | os.O_DIRECTORY)
+    try:
+        for part in parts:
+            nxt = os.open(part, os.O_PATH | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = nxt
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def folder_of(target, home):
+    # A descriptor for the folder of target when target is a plain file under home, else None.
+    name = os.path.basename(target)
+    if not target.startswith(home) or not name:
+        return None
+    try:
+        fd = walk([p for p in os.path.dirname(target).split("/") if p])
+    except OSError:
+        return None
+    try:
+        if stat.S_ISREG(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode):
+            return fd
+    except OSError:
+        pass
+    os.close(fd)
+    return None
+
+
+qdir, home, ok, skipped, disk, *pairs = sys.argv[1:]
+home = home.rstrip("/") + "/"
+qfd = walk([p for p in qdir.split("/") if p])
+for target, shown in zip(pairs[::2], pairs[1::2]):
+    fd = folder_of(target, home)
+    if fd is None:
+        print(skipped.format(show(shown)), flush=True)
+        continue
+    name = os.path.basename(target)
+    try:
+        # Each candidate is one atomic step: a taken name fails with EEXIST, so the next free name is tried.
+        dst, n = name, 0
+        while True:
+            try:
+                rename_no_replace(fd, name, qfd, dst)
+                break
+            except FileExistsError:
+                n += 1
+                dst = f"{name}.{n}"
+        print(ok.format(show(shown)), flush=True)
+    except OSError as e:
+        if e.errno == errno.EXDEV:
+            print(disk.format(show(shown)), flush=True)
+        else:
+            print(f"{e.strerror}: {show(shown)}", file=sys.stderr, flush=True)
+    finally:
+        os.close(fd)
+os.close(qfd)
+"""
+
+
 def quarantine_step(paths, home=None):
     """Move infected files into /var/lib/mintcare/quarantine (root-only, not executable).
 
-    The root step checks each path again after the password prompt: only a plain file under your home
-    folder is moved, so a folder swapped for a link in the meantime cannot send the move elsewhere.
+    The root step moves only a plain file under your home folder, reached through folders it opens one name
+    at a time, so a folder swapped for a link after the check cannot send the move elsewhere. A file on another
+    disk from the quarantine folder is left in place, not copied.
     """
     home = os.path.realpath(home or os.path.expanduser("~"))
-    lines = ["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine"]
+    pairs = []
     for p in paths:
-        plain = (f"[ -f {q(p)} ] && [ ! -L {q(p)} ] && "
-                 f'case "$(realpath -e -- {q(p)})" in {q(home)}/*) true;; *) false;; esac')
-        lines.append(f"if {plain}; then mv -- {q(p)} /var/lib/mintcare/quarantine/ && echo {q('Quarantined ' + p)}; "
-                     f"else echo {q('Skipped, not a plain file in your home folder: ' + p)}; fi")
-    lines.append("chmod -R a-x /var/lib/mintcare/quarantine/* 2>/dev/null || true")
-    return ("quarantine", f"Quarantine {len(paths)} file(s)", "\n".join(lines))
+        pairs += [q(os.path.join(os.path.realpath(os.path.dirname(p)), os.path.basename(p))), q(p)]
+    args = [q(QUARANTINE_MOVER), "/var/lib/mintcare/quarantine", q(home), q("Quarantined {0}"),
+            q("Skipped, not a plain file in your home folder: {0}"),
+            q(_("Not quarantined, on another disk from the quarantine folder: {0}")), *pairs]
+    return ("quarantine", f"Quarantine {len(paths)} file(s)",
+            "\n".join(["mkdir -p /var/lib/mintcare/quarantine", "chmod 700 /var/lib/mintcare/quarantine",
+                       f"/usr/bin/python3 -I -c {' '.join(args)}",
+                       # find skips top-level links: chmod would follow one named on its command line.
+                       "find /var/lib/mintcare/quarantine -mindepth 1 -maxdepth 1 ! -type l "
+                       "-exec chmod -R a-x {} + 2>/dev/null || true"]))

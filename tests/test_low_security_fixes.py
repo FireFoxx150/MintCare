@@ -67,6 +67,11 @@ class BoundedBootErrors(unittest.TestCase):  # F7
         self.assertTrue(any(g["who"] == "MintCare" for g in result))
 
 
+def _entry(unit, message):
+    """One line of journalctl's JSON output, with the two fields failed_logins reads."""
+    return json.dumps({"_SYSTEMD_UNIT": unit, "MESSAGE": message}) + "\n"
+
+
 class StreamedLoginCounts(unittest.TestCase):  # F8
     def _counts(self, stdout):
         class Proc:
@@ -82,14 +87,23 @@ class StreamedLoginCounts(unittest.TestCase):  # F8
         with mock.patch.object(secaudit.subprocess, "Popen", Proc):
             return secaudit.failed_logins()
 
-    def test_failures_are_counted_by_service(self):
-        lines = io.StringIO("pam_unix(sudo:auth): authentication failure\n"
-                            "Failed password for root from 10.0.0.1\n"
-                            "unrelated\n")
-        self.assertEqual(self._counts(lines), {"sudo": 1, "ssh": 1})
+    def test_failures_from_sshd_units_are_counted_by_service(self):
+        lines = io.StringIO(_entry("ssh.service", "Failed password for root from 10.0.0.1 port 22 ssh2")
+                            + _entry("ssh.service", "pam_unix(sshd:auth): authentication failure; rhost=10.0.0.1")
+                            + _entry("ssh@10.0.0.2:22-10.0.0.1:50000.service", "Invalid user bob from 10.0.0.1")
+                            + "not a journal entry\n"
+                            + _entry("ssh.service", "unrelated"))
+        self.assertEqual(self._counts(lines), {"ssh": 2, "sshd": 1})
+
+    def test_text_written_by_other_units_is_not_counted(self):
+        # logger can write any text; a line counts only when journald names sshd's own units as its source
+        forged = ([_entry("user@1000.service", "Failed password for root from 203.0.113.9")] * 10
+                  + [_entry("session-2.scope", "pam_unix(ssh:auth): authentication failure"),
+                     json.dumps({"MESSAGE": "Failed password for root"}) + "\n"])
+        self.assertEqual(self._counts(io.StringIO("".join(forged))), {})
 
     def test_the_number_of_services_kept_is_capped(self):
-        lines = io.StringIO("".join(f"pam_unix(svc{_word(i)}:auth): authentication failure\n"
+        lines = io.StringIO("".join(_entry("ssh.service", f"pam_unix(svc{_word(i)}:auth): authentication failure")
                                     for i in range(secaudit.FAILED_LOGIN_SERVICES + 5)))
         counts = self._counts(lines)
         self.assertEqual(len(counts), secaudit.FAILED_LOGIN_SERVICES + 1)
@@ -104,7 +118,7 @@ class StreamedLoginCounts(unittest.TestCase):  # F8
             def readline(self, _n=-1):
                 if not self.sent:
                     self.sent = True
-                    return "pam_unix(sudo:auth): authentication failure\n"
+                    return _entry("ssh.service", "Failed password for root from 10.0.0.1")
                 self.stop.wait(5)
                 return ""
 
@@ -127,15 +141,16 @@ class StreamedLoginCounts(unittest.TestCase):  # F8
 
     def test_a_long_line_without_a_colon_is_not_matched_slowly(self):
         # 144 KB of "pam_unix(" and no colon: the old pattern took seconds on it, and the timer cannot stop it
-        lines = io.StringIO("pam_unix(" * 16000 + "\n" + "pam_unix(sshd:auth): authentication failure\n")
+        lines = io.StringIO(_entry("ssh.service", "pam_unix(" * 16000)
+                            + _entry("ssh.service", "pam_unix(sshd:auth): authentication failure"))
         started = time.monotonic()
         counts = self._counts(lines)
         self.assertLess(time.monotonic() - started, 3)
         self.assertEqual(counts, {"sshd": 1})
 
     def test_a_line_past_the_limit_counts_as_nothing(self):
-        lines = io.StringIO("pam_unix(" * 3000 + "sudo:auth): authentication failure\n"
-                            "pam_unix(sshd:auth): authentication failure\n")
+        lines = io.StringIO(_entry("ssh.service", "pam_unix(" * 3000 + "sudo:auth): authentication failure")
+                            + _entry("ssh.service", "pam_unix(sshd:auth): authentication failure"))
         self.assertEqual(self._counts(lines), {"sshd": 1})
 
 

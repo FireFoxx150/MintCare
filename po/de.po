@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 10:41+0000\n"
+"POT-Creation-Date: 2026-11-23 10:46+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: German\n"
@@ -3188,7 +3188,7 @@ msgstr "Lynis installieren"
 msgid "Installing Lynis…"
 msgstr "Lynis wird installiert…"
 
-#: mintcare/gui.py:2225 mintcare/secaudit.py:251
+#: mintcare/gui.py:2225 mintcare/secaudit.py:263
 msgid "Hardening audit (Lynis)"
 msgstr "Härtungsprüfung (Lynis)"
 
@@ -7557,22 +7557,22 @@ msgstr "prüfen"
 msgid "failing"
 msgstr "fehlerhaft"
 
-#: mintcare/runner.py:76
+#: mintcare/runner.py:83
 msgid "Authentication was cancelled or failed."
 msgstr "Die Authentifizierung wurde abgebrochen oder ist fehlgeschlagen."
 
-#: mintcare/secaudit.py:84 mintcare/secaudit.py:86 mintcare/secaudit.py:88
+#: mintcare/secaudit.py:96 mintcare/secaudit.py:98 mintcare/secaudit.py:100
 msgid "Failed logins"
 msgstr "Fehlgeschlagene Anmeldungen"
 
-#: mintcare/secaudit.py:84
+#: mintcare/secaudit.py:96
 #, python-brace-format
 msgid "{0} failed SSH logins in 7 days — someone may be guessing passwords"
 msgstr ""
 "{0} fehlgeschlagene SSH-Anmeldungen in 7 Tagen — vielleicht versucht jemand, "
 "Passwörter zu erraten"
 
-#: mintcare/secaudit.py:86
+#: mintcare/secaudit.py:98
 #, python-brace-format
 msgid ""
 "{0} wrong password(s) in 7 days ({1}). Usually just typos at the lock screen."
@@ -7580,20 +7580,20 @@ msgstr ""
 "{0} falsche(s) Passwort/Passwörter in 7 Tagen ({1}). Meist nur Tippfehler am "
 "Sperrbildschirm."
 
-#: mintcare/secaudit.py:88
+#: mintcare/secaudit.py:100
 msgid "No failed password attempts in the last 7 days"
 msgstr "Keine fehlgeschlagenen Passwortversuche in den letzten 7 Tagen"
 
-#: mintcare/secaudit.py:96
+#: mintcare/secaudit.py:108
 msgid "Allows root to log in with a password"
 msgstr "Erlaubt root die Anmeldung mit Passwort"
 
-#: mintcare/secaudit.py:96 mintcare/secaudit.py:98 mintcare/secaudit.py:101
-#: mintcare/secaudit.py:103
+#: mintcare/secaudit.py:108 mintcare/secaudit.py:110 mintcare/secaudit.py:113
+#: mintcare/secaudit.py:115
 msgid "SSH server"
 msgstr "SSH-Server"
 
-#: mintcare/secaudit.py:98
+#: mintcare/secaudit.py:110
 msgid ""
 "Running and accepts passwords. Keys are safer; make sure your password is "
 "strong."
@@ -7601,36 +7601,36 @@ msgstr ""
 "Läuft und akzeptiert Passwörter. Schlüssel sind sicherer; achten Sie auf ein "
 "starkes Passwort."
 
-#: mintcare/secaudit.py:101
+#: mintcare/secaudit.py:113
 msgid "Installed but stopped"
 msgstr "Installiert, aber gestoppt"
 
-#: mintcare/secaudit.py:101
+#: mintcare/secaudit.py:113
 msgid "Running"
 msgstr "Läuft"
 
-#: mintcare/secaudit.py:101
+#: mintcare/secaudit.py:113
 #, python-brace-format
 msgid "{0}; root login {1}, passwords {2}"
 msgstr "{0}; root-Anmeldung {1}, Passwörter {2}"
 
-#: mintcare/secaudit.py:103
+#: mintcare/secaudit.py:115
 msgid "Not installed, so nobody can log in remotely"
 msgstr "Nicht installiert, daher kann sich niemand aus der Ferne anmelden"
 
-#: mintcare/secaudit.py:106
+#: mintcare/secaudit.py:118
 msgid "Enabled: apps with profiles are confined"
 msgstr "Aktiviert: Apps mit Profil sind eingeschränkt"
 
-#: mintcare/secaudit.py:107
+#: mintcare/secaudit.py:119
 msgid "Disabled: apps aren't confined by AppArmor profiles"
 msgstr "Deaktiviert: Apps werden nicht durch AppArmor-Profile eingeschränkt"
 
-#: mintcare/secaudit.py:114
+#: mintcare/secaudit.py:126
 msgid "Automatic login"
 msgstr "Automatische Anmeldung"
 
-#: mintcare/secaudit.py:115
+#: mintcare/secaudit.py:127
 #, python-brace-format
 msgid ""
 "{0} is logged in automatically — anyone who switches the PC on gets your "
@@ -7639,38 +7639,38 @@ msgstr ""
 "{0} wird automatisch angemeldet — wer den PC einschaltet, bekommt Ihre "
 "Arbeitsfläche"
 
-#: mintcare/secaudit.py:116
+#: mintcare/secaudit.py:128
 msgid "Off — a password is needed at start-up"
 msgstr "Aus — beim Start ist ein Passwort nötig"
 
-#: mintcare/secaudit.py:122 mintcare/secaudit.py:124 mintcare/secaudit.py:127
+#: mintcare/secaudit.py:134 mintcare/secaudit.py:136 mintcare/secaudit.py:139
 msgid "Screen lock"
 msgstr "Bildschirmsperre"
 
-#: mintcare/secaudit.py:122
+#: mintcare/secaudit.py:134
 msgid "The screen doesn't lock when you're away"
 msgstr "Der Bildschirm sperrt sich nicht, wenn Sie weg sind"
 
-#: mintcare/secaudit.py:124
+#: mintcare/secaudit.py:136
 #, python-brace-format
 msgid "Locks only after {0} idle"
 msgstr "Sperrt erst nach {0} Untätigkeit"
 
-#: mintcare/secaudit.py:124
+#: mintcare/secaudit.py:136
 msgid "never"
 msgstr "nie"
 
-#: mintcare/secaudit.py:124
+#: mintcare/secaudit.py:136
 #, python-brace-format
 msgid "{0} min"
 msgstr "{0} Min."
 
-#: mintcare/secaudit.py:127
+#: mintcare/secaudit.py:139
 #, python-brace-format
 msgid "Locks after {0} minutes idle"
 msgstr "Sperrt nach {0} Minuten Untätigkeit"
 
-#: mintcare/secaudit.py:173
+#: mintcare/secaudit.py:185
 msgid ""
 "Unknown: the firmware doesn't report it (no UEFI, or the setting can't be "
 "read)"
@@ -7678,11 +7678,11 @@ msgstr ""
 "Unbekannt: Die Firmware meldet das nicht (kein UEFI oder die Einstellung ist "
 "nicht lesbar)"
 
-#: mintcare/secaudit.py:175
+#: mintcare/secaudit.py:187
 msgid "On: the firmware starts only signed boot software"
 msgstr "Ein: Die Firmware startet nur signierte Startsoftware"
 
-#: mintcare/secaudit.py:177
+#: mintcare/secaudit.py:189
 msgid ""
 "Off: the firmware starts any boot software. Turn it on in the firmware "
 "settings if your PC supports it."
@@ -7690,11 +7690,11 @@ msgstr ""
 "Aus: Die Firmware startet jede beliebige Startsoftware. Schalten Sie sie in "
 "den Firmware-Einstellungen ein, wenn Ihr PC das unterstützt."
 
-#: mintcare/secaudit.py:182 mintcare/secaudit.py:186
+#: mintcare/secaudit.py:194 mintcare/secaudit.py:198
 msgid "Programs with extra rights"
 msgstr "Programme mit zusätzlichen Rechten"
 
-#: mintcare/secaudit.py:183
+#: mintcare/secaudit.py:195
 #, python-brace-format
 msgid "{0} program runs with its owner's rights, whoever starts it: {1}"
 msgid_plural ""
@@ -7706,13 +7706,20 @@ msgstr[1] ""
 "{0} Programme laufen mit den Rechten ihrer Eigentümer, egal wer sie startet: "
 "{1}"
 
-#: mintcare/secaudit.py:186
+#: mintcare/secaudit.py:198
 msgid "No programs with extra rights were found"
 msgstr "Es wurden keine Programme mit zusätzlichen Rechten gefunden"
 
-#: mintcare/secaudit.py:344
+#: mintcare/secaudit.py:358
 msgid "Rootkit check (rkhunter)"
 msgstr "Rootkit-Prüfung (rkhunter)"
+
+#: mintcare/secaudit.py:465
+#, python-brace-format
+msgid "Not quarantined, on another disk from the quarantine folder: {0}"
+msgstr ""
+"Nicht in Quarantäne verschoben, liegt auf einer anderen Festplatte als der "
+"Quarantäneordner: {0}"
 
 #: mintcare/selfupdate.py:140
 msgid ""
