@@ -3307,6 +3307,8 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
         bar.pack_start(self.proc_all, False, False, 0)
         self.proc_pause = Gtk.CheckButton(label=_("Pause"))
         bar.pack_end(self.proc_pause, False, False, 0)
+        bar.pack_end(self.action_button(_("Find memory wasters"), self._find_wasters,
+                                        icon_name="edit-find-symbolic"), False, False, 0)
         page.pack_start(bar, False, False, 0)
         self.proc_head = label("", ("faint", "mono"))
         page.pack_start(self.proc_head, False, False, 0)
@@ -3433,6 +3435,84 @@ class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, Gtk.Appl
         else:
             self._root_job(_('Ending {0}…').format(r['name']), [processes.end_step(r["pid"], r["name"], force)], "Processes",
                            lambda res: self._poll_procs(True))
+
+    def _find_wasters(self):
+        def work():
+            prev = processes.snapshot()
+            time.sleep(2)                      # a CPU sample, so a program busy right now isn't called idle
+            rows, _prev = processes.processes(prev)
+            return processes.memory_wasters(rows, processes.protected_pids())
+        self.in_thread(_("Looking for idle programs holding memory…"), work,
+                       lambda found: self._show_wasters(found) if found is not None else None)
+
+    def _show_wasters(self, found):
+        if not found:
+            self.set_status(_("No idle programs holding a lot of memory"))
+            return
+        d = Gtk.Dialog(title=_("Programs wasting memory"), transient_for=self, modal=True)
+        css(d, "mintcare")
+        d.set_default_size(620, 440)
+        d.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL, _("End selected"), Gtk.ResponseType.OK)
+        css(d.get_widget_for_response(Gtk.ResponseType.OK), "primary")
+        box = d.get_content_area()
+        box.set_spacing(8)
+        box.set_border_width(14)
+        box.pack_start(label(_("These programs of yours have used almost no processor time for a while but still "
+                               "hold memory. Ending one closes it, and unsaved work in it will be lost. Untick "
+                               "anything you want to keep."), ("muted",), wrap=True), False, False, 0)
+        lst = vbox(6)
+        checks_ = []
+        for r, why in found:
+            cb = Gtk.CheckButton(active=True)
+            text = vbox(2)
+            text.pack_start(label(_("{0} ({1}) · {2}").format(r["name"], r["pid"], human(r["rss"] + r["swap"])),
+                                  ("h3",)), False, False, 0)
+            text.pack_start(label(why, ("muted",), wrap=True), False, False, 0)
+            text.pack_start(label(r["cmd"][:200], ("faint", "mono"), wrap=True), False, False, 0)
+            cb.add(text)
+            describe(cb, r["name"])
+            lst.pack_start(cb, False, False, 0)
+            checks_.append((cb, r))
+        sw = Gtk.ScrolledWindow(vexpand=True)
+        sw.add(lst)
+        box.pack_start(sw, True, True, 0)
+        d.show_all()
+        resp = d.run()
+        chosen = [(r["pid"], r["name"]) for cb, r in checks_ if cb.get_active()]
+        d.destroy()
+        if resp == Gtk.ResponseType.OK and chosen:
+            self._end_wasters(chosen, False)
+
+    def _end_wasters(self, targets, force):
+        ended = [(pid, name) for pid, name in targets if processes.end_checked(pid, name, force) == "ended"]
+        for pid, name in ended:
+            maintenance.record("other", f"Ended {name} ({pid})")
+        self.set_status(ngettext("Ended {0} program", "Ended {0} programs", len(ended)).format(len(ended)))
+        if force or not ended:
+            GLib.timeout_add(600, lambda: self._poll_procs(True) and False)
+            return
+
+        def check():
+            stuck = processes.still_running(ended)
+            self._poll_procs(True)
+            if stuck:
+                self._offer_force(stuck)
+            return False
+        GLib.timeout_add(3000, check)
+
+    def _offer_force(self, stuck):
+        d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
+                              text=ngettext("{0} program is still running", "{0} programs are still running",
+                                            len(stuck)).format(len(stuck)))
+        css(d, "mintcare")
+        d.format_secondary_text(_("They didn't close when asked: {0}. 'Force end' stops them straight away; "
+                                  "unsaved work in them will be lost.").format(
+            ", ".join("{0} ({1})".format(name, pid) for pid, name in stuck)))
+        d.add_buttons(_("Leave them"), Gtk.ResponseType.CANCEL, _("Force end"), Gtk.ResponseType.OK)
+        resp = d.run()
+        d.destroy()
+        if resp == Gtk.ResponseType.OK:
+            self._end_wasters(stuck, True)
 
     # ------------------------------------------------------------ troubleshoot
 
