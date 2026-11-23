@@ -1,5 +1,10 @@
+import errno
 import os
+import shlex
+import stat
+import subprocess
 import unittest
+from unittest import mock
 
 from mintcare import space
 from mintcare.widgets import _squarify
@@ -101,6 +106,22 @@ class OldDownloads(TempDirTest):
 
 
 class TimeshiftRestore(TempDirTest):
+    def setUp(self):
+        super().setUp()
+        self.pin = self.write("timeshift-device", b"SERIAL-A\n")       # the trusted drive
+        for patch in (mock.patch.object(space, "PIN_DIR", self.tmp),
+                      mock.patch.object(space, "drive_serial", return_value="SERIAL-A")):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def snap_file(self, rel, mode=0o644):
+        path = os.path.join(self.tmp, "snap1", "localhost", rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write("x")
+        os.chmod(path, mode)
+        return path
+
     def test_only_files_inside_the_snapshot(self):
         root = os.path.join(self.tmp, "snap1", "localhost")
         os.makedirs(os.path.join(root, "etc"))
@@ -108,11 +129,73 @@ class TimeshiftRestore(TempDirTest):
             f.write("x")
         os.symlink("/etc/passwd", os.path.join(root, "etc", "escape"))
         script = space.restore_file_script("snap1", [os.path.join(root, "etc", "fstab")], base=self.tmp)
-        self.assertIn("cp -a --backup=numbered", script)
+        for flag in ("cp -a", "--archive", "--preserve=mode", "--preserve=all"):   # would keep owner and setuid
+            self.assertNotIn(flag, script)
+        self.assertIn("cp --no-preserve=ownership", script)                        # the copy belongs to root
+        self.assertIn("--backup=numbered", script)
         self.assertIn(" /etc/fstab ", script)
         for bad in (os.path.join(root, "etc"), os.path.join(root, "etc", "escape"), "/etc/hosts"):
             with self.assertRaises(ValueError):
                 space.restore_file_script("snap1", [bad], base=self.tmp)
+
+    def test_refuses_setuid_and_setgid_files(self):
+        for name, bit in (("suid", stat.S_ISUID), ("sgid", stat.S_ISGID)):
+            path = self.snap_file(f"usr/bin/{name}", 0o755 | bit)
+            with self.assertRaises(ValueError):
+                space.restore_file_script("snap1", [path], base=self.tmp)
+
+    def test_refuses_files_with_file_capabilities(self):
+        path = self.snap_file("usr/bin/ping", 0o755)
+        with mock.patch.object(os, "getxattr", return_value=b"\x01\x00\x00\x02"):
+            with self.assertRaises(ValueError):
+                space.restore_file_script("snap1", [path], base=self.tmp)
+        with mock.patch.object(os, "getxattr", side_effect=OSError(errno.EACCES, "denied")):
+            with self.assertRaises(ValueError):          # an unexpected error refuses too
+                space.restore_file_script("snap1", [path], base=self.tmp)
+
+    def test_refuses_a_drive_with_another_serial(self):
+        """Same filesystem UUID, different disk: the serial no longer matches the pin."""
+        with mock.patch.object(space, "drive_serial", return_value="SERIAL-B"):
+            with self.assertRaisesRegex(ValueError, "isn't the one you trusted"):
+                space.restore_file_script("snap1", [self.snap_file("etc/fstab")], base=self.tmp)
+
+    def test_pinned_drive_is_allowed(self):
+        script = space.restore_file_script("snap1", [self.snap_file("etc/fstab")], base=self.tmp)
+        self.assertIn("pin_ok || {", script)                # the pin is checked again before each copy
+
+    def test_refuses_until_a_drive_is_pinned(self):
+        os.remove(self.pin)
+        with self.assertRaisesRegex(ValueError, "No backup drive is trusted yet"):
+            space.restore_file_script("snap1", [self.snap_file("etc/fstab")], base=self.tmp)
+
+    def test_copy_drops_setuid_and_keeps_rwx(self):
+        path = self.snap_file("usr/bin/tool", 0o755)
+        cp = shlex.split(space.restore_file_script("snap1", [path], base=self.tmp).split(" && ")[1])
+        os.chmod(path, 0o4755)                        # the snapshot file turns setuid after the check
+        dest = os.path.join(self.tmp, "out", "tool")
+        os.makedirs(os.path.dirname(dest))
+        subprocess.run(cp[:-1] + [dest], check=True)  # the script's own cp, aimed at a temp path
+        mode = os.stat(dest).st_mode
+        self.assertFalse(mode & (stat.S_ISUID | stat.S_ISGID))
+        self.assertTrue(mode & stat.S_IRUSR and mode & stat.S_IWUSR and mode & stat.S_IXUSR)
+
+
+class PinnedDrive(TempDirTest):
+    def test_trust_writes_the_serial_verbatim(self):
+        serial = "A'B $(touch injected)"                  # quoting must hold for hostile values
+        with mock.patch.object(space, "PIN_DIR", self.tmp):
+            subprocess.run(["sh", "-c", space.trust_script(serial)], cwd=self.tmp, check=True)
+        with open(os.path.join(self.tmp, space.PIN_NAME)) as f:
+            self.assertEqual(f.read(), serial + "\n")
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "injected")))
+
+    def test_empty_serial_cannot_be_trusted(self):
+        with self.assertRaises(ValueError):
+            space.trust_script("  ")
+
+    def test_serial_comes_from_the_first_disk_up_the_chain(self):
+        with mock.patch.object(space, "out", side_effect=["/dev/mapper/crypt", "\nSERIAL-X\n"]):
+            self.assertEqual(space.drive_serial("/mnt/x"), "SERIAL-X")
 
 
 @unittest.skipUnless(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"), "needs a display")

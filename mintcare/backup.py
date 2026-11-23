@@ -217,6 +217,20 @@ def _origin(rel, folders):
     return str(HOME / rel)
 
 
+def _via_symlink(dest):
+    """True if dest is under HOME and any part of its path below HOME is a symlink."""
+    try:
+        parts = Path(dest).relative_to(HOME).parts
+    except ValueError:
+        return False
+    cur = HOME
+    for part in parts:
+        cur = cur / part
+        if cur.is_symlink():
+            return True
+    return False
+
+
 def restore(snapshot, paths, folders=None):
     """Copy files or folders from a snapshot back to where they came from. Files that would be
     overwritten are kept beside them as NAME.before-restore. Returns [(path, ok, message)]."""
@@ -233,8 +247,12 @@ def restore(snapshot, paths, folders=None):
             results.append((p, False, "not inside this snapshot"))
             continue
         dest = _origin(os.path.relpath(src, snapshot), folders)
+        if _via_symlink(dest):
+            results.append((dest, False, _("the path goes through a symlink, so nothing was written")))
+            continue
         os.makedirs(os.path.dirname(dest), exist_ok=True)
-        args = ["rsync", "-a", "--backup", "--suffix=.before-restore"]
+        # --no-links: a symlink on the snapshot media is skipped, never recreated under HOME
+        args = ["rsync", "-a", "--no-links", "--backup", "--suffix=.before-restore"]
         args += [src + "/", dest + "/"] if os.path.isdir(src) else [src, dest]
         rc, o = run(args, timeout=3600)
         results.append((dest, rc == 0, o.strip()[-200:]))

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 23:10+0000\n"
+"POT-Creation-Date: 2026-11-23 10:41+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: Italian\n"
@@ -77,7 +77,7 @@ msgstr "file system sconosciuto"
 msgid "{0} free on the destination ({1})"
 msgstr "{0} liberi sulla destinazione ({1})"
 
-#: mintcare/backup.py:132 mintcare/backup.py:291
+#: mintcare/backup.py:132 mintcare/backup.py:309
 msgid "None of the chosen folders exist"
 msgstr "Nessuna delle cartelle scelte esiste"
 
@@ -103,15 +103,21 @@ msgstr "{0} cartella/e salvata/e in {1}"
 msgid "{0} files changed"
 msgstr "{0} file modificati"
 
-#: mintcare/backup.py:262
+#: mintcare/backup.py:251
+msgid "the path goes through a symlink, so nothing was written"
+msgstr ""
+"il percorso passa attraverso un link simbolico, quindi non è stato scritto "
+"nulla"
+
+#: mintcare/backup.py:280
 msgid "Choose a folder or repository first"
 msgstr "Scegli prima una cartella o un repository"
 
-#: mintcare/backup.py:271
+#: mintcare/backup.py:289
 msgid "Type a password first"
 msgstr "Scrivi prima una password"
 
-#: mintcare/backup.py:364
+#: mintcare/backup.py:382
 msgid "This isn't a MintCare settings file"
 msgstr "Questo non è un file di impostazioni di MintCare"
 
@@ -2186,10 +2192,10 @@ msgstr "Ricorda la scelta"
 
 #: mintcare/gui.py:1043 mintcare/gui.py:1187 mintcare/gui.py:1241
 #: mintcare/gui.py:3417 mintcare/gui.py:4737 mintcare/gui_backup.py:124
-#: mintcare/gui_backup.py:353 mintcare/gui_backup.py:412
-#: mintcare/gui_backup.py:425 mintcare/gui_space.py:94
+#: mintcare/gui_backup.py:355 mintcare/gui_backup.py:414
+#: mintcare/gui_backup.py:427 mintcare/gui_space.py:94
 #: mintcare/gui_space.py:253 mintcare/gui_space.py:304
-#: mintcare/gui_space.py:625
+#: mintcare/gui_space.py:626
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -2266,7 +2272,7 @@ msgstr "Avvio nell'area di notifica all'accesso: disattivato"
 msgid "Start in tray at login: on"
 msgstr "Avvio nell'area di notifica all'accesso: attivato"
 
-#: mintcare/gui.py:1187 mintcare/gui_backup.py:412
+#: mintcare/gui.py:1187 mintcare/gui_backup.py:414
 msgid "Export"
 msgstr "Esporta"
 
@@ -5525,86 +5531,86 @@ msgstr "Impossibile ripristinare {0}: {1}"
 msgid "Restored {0}"
 msgstr "{0} ripristinato"
 
-#: mintcare/gui_backup.py:313
+#: mintcare/gui_backup.py:315
 #, python-brace-format
 msgid "Restored {0} from the backup of {1}"
 msgstr "{0} ripristinato dal backup del {1}"
 
-#: mintcare/gui_backup.py:314
+#: mintcare/gui_backup.py:316
 #, python-brace-format
 msgid "Restore finished with {0} problem(s) — see the Activity log"
 msgstr "Ripristino terminato con {0} problema/i — vedi il Registro attività"
 
-#: mintcare/gui_backup.py:315
+#: mintcare/gui_backup.py:317
 msgid "Restore finished"
 msgstr "Ripristino terminato"
 
-#: mintcare/gui_backup.py:316 mintcare/gui_space.py:653
+#: mintcare/gui_backup.py:318 mintcare/gui_space.py:655
 msgid "Restoring…"
 msgstr "Ripristino…"
 
-#: mintcare/gui_backup.py:330
+#: mintcare/gui_backup.py:332
 #, python-brace-format
 msgid "Backup timer: {0}"
 msgstr "Timer di backup: {0}"
 
-#: mintcare/gui_backup.py:338
+#: mintcare/gui_backup.py:340
 msgid "Choose a destination first"
 msgstr "Scegli prima una destinazione"
 
-#: mintcare/gui_backup.py:344
+#: mintcare/gui_backup.py:346
 msgid "Automatic backup turned on"
 msgstr "Backup automatico attivato"
 
-#: mintcare/gui_backup.py:347
+#: mintcare/gui_backup.py:349
 msgid "Automatic backup turned off"
 msgstr "Backup automatico disattivato"
 
-#: mintcare/gui_backup.py:353
+#: mintcare/gui_backup.py:355
 msgid "Choose"
 msgstr "Scegli"
 
-#: mintcare/gui_backup.py:360
+#: mintcare/gui_backup.py:362
 msgid "Choose where to keep backups"
 msgstr "Scegli dove tenere i backup"
 
-#: mintcare/gui_backup.py:368
+#: mintcare/gui_backup.py:370
 msgid "Add a folder to back up"
 msgstr "Aggiungi una cartella da salvare"
 
-#: mintcare/gui_backup.py:401
+#: mintcare/gui_backup.py:403
 #, python-brace-format
 msgid "Backup done: {0} changed file(s)"
 msgstr "Backup completato: {0} file modificato/i"
 
-#: mintcare/gui_backup.py:402
+#: mintcare/gui_backup.py:404
 #, python-brace-format
 msgid "Backup: {0}"
 msgstr "Backup: {0}"
 
-#: mintcare/gui_backup.py:409
+#: mintcare/gui_backup.py:411
 msgid "Export MintCare settings"
 msgstr "Esporta le impostazioni di MintCare"
 
-#: mintcare/gui_backup.py:419
+#: mintcare/gui_backup.py:421
 #, python-brace-format
 msgid "Exported settings and {0} optimisation(s)"
 msgstr "Esportate le impostazioni e {0} ottimizzazione/i"
 
-#: mintcare/gui_backup.py:422
+#: mintcare/gui_backup.py:424
 msgid "Import MintCare settings"
 msgstr "Importa le impostazioni di MintCare"
 
-#: mintcare/gui_backup.py:425
+#: mintcare/gui_backup.py:427
 msgid "Import"
 msgstr "Importa"
 
-#: mintcare/gui_backup.py:433
+#: mintcare/gui_backup.py:435
 #, python-brace-format
 msgid "Import failed: {0}"
 msgstr "Importazione non riuscita: {0}"
 
-#: mintcare/gui_backup.py:443
+#: mintcare/gui_backup.py:445
 #, python-brace-format
 msgid "Imported settings; {0} optimisation(s) selected — press Apply changes"
 msgstr ""
@@ -5662,7 +5668,7 @@ msgstr "Pulizia"
 msgid "Freed {0}"
 msgstr "{0} liberati"
 
-#: mintcare/gui_clean.py:123 mintcare/gui_space.py:678
+#: mintcare/gui_clean.py:123 mintcare/gui_space.py:701
 #, python-brace-format
 msgid "Freed {0} on /"
 msgstr "{0} liberati su /"
@@ -6333,7 +6339,12 @@ msgstr "Ultimo uso {0}"
 msgid "Delete selected"
 msgstr "Elimina selezionati"
 
-#: mintcare/gui_space.py:561
+#: mintcare/gui_space.py:559 mintcare/gui_space.py:670
+#: mintcare/gui_space.py:678
+msgid "Trust this drive"
+msgstr "Considerare attendibile questo disco"
+
+#: mintcare/gui_space.py:562
 msgid ""
 "Snapshots share unchanged files, so deleting one frees only what changed "
 "around it. The newest snapshot is always kept, and snapshots you gave a "
@@ -6343,59 +6354,59 @@ msgstr ""
 "ciò che è cambiato intorno a esso. Il più recente viene sempre conservato e "
 "quelli con un commento non sono mai preselezionati."
 
-#: mintcare/gui_space.py:580
+#: mintcare/gui_space.py:581
 msgid "Schedule: "
 msgstr "Pianificazione: "
 
-#: mintcare/gui_space.py:580
+#: mintcare/gui_space.py:581
 #, python-brace-format
 msgid "{0} (keeps {1})"
 msgstr "{0} (ne conserva {1})"
 
-#: mintcare/gui_space.py:583
+#: mintcare/gui_space.py:584
 msgid "No automatic schedule."
 msgstr "Nessuna pianificazione automatica."
 
-#: mintcare/gui_space.py:585
+#: mintcare/gui_space.py:586
 #, python-brace-format
 msgid "A full system copy is about {0}; later snapshots store only changes."
 msgstr ""
 "Una copia completa del sistema occupa circa {0}; gli snapshot successivi "
 "salvano solo le modifiche."
 
-#: mintcare/gui_space.py:594
+#: mintcare/gui_space.py:595
 msgid "No snapshots."
 msgstr "Nessuno snapshot."
 
-#: mintcare/gui_space.py:609
+#: mintcare/gui_space.py:610
 msgid "newest · kept"
 msgstr "il più recente · conservato"
 
-#: mintcare/gui_space.py:613
+#: mintcare/gui_space.py:614
 msgid "{0} · {1:,} files"
 msgstr "{0} · {1:,} file"
 
-#: mintcare/gui_space.py:615
+#: mintcare/gui_space.py:616
 msgid "Restore a file…"
 msgstr "Ripristina un file…"
 
-#: mintcare/gui_space.py:628
+#: mintcare/gui_space.py:629
 msgid "Restore selected"
 msgstr "Ripristina selezionati"
 
-#: mintcare/gui_space.py:639
+#: mintcare/gui_space.py:640
 #, python-brace-format
 msgid "Restore from the {0} snapshot"
 msgstr "Ripristina dallo snapshot {0}"
 
-#: mintcare/gui_space.py:648
+#: mintcare/gui_space.py:649
 #, python-brace-format
 msgid "Restore {0} file?"
 msgid_plural "Restore {0} files?"
 msgstr[0] "Ripristinare {0} file?"
 msgstr[1] "Ripristinare {0} file?"
 
-#: mintcare/gui_space.py:650
+#: mintcare/gui_space.py:651
 msgid ""
 "Each file goes back to where it was. The current version is kept beside it "
 "as NAME.~1~, so you can switch back."
@@ -6404,24 +6415,48 @@ msgstr ""
 "così puoi tornare indietro."
 
 #: mintcare/gui_space.py:653
+msgid "Restored files are owned by root and have no setuid or setgid bit."
+msgstr ""
+"I file ripristinati appartengono a root e non hanno il bit setuid né quello "
+"setgid."
+
+#: mintcare/gui_space.py:655
 msgid "Restore files from Timeshift"
 msgstr "Ripristina file da Timeshift"
 
-#: mintcare/gui_space.py:654
+#: mintcare/gui_space.py:656
 #, python-brace-format
 msgid "Restored {0} from snapshot {1}"
 msgstr "{0} ripristinato dallo snapshot {1}"
 
-#: mintcare/gui_space.py:660
+#: mintcare/gui_space.py:662
+msgid "Mount the Timeshift backup drive first, then trust it."
+msgstr ""
+"Montare prima il disco di backup di Timeshift, poi considerarlo attendibile."
+
+#: mintcare/gui_space.py:671
+#, python-brace-format
+msgid ""
+"Only the drive with serial {0} will be used for Timeshift file restores. "
+"Trust it?"
+msgstr ""
+"Per il ripristino di file da Timeshift verrà usato solo il disco con numero "
+"di serie {0}. Considerarlo attendibile?"
+
+#: mintcare/gui_space.py:677
+msgid "This drive is now trusted for Timeshift file restores."
+msgstr "Questo disco è ora attendibile per il ripristino di file da Timeshift."
+
+#: mintcare/gui_space.py:683
 msgid "Tick the snapshots you want to delete first"
 msgstr "Spunta prima gli snapshot da eliminare"
 
-#: mintcare/gui_space.py:667
+#: mintcare/gui_space.py:690
 #, python-brace-format
 msgid "Delete {0} Timeshift snapshot(s)?"
 msgstr "Eliminare {0} snapshot di Timeshift?"
 
-#: mintcare/gui_space.py:668
+#: mintcare/gui_space.py:691
 msgid ""
 "\n"
 "\n"
@@ -6431,21 +6466,21 @@ msgstr ""
 "\n"
 "Non si può annullare; non potrai più tornare a questi punti."
 
-#: mintcare/gui_space.py:671
+#: mintcare/gui_space.py:694
 #, python-brace-format
 msgid "Delete snapshot {0}"
 msgstr "Elimina lo snapshot {0}"
 
-#: mintcare/gui_space.py:676
+#: mintcare/gui_space.py:699
 msgid "Snapshot clean-up"
 msgstr "Pulizia degli snapshot"
 
-#: mintcare/gui_space.py:679
+#: mintcare/gui_space.py:702
 #, python-brace-format
 msgid "Deleted {0} snapshot(s), freed {1}"
 msgstr "{0} snapshot eliminato/i, {1} liberati"
 
-#: mintcare/gui_space.py:681
+#: mintcare/gui_space.py:704
 msgid "Deleting snapshots…"
 msgstr "Eliminazione degli snapshot…"
 
@@ -7642,7 +7677,9 @@ msgstr "Questa versione non ha un .deb allegato"
 
 #: mintcare/selfupdate.py:169
 msgid "The download is bigger than the release says — not installing it"
-msgstr "Il file scaricato è più grande di quanto indica la versione — non viene installato"
+msgstr ""
+"Il file scaricato è più grande di quanto indica la versione — non viene "
+"installato"
 
 #: mintcare/selfupdate.py:191
 msgid "Downloaded file does not match the release checksum — not installing it"
@@ -7695,24 +7732,55 @@ msgstr ""
 msgid "Test all software sources (apt-get update)"
 msgstr "Verifica tutte le sorgenti software (apt-get update)"
 
-#: mintcare/space.py:142
+#: mintcare/space.py:144
 msgid "Folders are nested too deeply to scan."
 msgstr "Le cartelle sono annidate troppo in profondità per essere analizzate."
 
-#: mintcare/space.py:325
+#: mintcare/space.py:327
 msgid "Timeshift is not set up."
 msgstr "Timeshift non è configurato."
 
-#: mintcare/space.py:327
+#: mintcare/space.py:329
 msgid "BTRFS snapshots are managed inside Timeshift."
 msgstr "Gli snapshot BTRFS sono gestiti dentro Timeshift."
 
-#: mintcare/space.py:330
+#: mintcare/space.py:332
 msgid ""
 "The Timeshift backup drive isn't mounted, so snapshots can't be listed here."
 msgstr ""
 "Il disco di backup di Timeshift non è montato, quindi gli snapshot non "
 "possono essere elencati qui."
+
+#: mintcare/space.py:383
+msgid "The backup drive isn't the one you trusted, so nothing was restored."
+msgstr ""
+"Il disco di backup non è quello attendibile, quindi non è stato ripristinato "
+"nulla.Il disco di backup di Timeshift non è montato, quindi gli snapshot non "
+"possono essere elencati qui."
+
+#: mintcare/space.py:389
+msgid ""
+"No backup drive is trusted yet. Use Trust this drive first, then restore "
+"again."
+msgstr ""
+"Nessun disco di backup è ancora attendibile. Prima selezionare «Considerare "
+"attendibile questo disco», poi ripetere il ripristino."
+
+#: mintcare/space.py:406
+msgid "Couldn't read this drive's serial number, so it can't be trusted."
+msgstr ""
+"Impossibile leggere il numero di serie di questo disco, quindi non può "
+"essere considerato attendibile."
+
+#: mintcare/space.py:438
+#, python-brace-format
+msgid "{0} has the setuid or setgid bit set, so it is not restored."
+msgstr "{0} ha il bit setuid o setgid attivo, quindi non viene ripristinato."
+
+#: mintcare/space.py:440
+#, python-brace-format
+msgid "{0} has file capabilities set, so it is not restored."
+msgstr "{0} ha le capacità del file attive, quindi non viene ripristinato."
 
 #: mintcare/theme.py:41
 msgid "Dark"
