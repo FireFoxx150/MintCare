@@ -11,7 +11,8 @@ import unittest
 PKG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mintcare")
 CLASSES = {"gui.py": "MintCareWindow", "gui_space.py": "SpacePage", "gui_clean.py": "CleanPage",
            "gui_backup.py": "BackupPage", "gui_maintenance.py": "MaintenancePage",
-           "gui_hardware.py": "HardwarePage", "gui_security.py": "SecurityPage"}
+           "gui_hardware.py": "HardwarePage", "gui_security.py": "SecurityPage",
+           "gui_troubleshoot.py": "TroubleshootPage"}
 
 
 class WindowMethodNames(unittest.TestCase):
