@@ -223,8 +223,8 @@ from .gui_flatpak import FlatpakPage  # noqa: E402
 
 
 class MintCareWindow(SpacePage, CleanPage, BackupPage, MaintenancePage, HardwarePage, SecurityPage,
-                     TroubleshootPage, StartupPage, PackagesPage, ProcessesPage, FlatpakPage, SoftwarePage, OptimisePage, DiagnosePage, DashboardPage, LogPage,
-                     Gtk.ApplicationWindow):
+                     TroubleshootPage, StartupPage, PackagesPage, ProcessesPage, FlatpakPage, SoftwarePage,
+                     OptimisePage, DiagnosePage, DashboardPage, LogPage, Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title="MintCare")
         css(self, "mintcare")
