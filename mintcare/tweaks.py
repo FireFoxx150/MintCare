@@ -457,6 +457,19 @@ systemctl daemon-reload""",
         probe=lambda: bool(_microcode_pkg()) and pkg_installed(_microcode_pkg()),
         apply=f"DEBIAN_FRONTEND=noninteractive apt-get install -y {_microcode_pkg() or 'true'}",
         recommended=True, available=lambda: _microcode_pkg() is not None),
+    sysctl_tweak(
+        "hardening", _("Kernel network and file hardening"), _("Security"),
+        _("Settings Lynis suggests that do not break VPNs, Docker or drivers: stop sending ICMP "
+        "redirects, refuse source-routed packets, log impossible addresses, protect FIFOs in "
+        "shared folders and add the process ID to core dump names."),
+        [("net.ipv4.conf.all.send_redirects", "0", "="),
+         ("net.ipv4.conf.default.send_redirects", "0", "="),
+         ("net.ipv4.conf.all.accept_source_route", "0", "="),
+         ("net.ipv4.conf.default.accept_source_route", "0", "="),
+         ("net.ipv4.conf.all.log_martians", "1", "="),
+         ("net.ipv4.conf.default.log_martians", "1", "="),
+         ("fs.protected_fifos", "2", ">="),
+         ("kernel.core_uses_pid", "1", "=")]),
 
     # ------------------------------------------------------------- Storage+
     Tweak(

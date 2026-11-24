@@ -207,6 +207,13 @@ class SysctlCompare(unittest.TestCase):
         self.assertIn("/etc/sysctl.d/99-mintcare-bbr.conf", t.apply)
         self.assertIn("sysctl -q -p /var/lib/mintcare/sysctl-bbr.bak", t.revert)
 
+    def test_hardening_leaves_out_settings_that_break_things(self):
+        keys = tweaks.BY_ID["hardening"].apply
+        for risky in ("modules_disabled", "ip_forward", "conf.all.forwarding", "kernel.sysrq", "rp_filter"):
+            self.assertNotIn(risky, keys)
+        self.assertIn("net.ipv4.conf.all.send_redirects = 0", keys)
+        self.assertIn("fs.protected_fifos = 2", keys)
+
 
 class RootCopies(unittest.TestCase):
     """runner.ROOT_RUN and packaging/mintcare-root hold the same batch logic (the helper cannot import the

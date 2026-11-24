@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: MintCare 1.8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-23 11:44+0000\n"
+"POT-Creation-Date: 2026-11-24 09:22+0000\n"
 "PO-Revision-Date: 2026-10-15 21:01+0100\n"
 "Last-Translator: Matthew Allwood <matthewallwood@protonmail.com>\n"
 "Language-Team: German\n"
@@ -1143,7 +1143,7 @@ msgstr "Speicherplatz"
 #: mintcare/checks.py:693 mintcare/checks.py:694 mintcare/checks.py:695
 #: mintcare/checks.py:696 mintcare/checks.py:697 mintcare/checks.py:698
 #: mintcare/tweaks.py:386 mintcare/tweaks.py:393 mintcare/tweaks.py:408
-#: mintcare/tweaks.py:463
+#: mintcare/tweaks.py:476
 msgid "Storage"
 msgstr "Speicher"
 
@@ -1223,7 +1223,7 @@ msgstr "Firewall"
 #: mintcare/checks.py:708 mintcare/checks.py:709 mintcare/checks.py:710
 #: mintcare/checks.py:711 mintcare/checks.py:712 mintcare/gui.py:38
 #: mintcare/gui.py:99 mintcare/gui.py:1960 mintcare/tweaks.py:440
-#: mintcare/tweaks.py:447 mintcare/tweaks.py:455
+#: mintcare/tweaks.py:447 mintcare/tweaks.py:455 mintcare/tweaks.py:461
 msgid "Security"
 msgstr "Sicherheit"
 
@@ -2566,8 +2566,8 @@ msgstr ""
 "protokolliert seine Änderungen in <tt>/var/lib/mintcare</tt>, sodass jede "
 "Optimierung auf der Seite Optimieren wieder abgeschaltet werden kann."
 
-#: mintcare/gui.py:1615 mintcare/report.py:53 mintcare/tweaks.py:628
-#: mintcare/tweaks.py:634
+#: mintcare/gui.py:1615 mintcare/report.py:53 mintcare/tweaks.py:641
+#: mintcare/tweaks.py:647
 msgid "Desktop"
 msgstr "Arbeitsfläche"
 
@@ -4049,7 +4049,10 @@ msgid ""
 "These programs of yours have used almost no processor time for a while but "
 "still hold memory. Ending one closes it, and unsaved work in it will be "
 "lost. Untick anything you want to keep."
-msgstr "Diese Programme von dir nutzen seit einer Weile kaum Prozessorzeit, belegen aber weiterhin Speicher. Beenden schließt das Programm, ungespeicherte Arbeit geht verloren. Entferne den Haken bei allem, was du behalten willst."
+msgstr ""
+"Diese Programme von dir nutzen seit einer Weile kaum Prozessorzeit, belegen "
+"aber weiterhin Speicher. Beenden schließt das Programm, ungespeicherte "
+"Arbeit geht verloren. Entferne den Haken bei allem, was du behalten willst."
 
 #: mintcare/gui.py:3468
 #, python-brace-format
@@ -4075,7 +4078,9 @@ msgstr[1] "{0} Programme laufen noch"
 msgid ""
 "They didn't close when asked: {0}. 'Force end' stops them straight away; "
 "unsaved work in them will be lost."
-msgstr "Sie haben sich auf Anfrage nicht geschlossen: {0}. „Beenden erzwingen“ stoppt sie sofort; ungespeicherte Arbeit geht verloren."
+msgstr ""
+"Sie haben sich auf Anfrage nicht geschlossen: {0}. „Beenden erzwingen“ "
+"stoppt sie sofort; ungespeicherte Arbeit geht verloren."
 
 #: mintcare/gui.py:3511
 msgid "Force end"
@@ -7543,7 +7548,8 @@ msgstr "Ein Kernel-Thread — Teil von Linux selbst."
 
 #: mintcare/processes.py:212
 msgid "Another copy of this program is running; this older copy has been idle"
-msgstr "Eine weitere Kopie dieses Programms läuft; diese ältere Kopie war untätig"
+msgstr ""
+"Eine weitere Kopie dieses Programms läuft; diese ältere Kopie war untätig"
 
 #: mintcare/processes.py:214
 #, python-brace-format
@@ -8197,7 +8203,7 @@ msgstr ""
 "Schaltet die wöchentliche Automatik der Aktualisierungsverwaltung ein, die "
 "veraltete Kernel und verwaiste Pakete entfernt."
 
-#: mintcare/tweaks.py:418 mintcare/tweaks.py:431 mintcare/tweaks.py:487
+#: mintcare/tweaks.py:418 mintcare/tweaks.py:431 mintcare/tweaks.py:500
 msgid "Boot & Services"
 msgstr "Start & Dienste"
 
@@ -8253,11 +8259,23 @@ msgstr ""
 "Installiert das Microcode-Paket des Herstellers: behebt CPU-Fehler und "
 "Sicherheitslücken."
 
-#: mintcare/tweaks.py:463
+#: mintcare/tweaks.py:461
+msgid "Kernel network and file hardening"
+msgstr "Kernel-Härtung für Netzwerk und Dateien"
+
+#: mintcare/tweaks.py:462
+msgid ""
+"Settings Lynis suggests that do not break VPNs, Docker or drivers: stop "
+"sending ICMP redirects, refuse source-routed packets, log impossible "
+"addresses, protect FIFOs in shared folders and add the process ID to core "
+"dump names."
+msgstr "Von Lynis empfohlene Einstellungen, die VPNs, Docker und Treiber nicht beeinträchtigen: keine ICMP-Umleitungen mehr senden, quellgeroutete Pakete ablehnen, unmögliche Adressen protokollieren, FIFOs in gemeinsamen Ordnern schützen und die Prozess-ID an die Namen von Core-Dumps anhängen."
+
+#: mintcare/tweaks.py:476
 msgid "Best I/O scheduler per drive"
 msgstr "Bester E/A-Scheduler je Laufwerk"
 
-#: mintcare/tweaks.py:464
+#: mintcare/tweaks.py:477
 msgid ""
 "NVMe: none · SATA SSD: mq-deadline · hard drives: BFQ. BFQ keeps the desktop "
 "responsive while a hard drive is busy copying or indexing."
@@ -8265,11 +8283,11 @@ msgstr ""
 "NVMe: none · SATA-SSD: mq-deadline · Festplatten: BFQ. BFQ hält die "
 "Arbeitsfläche flüssig, während eine Festplatte kopiert oder indiziert."
 
-#: mintcare/tweaks.py:487
+#: mintcare/tweaks.py:500
 msgid "Faster boot menu (GRUB)"
 msgstr "Schnelleres Startmenü (GRUB)"
 
-#: mintcare/tweaks.py:488
+#: mintcare/tweaks.py:501
 msgid ""
 "After a crash or power cut Ubuntu-based systems show the GRUB menu for 30 s. "
 "This cuts that to 5 s and keeps the normal menu short (2 s, or 3 s when dual-"
@@ -8281,17 +8299,17 @@ msgstr ""
 "oder 3 s bei Dual-Boot). Nutzt eine Zusatzdatei; /etc/default/grub wird "
 "nicht bearbeitet und grub.cfg vorher gesichert."
 
-#: mintcare/tweaks.py:499 mintcare/tweaks.py:504 mintcare/tweaks.py:514
-#: mintcare/tweaks.py:530 mintcare/tweaks.py:537 mintcare/tweaks.py:547
-#: mintcare/tweaks.py:661
+#: mintcare/tweaks.py:512 mintcare/tweaks.py:517 mintcare/tweaks.py:527
+#: mintcare/tweaks.py:543 mintcare/tweaks.py:550 mintcare/tweaks.py:560
+#: mintcare/tweaks.py:674
 msgid "Gaming"
 msgstr "Spiele"
 
-#: mintcare/tweaks.py:499
+#: mintcare/tweaks.py:512
 msgid "Raise vm.max_map_count"
 msgstr "vm.max_map_count erhöhen"
 
-#: mintcare/tweaks.py:500
+#: mintcare/tweaks.py:513
 msgid ""
 "Raise the memory-map limit to SteamOS's value. Prevents crashes in some "
 "Proton/Steam games (e.g. CS2, Hogwarts Legacy)."
@@ -8299,11 +8317,11 @@ msgstr ""
 "Hebt das Speicherabbildungs-Limit auf den Wert von SteamOS an. Verhindert "
 "Abstürze in einigen Proton-/Steam-Spielen (z. B. CS2, Hogwarts Legacy)."
 
-#: mintcare/tweaks.py:504
+#: mintcare/tweaks.py:517
 msgid "Feral GameMode"
 msgstr "Feral GameMode"
 
-#: mintcare/tweaks.py:505
+#: mintcare/tweaks.py:518
 msgid ""
 "Temporarily boosts CPU/GPU performance while a game runs. Also adds you to "
 "the 'gamemode' group, which GameMode needs to switch CPU governors (log out "
@@ -8314,11 +8332,11 @@ msgstr ""
 "CPU-Governors braucht (danach ab- und wieder anmelden). Spiele starten mit: "
 "gamemoderun %command%"
 
-#: mintcare/tweaks.py:514
+#: mintcare/tweaks.py:527
 msgid "GameMode performance profile"
 msgstr "GameMode-Leistungsprofil"
 
-#: mintcare/tweaks.py:515
+#: mintcare/tweaks.py:528
 msgid ""
 "While gaming: performance CPU governor, higher process and I/O priority, "
 "screensaver blocked"
@@ -8326,15 +8344,15 @@ msgstr ""
 "Beim Spielen: CPU-Governor performance, höhere Prozess- und E/A-Priorität, "
 "Bildschirmschoner blockiert"
 
-#: mintcare/tweaks.py:516
+#: mintcare/tweaks.py:529
 msgid ", NVIDIA 'prefer maximum performance'"
 msgstr ", NVIDIA „maximale Leistung bevorzugen“"
 
-#: mintcare/tweaks.py:530
+#: mintcare/tweaks.py:543
 msgid "MangoHud + GOverlay"
 msgstr "MangoHud + GOverlay"
 
-#: mintcare/tweaks.py:531
+#: mintcare/tweaks.py:544
 msgid ""
 "In-game overlay for FPS, frame times, temperatures and load, plus GOverlay "
 "to configure it. Launch games with: mangohud %command%"
@@ -8342,11 +8360,11 @@ msgstr ""
 "Einblendung im Spiel für FPS, Bildzeiten, Temperaturen und Last, dazu "
 "GOverlay zum Einrichten. Spiele starten mit: mangohud %command%"
 
-#: mintcare/tweaks.py:537
+#: mintcare/tweaks.py:550
 msgid "Steam (with Proton)"
 msgstr "Steam (mit Proton)"
 
-#: mintcare/tweaks.py:538
+#: mintcare/tweaks.py:551
 msgid ""
 "Installs Steam from Flathub plus controller udev rules (steam-devices). "
 "Proton lets Steam run most Windows games; Steam asks you to accept its "
@@ -8356,11 +8374,11 @@ msgstr ""
 "devices). Mit Proton laufen die meisten Windows-Spiele in Steam; Steam "
 "bittet beim ersten Start, die Lizenz anzunehmen."
 
-#: mintcare/tweaks.py:547
+#: mintcare/tweaks.py:560
 msgid "ProtonUp-Qt (Proton-GE manager)"
 msgstr "ProtonUp-Qt (Proton-GE-Verwaltung)"
 
-#: mintcare/tweaks.py:548
+#: mintcare/tweaks.py:561
 msgid ""
 "Installs and updates community Proton builds such as Proton-GE, which fix "
 "videos and compatibility in many games."
@@ -8368,16 +8386,16 @@ msgstr ""
 "Installiert und aktualisiert Community-Versionen von Proton wie Proton-GE, "
 "die Videos und Kompatibilität in vielen Spielen verbessern."
 
-#: mintcare/tweaks.py:557 mintcare/tweaks.py:562 mintcare/tweaks.py:569
-#: mintcare/tweaks.py:668
+#: mintcare/tweaks.py:570 mintcare/tweaks.py:575 mintcare/tweaks.py:582
+#: mintcare/tweaks.py:681
 msgid "Developer"
 msgstr "Entwicklung"
 
-#: mintcare/tweaks.py:557
+#: mintcare/tweaks.py:570
 msgid "More file watchers"
 msgstr "Mehr Dateiüberwachungen"
 
-#: mintcare/tweaks.py:558
+#: mintcare/tweaks.py:571
 msgid ""
 "Raise inotify limits so VS Code, IDEs and dev servers can watch large "
 "projects."
@@ -8385,11 +8403,11 @@ msgstr ""
 "Erhöht die inotify-Limits, damit VS Code, IDEs und Entwicklungsserver große "
 "Projekte überwachen können."
 
-#: mintcare/tweaks.py:562
+#: mintcare/tweaks.py:575
 msgid "Install Nala (faster apt front-end)"
 msgstr "Nala installieren (schnellere apt-Oberfläche)"
 
-#: mintcare/tweaks.py:563
+#: mintcare/tweaks.py:576
 msgid ""
 "Nala downloads packages in parallel and shows clearer output. Use 'nala' "
 "anywhere you would type 'apt'."
@@ -8397,11 +8415,11 @@ msgstr ""
 "Nala lädt Pakete parallel herunter und zeigt eine klarere Ausgabe. Verwenden "
 "Sie „nala“ überall, wo Sie „apt“ tippen würden."
 
-#: mintcare/tweaks.py:569
+#: mintcare/tweaks.py:582
 msgid "Install essential tools"
 msgstr "Wichtige Werkzeuge installieren"
 
-#: mintcare/tweaks.py:570
+#: mintcare/tweaks.py:583
 msgid ""
 "build-essential, curl, git, htop, btop, unzip and fastfetch (where "
 "available)."
@@ -8409,16 +8427,16 @@ msgstr ""
 "build-essential, curl, git, htop, btop, unzip und fastfetch (sofern "
 "verfügbar)."
 
-#: mintcare/tweaks.py:578 mintcare/tweaks.py:586 mintcare/tweaks.py:603
-#: mintcare/tweaks.py:616
+#: mintcare/tweaks.py:591 mintcare/tweaks.py:599 mintcare/tweaks.py:616
+#: mintcare/tweaks.py:629
 msgid "Laptop"
 msgstr "Laptop"
 
-#: mintcare/tweaks.py:578
+#: mintcare/tweaks.py:591
 msgid "Remove TLP / power-profiles conflict"
 msgstr "Konflikt TLP / power-profiles beheben"
 
-#: mintcare/tweaks.py:579
+#: mintcare/tweaks.py:592
 msgid ""
 "Having both TLP and power-profiles-daemon running causes erratic power "
 "management. This removes TLP and keeps Mint's power-profiles-daemon."
@@ -8427,11 +8445,11 @@ msgstr ""
 "Energieverwaltung sprunghaft. Dies entfernt TLP und behält Mints power-"
 "profiles-daemon."
 
-#: mintcare/tweaks.py:586
+#: mintcare/tweaks.py:599
 msgid "Battery charge limit"
 msgstr "Ladegrenze des Akkus"
 
-#: mintcare/tweaks.py:587
+#: mintcare/tweaks.py:600
 msgid ""
 "Stop charging at the level in the box to help the battery last longer when "
 "the laptop lives on the charger. Switch the tweak off and on again after "
@@ -8442,11 +8460,11 @@ msgstr ""
 "Stands aus und wieder ein. Erscheint nur, wenn die Firmware des Akkus das "
 "unterstützt."
 
-#: mintcare/tweaks.py:603
+#: mintcare/tweaks.py:616
 msgid "Power saver on battery"
 msgstr "Energiesparen im Akkubetrieb"
 
-#: mintcare/tweaks.py:604
+#: mintcare/tweaks.py:617
 msgid ""
 "Switch to the power-saver profile when you unplug and back to balanced when "
 "you plug in (power-profiles-daemon)."
@@ -8454,11 +8472,11 @@ msgstr ""
 "Wechselt beim Abstecken zum Energiesparprofil und beim Anstecken zurück zu "
 "Ausgeglichen (power-profiles-daemon)."
 
-#: mintcare/tweaks.py:616
+#: mintcare/tweaks.py:629
 msgid "PCIe power saving (ASPM)"
 msgstr "PCIe-Energiesparen (ASPM)"
 
-#: mintcare/tweaks.py:617
+#: mintcare/tweaks.py:630
 msgid ""
 "Let PCIe devices (Wi-Fi, NVMe, GPU links) drop into low-power states when "
 "idle. Typically saves 0.5–2 W. If a device misbehaves, switch this off."
@@ -8467,11 +8485,11 @@ msgstr ""
 "Stromsparzustände wechseln. Spart meist 0,5–2 W. Macht ein Gerät Probleme, "
 "schalten Sie es ab."
 
-#: mintcare/tweaks.py:628
+#: mintcare/tweaks.py:641
 msgid "Turn off desktop effects"
 msgstr "Desktop-Effekte abschalten"
 
-#: mintcare/tweaks.py:629
+#: mintcare/tweaks.py:642
 msgid ""
 "Windows open, close, minimise and switch workspaces instantly instead of "
 "animating. Snappier on older or busy PCs. Applies to your account straight "
@@ -8481,11 +8499,11 @@ msgstr ""
 "sofort statt animiert. Flüssiger auf älteren oder ausgelasteten PCs. Gilt "
 "sofort für Ihr Konto, ohne Passwort."
 
-#: mintcare/tweaks.py:634
+#: mintcare/tweaks.py:647
 msgid "Full-screen games skip the compositor"
 msgstr "Vollbildspiele umgehen den Compositor"
 
-#: mintcare/tweaks.py:635
+#: mintcare/tweaks.py:648
 msgid ""
 "Lets full-screen games and videos draw straight to the screen, which raises "
 "frame rates and cuts input lag. Some videos may tear slightly."
@@ -8494,18 +8512,18 @@ msgstr ""
 "Bildrate erhöht und die Eingabeverzögerung senkt. Manche Videos können "
 "leicht reißen."
 
-#: mintcare/tweaks.py:659
+#: mintcare/tweaks.py:672
 msgid "Everyday desktop"
 msgstr "Alltags-Desktop"
 
-#: mintcare/tweaks.py:660
+#: mintcare/tweaks.py:673
 msgid ""
 "Faster networking, zram, SSD care, firewall, tidy logs and a quick boot menu."
 msgstr ""
 "Schnelleres Netzwerk, zram, SSD-Pflege, Firewall, aufgeräumte Protokolle und "
 "ein schnelles Startmenü."
 
-#: mintcare/tweaks.py:662
+#: mintcare/tweaks.py:675
 msgid ""
 "Everyday tweaks plus GameMode, MangoHud, Steam with Proton and the SteamOS "
 "memory-map limit."
@@ -8513,11 +8531,11 @@ msgstr ""
 "Alltags-Optimierungen plus GameMode, MangoHud, Steam mit Proton und das "
 "Speicherabbildungs-Limit von SteamOS."
 
-#: mintcare/tweaks.py:665
+#: mintcare/tweaks.py:678
 msgid "Laptop battery"
 msgstr "Laptop-Akku"
 
-#: mintcare/tweaks.py:666
+#: mintcare/tweaks.py:679
 msgid ""
 "Everyday tweaks plus charge limiting, power saver on battery and PCIe power "
 "saving."
@@ -8525,7 +8543,7 @@ msgstr ""
 "Alltags-Optimierungen plus Ladegrenze, Energiesparen im Akkubetrieb und PCIe-"
 "Energiesparen."
 
-#: mintcare/tweaks.py:669
+#: mintcare/tweaks.py:682
 msgid "Everyday tweaks plus large file-watcher limits, Nala and build tools."
 msgstr ""
 "Alltags-Optimierungen plus hohe Dateiüberwachungs-Limits, Nala und Build-"
