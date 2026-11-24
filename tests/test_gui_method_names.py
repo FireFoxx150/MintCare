@@ -18,7 +18,8 @@ CLASSES = {"gui.py": "MintCareWindow", "gui_space.py": "SpacePage", "gui_clean.p
            "gui_software.py": "SoftwarePage",
            "gui_optimise.py": "OptimisePage",
            "gui_diagnose.py": "DiagnosePage",
-           "gui_dashboard.py": "DashboardPage"}
+           "gui_dashboard.py": "DashboardPage",
+           "gui_log.py": "LogPage"}
 
 
 class WindowMethodNames(unittest.TestCase):
