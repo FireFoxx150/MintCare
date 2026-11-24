@@ -1,3 +1,13 @@
+mintcare (1.12.19) noble; urgency=medium
+
+  * Optimise: new Kernel network and file hardening tweak under Security.
+    It applies the Lynis sysctl suggestions that do not break VPNs, Docker
+    or drivers: no ICMP redirects, no source-routed packets, logging of
+    impossible addresses, protected FIFOs in shared folders and the process
+    ID in core dump names. Revert restores the previous values.
+
+ -- Matthew Allwood <matthewallwood@protonmail.com>  Tue, 24 Nov 2026 10:11:53 +0000
+
 mintcare (1.12.18) noble; urgency=medium
 
   * Processes: new Find memory wasters button. It lists your own programs
